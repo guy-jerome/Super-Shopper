@@ -2,6 +2,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 
 export interface Database {
   public: {
+    Views: { [_ in never]: { Row: Record<string, unknown>; Relationships: [] } };
+    Functions: { [_ in never]: { Args: Record<string, unknown>; Returns: unknown } };
     Tables: {
       storage_locations: {
         Row: {
@@ -14,6 +16,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['storage_locations']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['storage_locations']['Insert']>;
+        Relationships: [];
       };
       store_profiles: {
         Row: {
@@ -25,6 +28,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['store_profiles']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['store_profiles']['Insert']>;
+        Relationships: [];
       };
       aisles: {
         Row: {
@@ -38,6 +42,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['aisles']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['aisles']['Insert']>;
+        Relationships: [];
       };
       items: {
         Row: {
@@ -48,8 +53,9 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['items']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Insert: Omit<Database['public']['Tables']['items']['Row'], 'id' | 'created_at' | 'updated_at' | 'home_location_id'> & { home_location_id?: string | null };
         Update: Partial<Database['public']['Tables']['items']['Insert']>;
+        Relationships: [];
       };
       item_store_locations: {
         Row: {
@@ -61,6 +67,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['item_store_locations']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['item_store_locations']['Insert']>;
+        Relationships: [];
       };
       shopping_list: {
         Row: {
@@ -73,8 +80,9 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['shopping_list']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Insert: Omit<Database['public']['Tables']['shopping_list']['Row'], 'id' | 'created_at' | 'updated_at' | 'checked'> & { checked?: boolean };
         Update: Partial<Database['public']['Tables']['shopping_list']['Insert']>;
+        Relationships: [];
       };
       shopping_notes: {
         Row: {
@@ -84,8 +92,9 @@ export interface Database {
           content: string | null;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['shopping_notes']['Row'], 'id'>;
+        Insert: Omit<Database['public']['Tables']['shopping_notes']['Row'], 'id' | 'updated_at'> & { updated_at?: string };
         Update: Partial<Database['public']['Tables']['shopping_notes']['Insert']>;
+        Relationships: [];
       };
       shared_lists: {
         Row: {
@@ -97,6 +106,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['shared_lists']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['shared_lists']['Insert']>;
+        Relationships: [];
       };
     };
   };

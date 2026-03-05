@@ -1,9 +1,43 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import type { ShoppingListItem, StoreProfile, ShopMode } from '../types/app.types';
 
+const CURRENT_STORE_KEY = 'super-shopper:currentStore';
+
+async function loadCurrentStore(): Promise<StoreProfile | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CURRENT_STORE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveCurrentStore(store: StoreProfile | null): Promise<void> {
+  try {
+    if (store) {
+      await AsyncStorage.setItem(CURRENT_STORE_KEY, JSON.stringify(store));
+    } else {
+      await AsyncStorage.removeItem(CURRENT_STORE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export type StoreLocation = {
+  aisle_id: string;
+  aisles: { id: string; name: string; order_index: number; store_id: string };
+};
+
+export type ShoppingListItemWithName = ShoppingListItem & {
+  item_name: string;
+  store_locations: StoreLocation[];
+};
+
 interface ShoppingStore {
-  shoppingList: ShoppingListItem[];
+  shoppingList: ShoppingListItemWithName[];
   notes: string;
   currentStore: StoreProfile | null;
   mode: ShopMode;
@@ -19,7 +53,7 @@ interface ShoppingStore {
   clearCheckedItems: () => Promise<void>;
 }
 
-export const useShoppingStore = create<ShoppingStore>((set, get) => ({
+export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
   shoppingList: [],
   notes: '',
   currentStore: null,
@@ -27,18 +61,27 @@ export const useShoppingStore = create<ShoppingStore>((set, get) => ({
   isLoading: false,
 
   setMode: (mode) => set({ mode }),
-  setCurrentStore: (store) => set({ currentStore: store }),
+
+  setCurrentStore: (store) => {
+    set({ currentStore: store });
+    saveCurrentStore(store);
+  },
 
   fetchShoppingList: async (userId, date) => {
     set({ isLoading: true });
     const { data, error } = await supabase
       .from('shopping_list')
-      .select('*')
+      .select('*, items(name, item_store_locations(aisle_id, aisles(id, name, order_index, store_id)))')
       .eq('user_id', userId)
       .eq('shopping_date', date);
 
     if (!error && data) {
-      set({ shoppingList: data });
+      const withNames = (data as any[]).map((row) => ({
+        ...row,
+        item_name: row.items?.name ?? '',
+        store_locations: row.items?.item_store_locations ?? [],
+      })) as ShoppingListItemWithName[];
+      set({ shoppingList: withNames });
     }
     set({ isLoading: false });
   },
@@ -48,11 +91,16 @@ export const useShoppingStore = create<ShoppingStore>((set, get) => ({
     const { data, error } = await supabase
       .from('shopping_list')
       .insert({ user_id: userId, item_id: itemId, quantity, shopping_date: date })
-      .select()
+      .select('*, items(name, item_store_locations(aisle_id, aisles(id, name, order_index, store_id)))')
       .single();
 
     if (!error && data) {
-      set((state) => ({ shoppingList: [...state.shoppingList, data] }));
+      const withName: ShoppingListItemWithName = {
+        ...(data as any),
+        item_name: (data as any).items?.name ?? '',
+        store_locations: (data as any).items?.item_store_locations ?? [],
+      };
+      set((state) => ({ shoppingList: [...state.shoppingList, withName] }));
     }
   },
 
@@ -103,3 +151,10 @@ export const useShoppingStore = create<ShoppingStore>((set, get) => ({
     set((state) => ({ shoppingList: state.shoppingList.filter((i) => !i.checked) }));
   },
 }));
+
+// Hydrate currentStore from AsyncStorage on startup
+loadCurrentStore().then((store) => {
+  if (store) {
+    useShoppingStore.setState({ currentStore: store });
+  }
+});

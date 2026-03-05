@@ -14,7 +14,7 @@ export type StorageLocationWithItems = StorageLocation & {
 };
 
 export type AisleWithItems = Aisle & {
-  item_store_locations: (ItemStoreLocation & { item: Item })[];
+  item_store_locations: (ItemStoreLocation & { items: Item })[];
 };
 
 export type StoreWithAisles = StoreProfile & {

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import type { StorageLocation, Item, StorageLocationWithItems } from '../types/app.types';
+import type { StorageLocationWithItems } from '../types/app.types';
 
 interface StorageStore {
   locations: StorageLocationWithItems[];
@@ -28,7 +28,7 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
       .order('order_index', { ascending: true });
 
     if (!error && data) {
-      set({ locations: data as StorageLocationWithItems[] });
+      set({ locations: data as unknown as StorageLocationWithItems[] });
     }
     set({ isLoading: false });
   },
@@ -76,16 +76,39 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
   },
 
   addItem: async (userId, locationId, name) => {
-    const { data, error } = await supabase
+    // Reuse an existing item with the same name so store aisle links are preserved
+    const { data: existing } = await supabase
       .from('items')
-      .insert({ user_id: userId, name, home_location_id: locationId })
-      .select()
-      .single();
+      .select('*')
+      .eq('user_id', userId)
+      .ilike('name', name)
+      .is('home_location_id', null)
+      .limit(1)
+      .maybeSingle();
 
-    if (!error && data) {
+    let item;
+    if (existing) {
+      // Claim the unplaced item into this home location
+      const { data: updated } = await supabase
+        .from('items')
+        .update({ home_location_id: locationId })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      item = updated;
+    } else {
+      const { data: created } = await supabase
+        .from('items')
+        .insert({ user_id: userId, name, home_location_id: locationId })
+        .select()
+        .single();
+      item = created;
+    }
+
+    if (item) {
       set((state) => ({
         locations: state.locations.map((l) =>
-          l.id === locationId ? { ...l, items: [...l.items, data] } : l
+          l.id === locationId ? { ...l, items: [...l.items, item] } : l
         ),
       }));
     }

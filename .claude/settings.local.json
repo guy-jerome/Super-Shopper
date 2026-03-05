@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npm install expo-router @supabase/supabase-js zustand @tanstack/react-query expo-secure-store react-native-gesture-handler react-native-draggable-flatlist date-fns zod)",
-      "Bash(npx expo export --platform web)"
+      "Bash(npx expo export --platform web)",
+      "Bash(npm install)",
+      "Bash(curl -s -X GET \"https://api.supabase.com/v1/projects/orxiasrejunkmswgkrro\" -H \"Authorization: Bearer sbp_de4b2f3c4c14f9d2e755897ce53507e8121444b2\")",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/orxiasrejunkmswgkrro/database/query\" -H \"Authorization: Bearer sbp_de4b2f3c4c14f9d2e755897ce53507e8121444b2\" -H \"Content-Type: application/json\" -d '{:*)",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/orxiasrejunkmswgkrro/database/query\" -H \"Authorization: Bearer sbp_de4b2f3c4c14f9d2e755897ce53507e8121444b2\" -H \"Content-Type: application/json\" -d '{\"\"query\"\": \"\"alter table shopping_notes rename column date to shopping_date; alter table shopping_notes rename column notes to content;\"\"}')",
+      "Bash(npm install --save-dev jest-expo @testing-library/react-native @testing-library/jest-native @types/jest babel-jest --legacy-peer-deps)"
     ]
   }
 }
