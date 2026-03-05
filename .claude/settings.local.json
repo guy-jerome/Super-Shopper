@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install expo-router @supabase/supabase-js zustand @tanstack/react-query expo-secure-store react-native-gesture-handler react-native-draggable-flatlist date-fns zod)"
+      "Bash(npm install expo-router @supabase/supabase-js zustand @tanstack/react-query expo-secure-store react-native-gesture-handler react-native-draggable-flatlist date-fns zod)",
+      "Bash(npx expo export --platform web)"
     ]
   }
 }
