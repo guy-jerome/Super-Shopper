@@ -112,7 +112,7 @@ export default function ShopScreen() {
                 onPress={() => setStoreMenuVisible(true)}
                 icon="store"
               >
-                {currentStore?.name ?? 'No store'}
+                {currentStore?.name ?? 'Select store'}
               </Button>
             }
           >
@@ -204,7 +204,7 @@ export default function ShopScreen() {
             <MaterialCommunityIcons name="cart-outline" size={64} color={colors.textLight} />
             <Text variant="titleLarge" style={styles.emptyTitle}>List is empty</Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              Go to Home Storage and check items you need to buy
+              Go to Home Storage and check items you need to buy, or add items from the Items tab
             </Text>
           </View>
         ) : aisleGroups ? (
