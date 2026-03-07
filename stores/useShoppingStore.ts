@@ -51,6 +51,7 @@ interface ShoppingStore {
   updateQuantity: (id: string, quantity: number) => Promise<void>;
   updateNotes: (userId: string, date: string, notes: string) => Promise<void>;
   clearCheckedItems: () => Promise<void>;
+  markAllChecked: (ids: string[], checked: boolean) => Promise<void>;
 }
 
 export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
@@ -140,6 +141,17 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
   updateNotes: async (userId, date, notes) => {
     await supabase.from('shopping_notes').upsert({ user_id: userId, shopping_date: date, content: notes });
     set({ notes });
+  },
+
+  markAllChecked: async (ids, checked) => {
+    if (ids.length === 0) return;
+    await supabase
+      .from('shopping_list')
+      .update({ checked, updated_at: new Date().toISOString() })
+      .in('id', ids);
+    set((state) => ({
+      shoppingList: state.shoppingList.map((i) => ids.includes(i.id) ? { ...i, checked } : i),
+    }));
   },
 
   clearCheckedItems: async () => {
