@@ -41,6 +41,7 @@ export default function HomeStorageScreen() {
   const [qty, setQty] = useState(1);
   const [pendingSuggestion, setPendingSuggestion] = useState<FoodSuggestion | null>(null);
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ action: () => void; message: string } | null>(null);
 
   // Suggestions from global items that are not already in a home location
   const itemSuggestions = itemName.trim().length > 0
@@ -171,8 +172,18 @@ export default function HomeStorageScreen() {
                 isInList={isInList}
                 onToggleItem={toggleItem}
                 onAddItem={() => openAddItem(location.id)}
-                onUnlinkItem={unlinkItem}
-                onDeleteLocation={() => deleteLocation(location.id)}
+                onUnlinkItem={(itemId) => {
+                  let name = 'this item';
+                  for (const loc of locations) {
+                    const found = loc.items.find((i) => i.id === itemId);
+                    if (found) { name = found.name; break; }
+                  }
+                  setConfirmDialog({ action: () => unlinkItem(itemId), message: `Remove "${name}" from this location?` });
+                }}
+                onDeleteLocation={() => setConfirmDialog({
+                  action: () => deleteLocation(location.id),
+                  message: `Delete "${location.name}"? All items inside will be unlinked.`,
+                })}
                 onMoveLocation={(dir) => moveLocation(location.id, dir)}
                 onMoveItem={(itemId, dir) => moveItem(location.id, itemId, dir)}
                 onOpenDetail={setDetailItemId}
@@ -214,6 +225,17 @@ export default function HomeStorageScreen() {
           <Dialog.Actions>
             <Button onPress={() => { setLocationName(''); setLocationDialog(false); }}>Cancel</Button>
             <Button onPress={handleAddLocation} disabled={!locationName.trim()}>Add</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={!!confirmDialog} onDismiss={() => setConfirmDialog(null)}>
+          <Dialog.Title>Confirm Delete</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.text }}>{confirmDialog?.message}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmDialog(null)}>Cancel</Button>
+            <Button textColor={colors.error} onPress={() => { confirmDialog?.action(); setConfirmDialog(null); }}>Delete</Button>
           </Dialog.Actions>
         </Dialog>
 
