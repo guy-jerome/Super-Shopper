@@ -395,9 +395,10 @@ function LocationSection({
           />
           <View style={sectionStyles.titleText}>
             <Text variant="titleMedium" style={sectionStyles.name}>{location.name}</Text>
-            {checkedCount > 0 && (
-              <Text variant="bodySmall" style={sectionStyles.badge}>{checkedCount} on list</Text>
-            )}
+            <Text variant="bodySmall" style={sectionStyles.itemCount}>
+              {location.items.length} item{location.items.length !== 1 ? 's' : ''}
+              {checkedCount > 0 ? ` · ${checkedCount} on list` : ''}
+            </Text>
           </View>
         </TouchableOpacity>
         <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={onAddItem} />
@@ -489,6 +490,7 @@ const sectionStyles = StyleSheet.create({
   titleText: { flex: 1 },
   name: { color: colors.text, fontWeight: '600' },
   badge: { color: colors.primary },
+  itemCount: { color: colors.textLight },
   itemsContainer: { backgroundColor: colors.background },
   itemRow: {
     flexDirection: 'row',
