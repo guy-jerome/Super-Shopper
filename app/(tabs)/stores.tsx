@@ -35,6 +35,7 @@ export default function StoresScreen() {
   const [itemPositionTag, setItemPositionTag] = useState('');
   const [targetAisleId, setTargetAisleId] = useState('');
   const [expandedAisles, setExpandedAisles] = useState<Set<string>>(new Set());
+  const [confirmDialog, setConfirmDialog] = useState<{ action: () => void; message: string } | null>(null);
 
   // Suggestions from the global items list
   const localSuggestions = itemName.trim().length > 0
@@ -137,16 +138,30 @@ export default function StoresScreen() {
                 isExpanded={expandedAisles.has(aisle.id)}
                 onToggle={() => toggleAisle(aisle.id)}
                 onMoveAisle={moveAisle}
-                onDeleteAisle={deleteAisle}
+                onDeleteAisle={(id) => setConfirmDialog({ action: () => deleteAisle(id), message: `Delete aisle "${aisle.name}"? All item locations inside will be removed.` })}
                 onAddItem={openAddItem}
                 onMoveItem={moveItemInAisle}
-                onRemoveItem={removeItemFromAisle}
+                onRemoveItem={(locId) => {
+                  const item = aisle.item_store_locations.find((l: any) => l.id === locId);
+                  setConfirmDialog({ action: () => removeItemFromAisle(locId), message: `Remove "${item?.items?.name ?? 'this item'}" from this aisle?` });
+                }}
               />
             ))
           )}
         </ScrollView>
 
         <Portal>
+          <Dialog visible={!!confirmDialog} onDismiss={() => setConfirmDialog(null)}>
+            <Dialog.Title>Confirm Delete</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium" style={{ color: colors.text }}>{confirmDialog?.message}</Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setConfirmDialog(null)}>Cancel</Button>
+              <Button textColor={colors.error} onPress={() => { confirmDialog?.action(); setConfirmDialog(null); }}>Delete</Button>
+            </Dialog.Actions>
+          </Dialog>
+
           <Dialog visible={aisleDialog} onDismiss={() => setAisleDialog(false)}>
             <Dialog.Title>Add Aisle</Dialog.Title>
             <Dialog.Content>
@@ -231,7 +246,7 @@ export default function StoresScreen() {
                   icon="delete-outline"
                   size={20}
                   iconColor={colors.error}
-                  onPress={() => deleteStore(store.id)}
+                  onPress={() => setConfirmDialog({ action: () => deleteStore(store.id), message: `Delete "${store.name}"? All aisles and item locations will be removed.` })}
                 />
               </TouchableOpacity>
               <Divider />
@@ -248,6 +263,17 @@ export default function StoresScreen() {
       />
 
       <Portal>
+        <Dialog visible={!!confirmDialog} onDismiss={() => setConfirmDialog(null)}>
+          <Dialog.Title>Confirm Delete</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.text }}>{confirmDialog?.message}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmDialog(null)}>Cancel</Button>
+            <Button textColor={colors.error} onPress={() => { confirmDialog?.action(); setConfirmDialog(null); }}>Delete</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog visible={storeDialog} onDismiss={() => setStoreDialog(false)}>
           <Dialog.Title>Add Store</Dialog.Title>
           <Dialog.Content>

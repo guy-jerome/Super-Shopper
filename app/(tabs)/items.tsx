@@ -34,6 +34,7 @@ export default function ItemsScreen() {
   const [editTags, setEditTags] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [editTagList, setEditTagList] = useState<string[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -224,7 +225,7 @@ export default function ItemsScreen() {
                   icon="delete-outline"
                   size={20}
                   iconColor={colors.error}
-                  onPress={() => deleteItem(item.id)}
+                  onPress={() => setDeleteConfirm({ id: item.id, name: item.name })}
                 />
               </TouchableOpacity>
               <Divider />
@@ -265,6 +266,20 @@ export default function ItemsScreen() {
               Cancel
             </Button>
             <Button onPress={handleAddItem} disabled={!newItemName.trim()}>Add</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Delete confirm dialog */}
+        <Dialog visible={!!deleteConfirm} onDismiss={() => setDeleteConfirm(null)}>
+          <Dialog.Title>Delete Item</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.text }}>
+              Delete "{deleteConfirm?.name}"? This cannot be undone.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button textColor={colors.error} onPress={() => { deleteItem(deleteConfirm!.id); setDeleteConfirm(null); }}>Delete</Button>
           </Dialog.Actions>
         </Dialog>
 
