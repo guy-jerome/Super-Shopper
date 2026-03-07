@@ -7,6 +7,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useItemStore, type ItemSortOrder, type ItemWithLocations } from '../../stores/useItemStore';
+import { useShoppingStore } from '../../stores/useShoppingStore';
 import { FoodSearch } from '../../components/FoodSearch';
 import type { FoodSuggestion } from '../../hooks/useOpenFoodFacts';
 import { colors, spacing } from '../../constants/theme';
@@ -36,10 +37,22 @@ export default function ItemsScreen() {
   const [editTagList, setEditTagList] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
+  const { shoppingList, addToList, fetchShoppingList } = useShoppingStore();
+  const today = new Date().toISOString().split('T')[0];
+
   useEffect(() => {
     if (!user) return;
     fetchItems(user.id);
+    fetchShoppingList(user.id, today);
   }, [user?.id]);
+
+  const isInList = (itemId: string) => shoppingList.some((s) => s.item_id === itemId);
+
+  const handleAddToList = async (item: ItemWithLocations) => {
+    if (!user) return;
+    if (isInList(item.id)) return;
+    await addToList(user.id, item.id, 1);
+  };
 
   const filteredItems = items.filter((item) => {
     const matchesSearch = !search.trim() || item.name.toLowerCase().includes(search.toLowerCase());
@@ -221,6 +234,12 @@ export default function ItemsScreen() {
                     </View>
                   )}
                 </View>
+                <IconButton
+                  icon={isInList(item.id) ? 'cart-check' : 'cart-plus'}
+                  size={20}
+                  iconColor={isInList(item.id) ? colors.primary : colors.textLight}
+                  onPress={() => handleAddToList(item)}
+                />
                 <IconButton
                   icon="delete-outline"
                   size={20}
