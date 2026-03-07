@@ -1,49 +1,81 @@
-import { useEffect, useState, useRef } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
+import { useEffect, useState, useRef } from "react";
 import {
-  Text, FAB, Portal, Dialog, TextInput, Button, ActivityIndicator,
-  IconButton, Divider, Surface,
-} from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAuthStore } from '../../stores/useAuthStore';
-import { useStoreStore } from '../../stores/useStoreStore';
-import { useItemStore } from '../../stores/useItemStore';
-import { FoodSearch } from '../../components/FoodSearch';
-import { DragHandle } from '../../components/DraggableList';
-import { colors, spacing } from '../../constants/theme';
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Easing,
+} from "react-native";
+import {
+  Text,
+  FAB,
+  Portal,
+  Dialog,
+  TextInput,
+  Button,
+  ActivityIndicator,
+  IconButton,
+  Divider,
+  Surface,
+} from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuthStore } from "../../stores/useAuthStore";
+import { useStoreStore } from "../../stores/useStoreStore";
+import { useItemStore } from "../../stores/useItemStore";
+import { FoodSearch } from "../../components/FoodSearch";
+import { ItemDetailModal } from "../../components/ItemDetailModal";
+import { DragHandle } from "../../components/DraggableList";
+import { colors, spacing } from "../../constants/theme";
 
-type Screen = 'list' | 'detail';
+type Screen = "list" | "detail";
 
 export default function StoresScreen() {
   const { user } = useAuthStore();
   const {
-    stores, activeStore, isLoading,
-    fetchStores, fetchStoreWithAisles,
-    addStore, deleteStore,
-    addAisle, deleteAisle, moveAisle,
-    addItemToAisle, removeItemFromAisle, moveItemInAisle, updateItemInAisle,
+    stores,
+    activeStore,
+    isLoading,
+    fetchStores,
+    fetchStoreWithAisles,
+    addStore,
+    deleteStore,
+    addAisle,
+    deleteAisle,
+    moveAisle,
+    addItemToAisle,
+    removeItemFromAisle,
+    moveItemInAisle,
+    updateItemInAisle,
   } = useStoreStore();
   const { items: globalItems, fetchItems } = useItemStore();
 
-  const [screen, setScreen] = useState<Screen>('list');
+  const [screen, setScreen] = useState<Screen>("list");
   const [storeDialog, setStoreDialog] = useState(false);
-  const [storeName, setStoreName] = useState('');
+  const [storeName, setStoreName] = useState("");
   const [aisleDialog, setAisleDialog] = useState(false);
-  const [aisleName, setAisleName] = useState('');
+  const [aisleName, setAisleName] = useState("");
   const [itemDialog, setItemDialog] = useState(false);
-  const [itemName, setItemName] = useState('');
-  const [itemPositionTag, setItemPositionTag] = useState('');
-  const [targetAisleId, setTargetAisleId] = useState('');
+  const [itemName, setItemName] = useState("");
+  const [itemPositionTag, setItemPositionTag] = useState("");
+  const [targetAisleId, setTargetAisleId] = useState("");
   const [expandedAisles, setExpandedAisles] = useState<Set<string>>(new Set());
-  const [confirmDialog, setConfirmDialog] = useState<{ action: () => void; message: string } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    action: () => void;
+    message: string;
+  } | null>(null);
   const [editItemDialog, setEditItemDialog] = useState(false);
-  const [editLocId, setEditLocId] = useState('');
-  const [editPositionTag, setEditPositionTag] = useState('');
+  const [editLocId, setEditLocId] = useState("");
+  const [editPositionTag, setEditPositionTag] = useState("");
+  const [detailItemId, setDetailItemId] = useState<string | null>(null);
 
   // Suggestions from the global items list
-  const localSuggestions = itemName.trim().length > 0
-    ? globalItems.filter((i) => i.name.toLowerCase().includes(itemName.toLowerCase())).slice(0, 5)
-    : [];
+  const localSuggestions =
+    itemName.trim().length > 0
+      ? globalItems
+          .filter((i) => i.name.toLowerCase().includes(itemName.toLowerCase()))
+          .slice(0, 5)
+      : [];
 
   useEffect(() => {
     if (!user) return;
@@ -53,29 +85,34 @@ export default function StoresScreen() {
 
   const openStore = async (storeId: string) => {
     await fetchStoreWithAisles(storeId);
-    setScreen('detail');
+    setScreen("detail");
     setExpandedAisles(new Set());
   };
 
   const handleAddStore = async () => {
     if (!user || !storeName.trim()) return;
     await addStore(user.id, storeName.trim());
-    setStoreName('');
+    setStoreName("");
     setStoreDialog(false);
   };
 
   const handleAddAisle = async () => {
     if (!activeStore || !aisleName.trim()) return;
     await addAisle(activeStore.id, aisleName.trim());
-    setAisleName('');
+    setAisleName("");
     setAisleDialog(false);
   };
 
   const handleAddItem = async () => {
     if (!user || !itemName.trim() || !targetAisleId) return;
-    await addItemToAisle(user.id, targetAisleId, itemName.trim(), itemPositionTag.trim() || undefined);
-    setItemName('');
-    setItemPositionTag('');
+    await addItemToAisle(
+      user.id,
+      targetAisleId,
+      itemName.trim(),
+      itemPositionTag.trim() || undefined,
+    );
+    setItemName("");
+    setItemPositionTag("");
     setItemDialog(false);
     // Refresh global items so new items appear
     fetchItems(user.id);
@@ -83,7 +120,7 @@ export default function StoresScreen() {
 
   const openEditItem = (locId: string, currentPositionTag: string | null) => {
     setEditLocId(locId);
-    setEditPositionTag(currentPositionTag ?? '');
+    setEditPositionTag(currentPositionTag ?? "");
     setEditItemDialog(true);
   };
 
@@ -100,7 +137,8 @@ export default function StoresScreen() {
   const toggleAisle = (id: string) =>
     setExpandedAisles((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
 
@@ -113,16 +151,19 @@ export default function StoresScreen() {
   }
 
   // ── Store detail view ──────────────────────────────────────────────────────
-  if (screen === 'detail' && activeStore) {
+  if (screen === "detail" && activeStore) {
     return (
       <View style={styles.container}>
         <Surface style={styles.headerSurface} elevation={1}>
           <View style={styles.headerRow}>
-            <IconButton icon="arrow-left" onPress={() => setScreen('list')} />
+            <IconButton icon="arrow-left" onPress={() => setScreen("list")} />
             <View style={styles.headerText}>
-              <Text variant="headlineSmall" style={styles.headerTitle}>{activeStore.name}</Text>
+              <Text variant="headlineSmall" style={styles.headerTitle}>
+                {activeStore.name}
+              </Text>
               <Text variant="bodySmall" style={styles.headerSubtitle}>
-                {activeStore.aisles.length} aisle{activeStore.aisles.length !== 1 ? 's' : ''}
+                {activeStore.aisles.length} aisle
+                {activeStore.aisles.length !== 1 ? "s" : ""}
               </Text>
             </View>
             <IconButton
@@ -133,11 +174,20 @@ export default function StoresScreen() {
           </View>
         </Surface>
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+        >
           {activeStore.aisles.length === 0 ? (
             <View style={styles.emptyState}>
-              <MaterialCommunityIcons name="store-outline" size={64} color={colors.textLight} />
-              <Text variant="titleLarge" style={styles.emptyTitle}>No aisles yet</Text>
+              <MaterialCommunityIcons
+                name="store-outline"
+                size={64}
+                color={colors.textLight}
+              />
+              <Text variant="titleLarge" style={styles.emptyTitle}>
+                No aisles yet
+              </Text>
               <Text variant="bodyMedium" style={styles.emptySubtitle}>
                 Tap + to add aisles like Bakery, Produce, or Dairy
               </Text>
@@ -152,28 +202,52 @@ export default function StoresScreen() {
                 isExpanded={expandedAisles.has(aisle.id)}
                 onToggle={() => toggleAisle(aisle.id)}
                 onMoveAisle={moveAisle}
-                onDeleteAisle={(id) => setConfirmDialog({ action: () => deleteAisle(id), message: `Delete aisle "${aisle.name}"? All item locations inside will be removed.` })}
+                onDeleteAisle={(id) =>
+                  setConfirmDialog({
+                    action: () => deleteAisle(id),
+                    message: `Delete aisle "${aisle.name}"? All item locations inside will be removed.`,
+                  })
+                }
                 onAddItem={openAddItem}
                 onMoveItem={moveItemInAisle}
                 onRemoveItem={(locId) => {
-                  const item = aisle.item_store_locations.find((l: any) => l.id === locId);
-                  setConfirmDialog({ action: () => removeItemFromAisle(locId), message: `Remove "${item?.items?.name ?? 'this item'}" from this aisle?` });
+                  const item = aisle.item_store_locations.find(
+                    (l: any) => l.id === locId,
+                  );
+                  setConfirmDialog({
+                    action: () => removeItemFromAisle(locId),
+                    message: `Remove "${item?.items?.name ?? "this item"}" from this aisle?`,
+                  });
                 }}
                 onEditItem={openEditItem}
+                onOpenDetail={setDetailItemId}
               />
             ))
           )}
         </ScrollView>
 
         <Portal>
-          <Dialog visible={!!confirmDialog} onDismiss={() => setConfirmDialog(null)}>
+          <Dialog
+            visible={!!confirmDialog}
+            onDismiss={() => setConfirmDialog(null)}
+          >
             <Dialog.Title>Confirm Delete</Dialog.Title>
             <Dialog.Content>
-              <Text variant="bodyMedium" style={{ color: colors.text }}>{confirmDialog?.message}</Text>
+              <Text variant="bodyMedium" style={{ color: colors.text }}>
+                {confirmDialog?.message}
+              </Text>
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setConfirmDialog(null)}>Cancel</Button>
-              <Button textColor={colors.error} onPress={() => { confirmDialog?.action(); setConfirmDialog(null); }}>Delete</Button>
+              <Button
+                textColor={colors.error}
+                onPress={() => {
+                  confirmDialog?.action();
+                  setConfirmDialog(null);
+                }}
+              >
+                Delete
+              </Button>
             </Dialog.Actions>
           </Dialog>
 
@@ -190,12 +264,24 @@ export default function StoresScreen() {
               />
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => { setAisleName(''); setAisleDialog(false); }}>Cancel</Button>
-              <Button onPress={handleAddAisle} disabled={!aisleName.trim()}>Add</Button>
+              <Button
+                onPress={() => {
+                  setAisleName("");
+                  setAisleDialog(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onPress={handleAddAisle} disabled={!aisleName.trim()}>
+                Add
+              </Button>
             </Dialog.Actions>
           </Dialog>
 
-          <Dialog visible={editItemDialog} onDismiss={() => setEditItemDialog(false)}>
+          <Dialog
+            visible={editItemDialog}
+            onDismiss={() => setEditItemDialog(false)}
+          >
             <Dialog.Title>Edit Position Tag</Dialog.Title>
             <Dialog.Content>
               <TextInput
@@ -214,10 +300,20 @@ export default function StoresScreen() {
             </Dialog.Actions>
           </Dialog>
 
-          <Dialog visible={itemDialog} onDismiss={() => { setItemName(''); setItemPositionTag(''); setItemDialog(false); }}>
+          <Dialog
+            visible={itemDialog}
+            onDismiss={() => {
+              setItemName("");
+              setItemPositionTag("");
+              setItemDialog(false);
+            }}
+          >
             <Dialog.Title>Add Item to Aisle</Dialog.Title>
             <Dialog.Content style={styles.itemDialogContent}>
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
                 <FoodSearch
                   value={itemName}
                   onChangeText={(t) => setItemName(t)}
@@ -237,11 +333,26 @@ export default function StoresScreen() {
               </ScrollView>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => { setItemName(''); setItemPositionTag(''); setItemDialog(false); }}>Cancel</Button>
-              <Button onPress={handleAddItem} disabled={!itemName.trim()}>Add</Button>
+              <Button
+                onPress={() => {
+                  setItemName("");
+                  setItemPositionTag("");
+                  setItemDialog(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onPress={handleAddItem} disabled={!itemName.trim()}>
+                Add
+              </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
+
+        <ItemDetailModal
+          itemId={detailItemId}
+          onDismiss={() => setDetailItemId(null)}
+        />
       </View>
     );
   }
@@ -250,17 +361,28 @@ export default function StoresScreen() {
   return (
     <View style={styles.container}>
       <Surface style={styles.headerSurface} elevation={1}>
-        <Text variant="headlineMedium" style={styles.headerTitle}>Stores</Text>
+        <Text variant="headlineMedium" style={styles.headerTitle}>
+          Stores
+        </Text>
         <Text variant="bodySmall" style={styles.headerSubtitle}>
           Manage your store layouts
         </Text>
       </Surface>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+      >
         {stores.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="store-outline" size={64} color={colors.textLight} />
-            <Text variant="titleLarge" style={styles.emptyTitle}>No stores yet</Text>
+            <MaterialCommunityIcons
+              name="store-outline"
+              size={64}
+              color={colors.textLight}
+            />
+            <Text variant="titleLarge" style={styles.emptyTitle}>
+              No stores yet
+            </Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
               Tap + to add stores like Walmart or Costco
             </Text>
@@ -273,14 +395,29 @@ export default function StoresScreen() {
                 onPress={() => openStore(store.id)}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="store" size={28} color={colors.primary} />
-                <Text variant="titleMedium" style={storeListStyles.name}>{store.name}</Text>
-                <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textLight} />
+                <MaterialCommunityIcons
+                  name="store"
+                  size={28}
+                  color={colors.primary}
+                />
+                <Text variant="titleMedium" style={storeListStyles.name}>
+                  {store.name}
+                </Text>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color={colors.textLight}
+                />
                 <IconButton
                   icon="delete-outline"
                   size={20}
                   iconColor={colors.error}
-                  onPress={() => setConfirmDialog({ action: () => deleteStore(store.id), message: `Delete "${store.name}"? All aisles and item locations will be removed.` })}
+                  onPress={() =>
+                    setConfirmDialog({
+                      action: () => deleteStore(store.id),
+                      message: `Delete "${store.name}"? All aisles and item locations will be removed.`,
+                    })
+                  }
                 />
               </TouchableOpacity>
               <Divider />
@@ -297,14 +434,27 @@ export default function StoresScreen() {
       />
 
       <Portal>
-        <Dialog visible={!!confirmDialog} onDismiss={() => setConfirmDialog(null)}>
+        <Dialog
+          visible={!!confirmDialog}
+          onDismiss={() => setConfirmDialog(null)}
+        >
           <Dialog.Title>Confirm Delete</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={{ color: colors.text }}>{confirmDialog?.message}</Text>
+            <Text variant="bodyMedium" style={{ color: colors.text }}>
+              {confirmDialog?.message}
+            </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button textColor={colors.error} onPress={() => { confirmDialog?.action(); setConfirmDialog(null); }}>Delete</Button>
+            <Button
+              textColor={colors.error}
+              onPress={() => {
+                confirmDialog?.action();
+                setConfirmDialog(null);
+              }}
+            >
+              Delete
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
@@ -321,8 +471,17 @@ export default function StoresScreen() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => { setStoreName(''); setStoreDialog(false); }}>Cancel</Button>
-            <Button onPress={handleAddStore} disabled={!storeName.trim()}>Add</Button>
+            <Button
+              onPress={() => {
+                setStoreName("");
+                setStoreDialog(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onPress={handleAddStore} disabled={!storeName.trim()}>
+              Add
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -331,15 +490,23 @@ export default function StoresScreen() {
 }
 
 function AnimatedAisleItem({
-  loc, locIdx, totalItems, aisleId, onMoveItem, onRemoveItem, onEditItem,
+  loc,
+  locIdx,
+  totalItems,
+  aisleId,
+  onMoveItem,
+  onRemoveItem,
+  onEditItem,
+  onOpenDetail,
 }: {
   loc: any;
   locIdx: number;
   totalItems: number;
   aisleId: string;
-  onMoveItem: (aisleId: string, locId: string, dir: 'up' | 'down') => void;
+  onMoveItem: (aisleId: string, locId: string, dir: "up" | "down") => void;
   onRemoveItem: (locId: string) => void;
   onEditItem: (locId: string, positionTag: string | null) => void;
+  onOpenDetail: (itemId: string) => void;
 }) {
   const rowAnim = useRef(new Animated.Value(0)).current;
 
@@ -354,7 +521,7 @@ function AnimatedAisleItem({
 
   const backgroundColor = rowAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.background, colors.primary + '22'],
+    outputRange: [colors.background, colors.primary + "22"],
   });
 
   return (
@@ -362,8 +529,8 @@ function AnimatedAisleItem({
       <DragHandle
         canMoveUp={locIdx > 0}
         canMoveDown={locIdx < totalItems - 1}
-        onMoveUp={() => onMoveItem(aisleId, loc.id, 'up')}
-        onMoveDown={() => onMoveItem(aisleId, loc.id, 'down')}
+        onMoveUp={() => onMoveItem(aisleId, loc.id, "up")}
+        onMoveDown={() => onMoveItem(aisleId, loc.id, "down")}
         onActiveChange={handleActiveChange}
         size="sm"
       />
@@ -377,6 +544,12 @@ function AnimatedAisleItem({
           </Text>
         ) : null}
       </View>
+      <IconButton
+        icon="eye-outline"
+        size={18}
+        iconColor={colors.textLight}
+        onPress={() => onOpenDetail(loc.items.id)}
+      />
       <IconButton
         icon="pencil-outline"
         size={18}
@@ -394,20 +567,31 @@ function AnimatedAisleItem({
 }
 
 function AisleSection({
-  aisle, aisleIdx, totalAisles, isExpanded, onToggle,
-  onMoveAisle, onDeleteAisle, onAddItem, onMoveItem, onRemoveItem, onEditItem,
+  aisle,
+  aisleIdx,
+  totalAisles,
+  isExpanded,
+  onToggle,
+  onMoveAisle,
+  onDeleteAisle,
+  onAddItem,
+  onMoveItem,
+  onRemoveItem,
+  onEditItem,
+  onOpenDetail,
 }: {
   aisle: any;
   aisleIdx: number;
   totalAisles: number;
   isExpanded: boolean;
   onToggle: () => void;
-  onMoveAisle: (id: string, dir: 'up' | 'down') => void;
+  onMoveAisle: (id: string, dir: "up" | "down") => void;
   onDeleteAisle: (id: string) => void;
   onAddItem: (aisleId: string) => void;
-  onMoveItem: (aisleId: string, locId: string, dir: 'up' | 'down') => void;
+  onMoveItem: (aisleId: string, locId: string, dir: "up" | "down") => void;
   onRemoveItem: (locId: string) => void;
   onEditItem: (locId: string, positionTag: string | null) => void;
+  onOpenDetail: (itemId: string) => void;
 }) {
   const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -422,30 +606,40 @@ function AisleSection({
 
   const headerBg = headerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.surface, colors.primary + '28'],
+    outputRange: [colors.surface, colors.primary + "28"],
   });
 
   return (
     <View>
-      <Animated.View style={[sectionStyles.header, { backgroundColor: headerBg }]}>
+      <Animated.View
+        style={[sectionStyles.header, { backgroundColor: headerBg }]}
+      >
         <DragHandle
           canMoveUp={aisleIdx > 0}
           canMoveDown={aisleIdx < totalAisles - 1}
-          onMoveUp={() => onMoveAisle(aisle.id, 'up')}
-          onMoveDown={() => onMoveAisle(aisle.id, 'down')}
+          onMoveUp={() => onMoveAisle(aisle.id, "up")}
+          onMoveDown={() => onMoveAisle(aisle.id, "down")}
           onActiveChange={handleHeaderActiveChange}
           size="md"
         />
-        <TouchableOpacity style={sectionStyles.titleArea} onPress={onToggle} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={sectionStyles.titleArea}
+          onPress={onToggle}
+          activeOpacity={0.7}
+        >
           <MaterialCommunityIcons
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            name={isExpanded ? "chevron-up" : "chevron-down"}
             size={20}
             color={colors.textLight}
           />
           <View style={sectionStyles.titleText}>
-            <Text variant="titleMedium" style={sectionStyles.name}>{aisle.name}</Text>
+            <Text variant="titleMedium" style={sectionStyles.name}>
+              {aisle.name}
+            </Text>
             {aisle.side && (
-              <Text variant="bodySmall" style={sectionStyles.side}>{aisle.side}</Text>
+              <Text variant="bodySmall" style={sectionStyles.side}>
+                {aisle.side}
+              </Text>
             )}
           </View>
           <Text variant="bodySmall" style={sectionStyles.count}>
@@ -469,7 +663,9 @@ function AisleSection({
       {isExpanded && (
         <View style={sectionStyles.itemsContainer}>
           {aisle.item_store_locations.length === 0 ? (
-            <Text style={sectionStyles.emptyItems}>No items — tap + to add</Text>
+            <Text style={sectionStyles.emptyItems}>
+              No items — tap + to add
+            </Text>
           ) : (
             aisle.item_store_locations.map((loc: any, locIdx: number) => (
               <AnimatedAisleItem
@@ -481,6 +677,7 @@ function AisleSection({
                 onMoveItem={onMoveItem}
                 onRemoveItem={onRemoveItem}
                 onEditItem={onEditItem}
+                onOpenDetail={onOpenDetail}
               />
             ))
           )}
@@ -499,29 +696,38 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     backgroundColor: colors.background,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  headerRow: { flexDirection: "row", alignItems: "center" },
   headerText: { flex: 1 },
-  headerTitle: { color: colors.text, fontWeight: 'bold' },
+  headerTitle: { color: colors.text, fontWeight: "bold" },
   headerSubtitle: { color: colors.textLight, marginTop: 2 },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 100 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xl * 2,
     paddingHorizontal: spacing.xl,
   },
-  emptyTitle: { color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm },
-  emptySubtitle: { color: colors.textLight, textAlign: 'center' },
-  fab: { position: 'absolute', bottom: spacing.lg, right: spacing.md, backgroundColor: colors.primary },
+  emptyTitle: {
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  emptySubtitle: { color: colors.textLight, textAlign: "center" },
+  fab: {
+    position: "absolute",
+    bottom: spacing.lg,
+    right: spacing.md,
+    backgroundColor: colors.primary,
+  },
   itemDialogContent: { maxHeight: 480 },
 });
 
 const storeListStyles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     gap: spacing.md,
@@ -531,22 +737,27 @@ const storeListStyles = StyleSheet.create({
 
 const sectionStyles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingLeft: spacing.xs,
     paddingRight: spacing.xs,
     paddingVertical: spacing.xs,
     backgroundColor: colors.surface,
   },
-  titleArea: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  titleArea: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
   titleText: { flex: 1 },
-  name: { color: colors.text, fontWeight: '600' },
+  name: { color: colors.text, fontWeight: "600" },
   side: { color: colors.textLight, fontSize: 12 },
   count: { color: colors.textLight, marginRight: spacing.xs },
   itemsContainer: { backgroundColor: colors.background },
   itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingLeft: spacing.xs,
     paddingRight: spacing.xs,
     minHeight: 48,
@@ -562,9 +773,8 @@ const sectionStyles = StyleSheet.create({
   },
   emptyItems: {
     color: colors.textLight,
-    fontStyle: 'italic',
+    fontStyle: "italic",
     paddingVertical: spacing.sm,
     paddingLeft: spacing.xl,
   },
 });
-
