@@ -18,7 +18,7 @@ export default function ShopScreen() {
   const {
     shoppingList, notes, currentStore, isLoading,
     fetchShoppingList, toggleChecked, updateNotes, updateQuantity,
-    clearCheckedItems, setCurrentStore, removeFromList,
+    clearCheckedItems, setCurrentStore, removeFromList, markAllChecked,
   } = useShoppingStore();
   const { stores, fetchStores } = useStoreStore();
 
@@ -216,6 +216,17 @@ export default function ShopScreen() {
               <View style={styles.aisleHeader}>
                 <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.primary} />
                 <Text variant="labelLarge" style={styles.aisleHeaderText}>{group.name}</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    const allDone = group.items.every((i) => i.checked);
+                    markAllChecked(group.items.map((i) => i.id), !allDone);
+                  }}
+                  style={styles.markAllBtn}
+                >
+                  <Text variant="labelSmall" style={styles.markAllText}>
+                    {group.items.every((i) => i.checked) ? 'Unmark all' : 'Mark all done'}
+                  </Text>
+                </TouchableOpacity>
               </View>
               {group.items.map((item) => (
                 <SwipeableRow key={item.id} onDelete={() => removeFromList(item.id)}>
@@ -388,7 +399,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     backgroundColor: colors.surface,
   },
-  aisleHeaderText: { color: colors.primary, fontWeight: '600' },
+  aisleHeaderText: { flex: 1, color: colors.primary, fontWeight: '600' },
+  markAllBtn: { paddingHorizontal: spacing.sm, paddingVertical: 4 },
+  markAllText: { color: colors.primary },
   jumpBar: { maxHeight: 44, backgroundColor: colors.background },
   jumpBarContent: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, gap: spacing.xs },
   jumpPill: {
