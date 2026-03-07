@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import {
   Text, Button, ActivityIndicator, Checkbox, IconButton,
-  Divider, Surface, TextInput, ProgressBar, Menu,
+  Divider, Surface, TextInput, ProgressBar, Menu, Dialog, Portal,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -17,7 +17,8 @@ export default function ShopScreen() {
   const { user } = useAuthStore();
   const {
     shoppingList, notes, currentStore, isLoading,
-    fetchShoppingList, toggleChecked, updateNotes, clearCheckedItems, setCurrentStore, removeFromList,
+    fetchShoppingList, toggleChecked, updateNotes, updateQuantity,
+    clearCheckedItems, setCurrentStore, removeFromList,
   } = useShoppingStore();
   const { stores, fetchStores } = useStoreStore();
 
@@ -25,6 +26,9 @@ export default function ShopScreen() {
   const [notesValue, setNotesValue] = useState('');
   const [storeMenuVisible, setStoreMenuVisible] = useState(false);
   const [activeAisle, setActiveAisle] = useState<string | null>(null);
+  const [qtyDialog, setQtyDialog] = useState(false);
+  const [qtyTarget, setQtyTarget] = useState<{ id: string; name: string; current: number } | null>(null);
+  const [qtyValue, setQtyValue] = useState(1);
   const scrollRef = useRef<ScrollView>(null);
   const aisleSectionOffsets = useRef<Record<string, number>>({});
 
@@ -44,21 +48,34 @@ export default function ShopScreen() {
     setEditingNotes(false);
   };
 
+  const openQtyEdit = (id: string, name: string, current: number) => {
+    setQtyTarget({ id, name, current });
+    setQtyValue(current);
+    setQtyDialog(true);
+  };
+
+  const saveQty = async () => {
+    if (!qtyTarget) return;
+    await updateQuantity(qtyTarget.id, qtyValue);
+    setQtyDialog(false);
+    setQtyTarget(null);
+  };
+
   const total = shoppingList.length;
   const checkedCount = shoppingList.filter((i) => i.checked).length;
   const progress = total > 0 ? checkedCount / total : 0;
 
-  // Group items by aisle when a store is selected
+  // Group items by aisle when a store is selected — keyed by aisle_id to avoid duplicate name issues
   const aisleGroups = useMemo(() => {
     if (!currentStore) return null;
-    const map = new Map<string, { name: string; order: number; items: typeof shoppingList }>();
+    const map = new Map<string, { aisleId: string; name: string; order: number; items: typeof shoppingList }>();
     const general: typeof shoppingList = [];
 
     for (const item of shoppingList) {
       const loc = item.store_locations.find((l) => l.aisles.store_id === currentStore.id);
       if (loc) {
         if (!map.has(loc.aisle_id)) {
-          map.set(loc.aisle_id, { name: loc.aisles.name, order: loc.aisles.order_index, items: [] });
+          map.set(loc.aisle_id, { aisleId: loc.aisle_id, name: loc.aisles.name, order: loc.aisles.order_index, items: [] });
         }
         map.get(loc.aisle_id)!.items.push(item);
       } else {
@@ -67,7 +84,7 @@ export default function ShopScreen() {
     }
 
     const sorted = [...map.values()].sort((a, b) => a.order - b.order);
-    if (general.length > 0) sorted.push({ name: 'General', order: 9999, items: general });
+    if (general.length > 0) sorted.push({ aisleId: '__general__', name: 'General', order: 9999, items: general });
     return sorted;
   }, [shoppingList, currentStore]);
 
@@ -113,7 +130,6 @@ export default function ShopScreen() {
           </Menu>
         </View>
 
-        {/* Progress bar */}
         {total > 0 && (
           <View style={styles.progressRow}>
             <ProgressBar progress={progress} color={colors.primary} style={styles.progressBar} />
@@ -134,15 +150,15 @@ export default function ShopScreen() {
         >
           {aisleGroups.map((group) => (
             <TouchableOpacity
-              key={group.name}
-              style={[styles.jumpPill, activeAisle === group.name && styles.jumpPillActive]}
+              key={group.aisleId}
+              style={[styles.jumpPill, activeAisle === group.aisleId && styles.jumpPillActive]}
               onPress={() => {
-                setActiveAisle(group.name);
-                const offset = aisleSectionOffsets.current[group.name];
+                setActiveAisle(group.aisleId);
+                const offset = aisleSectionOffsets.current[group.aisleId];
                 if (offset !== undefined) scrollRef.current?.scrollTo({ y: offset, animated: true });
               }}
             >
-              <Text style={[styles.jumpPillText, activeAisle === group.name && styles.jumpPillTextActive]}>
+              <Text style={[styles.jumpPillText, activeAisle === group.aisleId && styles.jumpPillTextActive]}>
                 {group.name}
               </Text>
             </TouchableOpacity>
@@ -151,7 +167,7 @@ export default function ShopScreen() {
       )}
 
       <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {/* Notes section */}
+        {/* Notes */}
         <View style={styles.notesSection}>
           <View style={styles.notesHeader}>
             <MaterialCommunityIcons name="note-text-outline" size={18} color={colors.textLight} />
@@ -182,7 +198,7 @@ export default function ShopScreen() {
         </View>
         <Divider />
 
-        {/* Shopping list items */}
+        {/* Shopping list */}
         {shoppingList.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="cart-outline" size={64} color={colors.textLight} />
@@ -192,11 +208,10 @@ export default function ShopScreen() {
             </Text>
           </View>
         ) : aisleGroups ? (
-          // Grouped by aisle for selected store
           aisleGroups.map((group) => (
             <View
-              key={group.name}
-              onLayout={(e) => { aisleSectionOffsets.current[group.name] = e.nativeEvent.layout.y; }}
+              key={group.aisleId}
+              onLayout={(e) => { aisleSectionOffsets.current[group.aisleId] = e.nativeEvent.layout.y; }}
             >
               <View style={styles.aisleHeader}>
                 <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.primary} />
@@ -204,61 +219,29 @@ export default function ShopScreen() {
               </View>
               {group.items.map((item) => (
                 <SwipeableRow key={item.id} onDelete={() => removeFromList(item.id)}>
-                  <View style={styles.itemRow}>
-                    <Checkbox
-                      status={item.checked ? 'checked' : 'unchecked'}
-                      onPress={() => toggleChecked(item.id, !item.checked)}
-                      color={colors.primary}
-                    />
-                    <View style={styles.itemInfo}>
-                      <Text
-                        variant="bodyLarge"
-                        style={[styles.itemName, item.checked && styles.itemChecked]}
-                      >
-                        {item.item_name}
-                      </Text>
-                      {item.quantity > 1 && (
-                        <Text variant="bodySmall" style={styles.itemQty}>
-                          × {item.quantity}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
+                  <ShoppingItem
+                    item={item}
+                    onToggle={() => toggleChecked(item.id, !item.checked)}
+                    onEditQty={() => openQtyEdit(item.id, item.item_name, item.quantity)}
+                  />
                   <Divider style={styles.itemDivider} />
                 </SwipeableRow>
               ))}
             </View>
           ))
         ) : (
-          // Flat list when no store selected
           shoppingList.map((item) => (
             <SwipeableRow key={item.id} onDelete={() => removeFromList(item.id)}>
-              <View style={styles.itemRow}>
-                <Checkbox
-                  status={item.checked ? 'checked' : 'unchecked'}
-                  onPress={() => toggleChecked(item.id, !item.checked)}
-                  color={colors.primary}
-                />
-                <View style={styles.itemInfo}>
-                  <Text
-                    variant="bodyLarge"
-                    style={[styles.itemName, item.checked && styles.itemChecked]}
-                  >
-                    {item.item_name}
-                  </Text>
-                  {item.quantity > 1 && (
-                    <Text variant="bodySmall" style={styles.itemQty}>
-                      × {item.quantity}
-                    </Text>
-                  )}
-                </View>
-              </View>
+              <ShoppingItem
+                item={item}
+                onToggle={() => toggleChecked(item.id, !item.checked)}
+                onEditQty={() => openQtyEdit(item.id, item.item_name, item.quantity)}
+              />
               <Divider style={styles.itemDivider} />
             </SwipeableRow>
           ))
         )}
 
-        {/* Clear completed */}
         {checkedCount > 0 && (
           <Button
             mode="outlined"
@@ -270,6 +253,68 @@ export default function ShopScreen() {
           </Button>
         )}
       </ScrollView>
+
+      <Portal>
+        <Dialog visible={qtyDialog} onDismiss={() => setQtyDialog(false)}>
+          <Dialog.Title>Edit Quantity</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ marginBottom: spacing.md, color: colors.text }}>
+              {qtyTarget?.name}
+            </Text>
+            <View style={styles.qtyStepper}>
+              <IconButton
+                icon="minus"
+                mode="contained-tonal"
+                size={20}
+                onPress={() => setQtyValue((q) => Math.max(1, q - 1))}
+              />
+              <Text variant="titleLarge" style={styles.qtyValue}>{qtyValue}</Text>
+              <IconButton
+                icon="plus"
+                mode="contained-tonal"
+                size={20}
+                onPress={() => setQtyValue((q) => q + 1)}
+              />
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setQtyDialog(false)}>Cancel</Button>
+            <Button onPress={saveQty} mode="contained">Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
+  );
+}
+
+function ShoppingItem({
+  item,
+  onToggle,
+  onEditQty,
+}: {
+  item: { id: string; item_name: string; quantity: number; checked: boolean };
+  onToggle: () => void;
+  onEditQty: () => void;
+}) {
+  return (
+    <View style={styles.itemRow}>
+      <Checkbox
+        status={item.checked ? 'checked' : 'unchecked'}
+        onPress={onToggle}
+        color={colors.primary}
+      />
+      <View style={styles.itemInfo}>
+        <Text
+          variant="bodyLarge"
+          style={[styles.itemName, item.checked && styles.itemChecked]}
+        >
+          {item.item_name}
+        </Text>
+        <TouchableOpacity onPress={onEditQty} style={styles.qtyBadge}>
+          <Text variant="bodySmall" style={styles.qtyBadgeText}>× {item.quantity}</Text>
+          <MaterialCommunityIcons name="pencil-outline" size={11} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -323,13 +368,16 @@ const styles = StyleSheet.create({
   itemInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   itemName: { flex: 1, color: colors.text },
   itemChecked: { textDecorationLine: 'line-through', color: colors.textLight },
-  itemQty: {
-    color: colors.primary,
+  qtyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 12,
   },
+  qtyBadgeText: { color: colors.primary },
   itemDivider: { marginLeft: spacing.md + 36 },
   clearButton: { margin: spacing.md, borderColor: colors.error },
   aisleHeader: {
@@ -354,4 +402,6 @@ const styles = StyleSheet.create({
   jumpPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   jumpPillText: { color: colors.text, fontSize: 13, fontWeight: '500' },
   jumpPillTextActive: { color: '#fff' },
+  qtyStepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
+  qtyValue: { minWidth: 40, textAlign: 'center', color: colors.text },
 });

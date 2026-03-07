@@ -12,9 +12,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home-storage"
         options={{
-          title: 'Home Storage',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="items"
+        options={{
+          title: 'Items',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="tag-multiple" color={color} size={size} />
           ),
         }}
       />

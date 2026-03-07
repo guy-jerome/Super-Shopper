@@ -10,9 +10,11 @@ interface StorageStore {
   updateLocation: (id: string, name: string) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
   reorderLocations: (locations: StorageLocationWithItems[]) => Promise<void>;
-  addItem: (userId: string, locationId: string, name: string) => Promise<void>;
+  moveLocation: (id: string, direction: 'up' | 'down') => Promise<void>;
+  addItem: (userId: string, locationId: string, name: string, meta?: { brand?: string | null; quantity?: string | null; image_url?: string | null }) => Promise<void>;
   updateItem: (id: string, name: string) => Promise<void>;
-  deleteItem: (id: string) => Promise<void>;
+  unlinkItem: (id: string) => Promise<void>;
+  moveItem: (locationId: string, itemId: string, direction: 'up' | 'down') => void;
 }
 
 export const useStorageStore = create<StorageStore>((set, get) => ({
@@ -75,8 +77,19 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
     );
   },
 
-  addItem: async (userId, locationId, name) => {
-    // Reuse an existing item with the same name so store aisle links are preserved
+  moveLocation: async (id, direction) => {
+    const { locations } = get();
+    const idx = locations.findIndex((l) => l.id === id);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= locations.length) return;
+    const next = [...locations];
+    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+    await get().reorderLocations(next);
+  },
+
+  addItem: async (userId, locationId, name, meta) => {
+    // Reuse an existing unplaced item with the same name so store aisle links are preserved
     const { data: existing } = await supabase
       .from('items')
       .select('*')
@@ -86,12 +99,15 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
       .limit(1)
       .maybeSingle();
 
-    let item;
+    let item: any;
     if (existing) {
-      // Claim the unplaced item into this home location
+      const updateData: any = { home_location_id: locationId };
+      if (meta?.brand) updateData.brand = meta.brand;
+      if (meta?.quantity) updateData.quantity = meta.quantity;
+      if (meta?.image_url) updateData.image_url = meta.image_url;
       const { data: updated } = await supabase
         .from('items')
-        .update({ home_location_id: locationId })
+        .update(updateData)
         .eq('id', existing.id)
         .select()
         .single();
@@ -99,7 +115,7 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
     } else {
       const { data: created } = await supabase
         .from('items')
-        .insert({ user_id: userId, name, home_location_id: locationId })
+        .insert({ user_id: userId, name, home_location_id: locationId, tags: [], brand: meta?.brand ?? null, quantity: meta?.quantity ?? null, image_url: meta?.image_url ?? null })
         .select()
         .single();
       item = created;
@@ -130,8 +146,13 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
     }
   },
 
-  deleteItem: async (id) => {
-    const { error } = await supabase.from('items').delete().eq('id', id);
+  // Removes item from its home storage location without deleting from global items
+  unlinkItem: async (id) => {
+    const { error } = await supabase
+      .from('items')
+      .update({ home_location_id: null, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
     if (!error) {
       set((state) => ({
         locations: state.locations.map((l) => ({
@@ -140,5 +161,22 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
         })),
       }));
     }
+  },
+
+  moveItem: (locationId, itemId, direction) => {
+    const { locations } = get();
+    const loc = locations.find((l) => l.id === locationId);
+    if (!loc) return;
+    const idx = loc.items.findIndex((i) => i.id === itemId);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= loc.items.length) return;
+    const newItems = [...loc.items];
+    [newItems[idx], newItems[newIdx]] = [newItems[newIdx], newItems[idx]];
+    set((state) => ({
+      locations: state.locations.map((l) =>
+        l.id === locationId ? { ...l, items: newItems } : l
+      ),
+    }));
   },
 }));

@@ -35,7 +35,7 @@ export interface Database {
           id: string;
           store_id: string;
           name: string;
-          side: 'left' | 'right' | 'center' | null;
+          side: string | null;
           order_index: number;
           created_at: string;
           updated_at: string;
@@ -50,6 +50,10 @@ export interface Database {
           user_id: string;
           name: string;
           home_location_id: string | null;
+          tags: string[];
+          brand: string | null;
+          quantity: string | null;
+          image_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -63,6 +67,7 @@ export interface Database {
           item_id: string;
           aisle_id: string;
           position_index: number;
+          position_tag: string | null;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['item_store_locations']['Row'], 'id' | 'created_at'>;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import type { StoreProfile, StoreWithAisles, Aisle } from '../types/app.types';
+import type { StoreProfile, StoreWithAisles } from '../types/app.types';
 
 interface StoreStore {
   stores: StoreProfile[];
@@ -11,13 +11,15 @@ interface StoreStore {
   addStore: (userId: string, name: string) => Promise<void>;
   updateStore: (id: string, name: string) => Promise<void>;
   deleteStore: (id: string) => Promise<void>;
-  addAisle: (storeId: string, name: string, side: Aisle['side']) => Promise<void>;
+  addAisle: (storeId: string, name: string, sectionTag?: string) => Promise<void>;
   deleteAisle: (aisleId: string) => Promise<void>;
-  addItemToAisle: (userId: string, aisleId: string, itemName: string) => Promise<void>;
+  moveAisle: (aisleId: string, direction: 'up' | 'down') => Promise<void>;
+  addItemToAisle: (userId: string, aisleId: string, itemName: string, positionTag?: string, meta?: { brand?: string | null; quantity?: string | null; image_url?: string | null }) => Promise<void>;
   removeItemFromAisle: (itemStoreLocationId: string) => Promise<void>;
+  moveItemInAisle: (aisleId: string, itemLocId: string, direction: 'up' | 'down') => void;
 }
 
-export const useStoreStore = create<StoreStore>((set) => ({
+export const useStoreStore = create<StoreStore>((set, get) => ({
   stores: [],
   activeStore: null,
   isLoading: false,
@@ -44,7 +46,16 @@ export const useStoreStore = create<StoreStore>((set) => ({
       .single();
 
     if (!error && data) {
-      set({ activeStore: data as unknown as StoreWithAisles });
+      // Sort aisles by order_index, items by position_index
+      const store = data as any;
+      store.aisles = (store.aisles ?? [])
+        .sort((a: any, b: any) => a.order_index - b.order_index)
+        .map((a: any) => ({
+          ...a,
+          item_store_locations: (a.item_store_locations ?? [])
+            .sort((x: any, y: any) => x.position_index - y.position_index),
+        }));
+      set({ activeStore: store as StoreWithAisles });
     }
   },
 
@@ -80,10 +91,12 @@ export const useStoreStore = create<StoreStore>((set) => ({
     }
   },
 
-  addAisle: async (storeId, name, side) => {
+  addAisle: async (storeId, name, sectionTag) => {
+    const { activeStore } = get();
+    const orderIndex = activeStore ? activeStore.aisles.length : 0;
     const { data, error } = await supabase
       .from('aisles')
-      .insert({ store_id: storeId, name, side, order_index: 0 })
+      .insert({ store_id: storeId, name, side: sectionTag ?? null, order_index: orderIndex })
       .select()
       .single();
 
@@ -115,7 +128,24 @@ export const useStoreStore = create<StoreStore>((set) => ({
     }
   },
 
-  addItemToAisle: async (userId, aisleId, itemName) => {
+  moveAisle: async (aisleId, direction) => {
+    const { activeStore } = get();
+    if (!activeStore) return;
+    const idx = activeStore.aisles.findIndex((a) => a.id === aisleId);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= activeStore.aisles.length) return;
+    const next = [...activeStore.aisles];
+    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+    set((state) => ({
+      activeStore: state.activeStore ? { ...state.activeStore, aisles: next } : null,
+    }));
+    await Promise.all(
+      next.map((a, i) => supabase.from('aisles').update({ order_index: i }).eq('id', a.id))
+    );
+  },
+
+  addItemToAisle: async (userId, aisleId, itemName, positionTag, meta) => {
     // Find or create item by name
     let itemId: string;
     const { data: existing } = await supabase
@@ -131,16 +161,20 @@ export const useStoreStore = create<StoreStore>((set) => ({
     } else {
       const { data: newItem, error } = await supabase
         .from('items')
-        .insert({ user_id: userId, name: itemName })
+        .insert({ user_id: userId, name: itemName, tags: [], brand: meta?.brand ?? null, quantity: meta?.quantity ?? null, image_url: meta?.image_url ?? null })
         .select()
         .single();
       if (error || !newItem) return;
       itemId = newItem.id;
     }
 
+    const { activeStore } = get();
+    const aisle = activeStore?.aisles.find((a) => a.id === aisleId);
+    const positionIndex = aisle ? aisle.item_store_locations.length : 0;
+
     const { data: loc, error: locError } = await supabase
       .from('item_store_locations')
-      .insert({ item_id: itemId, aisle_id: aisleId, position_index: 0 })
+      .insert({ item_id: itemId, aisle_id: aisleId, position_index: positionIndex, position_tag: positionTag ?? null })
       .select('*, items(*)')
       .single();
 
@@ -183,5 +217,35 @@ export const useStoreStore = create<StoreStore>((set) => ({
         };
       });
     }
+  },
+
+  moveItemInAisle: (aisleId, itemLocId, direction) => {
+    const { activeStore } = get();
+    if (!activeStore) return;
+    const aisle = activeStore.aisles.find((a) => a.id === aisleId);
+    if (!aisle) return;
+    const idx = aisle.item_store_locations.findIndex((l) => l.id === itemLocId);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= aisle.item_store_locations.length) return;
+    const newLocs = [...aisle.item_store_locations];
+    [newLocs[idx], newLocs[newIdx]] = [newLocs[newIdx], newLocs[idx]];
+    set((state) => {
+      if (!state.activeStore) return state;
+      return {
+        activeStore: {
+          ...state.activeStore,
+          aisles: state.activeStore.aisles.map((a) =>
+            a.id === aisleId ? { ...a, item_store_locations: newLocs } : a
+          ),
+        },
+      };
+    });
+    // Persist position_index
+    Promise.all(
+      newLocs.map((l, i) =>
+        supabase.from('item_store_locations').update({ position_index: i }).eq('id', l.id)
+      )
+    );
   },
 }));

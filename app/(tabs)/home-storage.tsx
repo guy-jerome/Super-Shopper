@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Animated, Easing, Modal } from 'react-native';
 import {
   Text, FAB, Portal, Dialog, TextInput, Button,
   ActivityIndicator, Checkbox, IconButton, Divider, Surface, Snackbar, Searchbar,
@@ -8,17 +8,25 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useStorageStore } from '../../stores/useStorageStore';
 import { useShoppingStore } from '../../stores/useShoppingStore';
+import { useItemStore } from '../../stores/useItemStore';
+import { FoodSearch } from '../../components/FoodSearch';
+import { ItemDetailModal } from '../../components/ItemDetailModal';
+import { DragHandle } from '../../components/DraggableList';
+import type { FoodSuggestion } from '../../hooks/useOpenFoodFacts';
 import { colors, spacing } from '../../constants/theme';
-import { SwipeableRow } from '../../components/SwipeableRow';
 import type { StorageLocationWithItems } from '../../types/app.types';
 
 const today = new Date().toISOString().split('T')[0];
 
 export default function HomeStorageScreen() {
   const { user } = useAuthStore();
-  const { locations, isLoading, fetchLocations, addLocation, deleteLocation, addItem, deleteItem } =
-    useStorageStore();
+  const {
+    locations, isLoading, fetchLocations,
+    addLocation, deleteLocation, moveLocation,
+    addItem, unlinkItem, moveItem,
+  } = useStorageStore();
   const { shoppingList, fetchShoppingList, addToList, removeFromList } = useShoppingStore();
+  const { items: globalItems, fetchItems } = useItemStore();
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [locationDialog, setLocationDialog] = useState(false);
@@ -31,23 +39,33 @@ export default function HomeStorageScreen() {
   const [qtyDialog, setQtyDialog] = useState(false);
   const [qtyTarget, setQtyTarget] = useState<{ id: string; name: string } | null>(null);
   const [qty, setQty] = useState(1);
+  const [pendingSuggestion, setPendingSuggestion] = useState<FoodSuggestion | null>(null);
+  const [detailItemId, setDetailItemId] = useState<string | null>(null);
+
+  // Suggestions from global items that are not already in a home location
+  const itemSuggestions = itemName.trim().length > 0
+    ? globalItems
+        .filter((i) => !i.hasHomeLocation && i.name.toLowerCase().includes(itemName.toLowerCase()))
+        .slice(0, 5)
+    : [];
 
   useEffect(() => {
     if (!user) return;
     fetchLocations(user.id);
     fetchShoppingList(user.id, today);
+    fetchItems(user.id);
   }, [user?.id]);
 
   const isInList = (itemId: string) => shoppingList.some((s) => s.item_id === itemId);
 
-  const toggleItem = async (itemId: string, itemName: string) => {
+  const toggleItem = async (itemId: string, name: string) => {
     if (!user) return;
     const existing = shoppingList.find((s) => s.item_id === itemId);
     if (existing) {
       await removeFromList(existing.id);
-      setSnackbar(`${itemName} removed from list`);
+      setSnackbar(`${name} removed from list`);
     } else {
-      setQtyTarget({ id: itemId, name: itemName });
+      setQtyTarget({ id: itemId, name });
       setQty(1);
       setQtyDialog(true);
     }
@@ -77,8 +95,15 @@ export default function HomeStorageScreen() {
 
   const handleAddItem = async () => {
     if (!user || !itemName.trim() || !targetLocationId) return;
-    await addItem(user.id, targetLocationId, itemName.trim());
+    const meta = pendingSuggestion ? {
+      brand: pendingSuggestion.brand ?? null,
+      quantity: pendingSuggestion.quantity ?? null,
+      image_url: pendingSuggestion.imageUrl ?? null,
+    } : undefined;
+    await addItem(user.id, targetLocationId, itemName.trim(), meta);
+    fetchItems(user.id);
     setItemName('');
+    setPendingSuggestion(null);
     setItemDialog(false);
   };
 
@@ -97,7 +122,6 @@ export default function HomeStorageScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <Surface style={styles.headerSurface} elevation={1}>
         <Text variant="headlineMedium" style={styles.headerTitle}>Home Storage</Text>
         <Text variant="bodySmall" style={styles.headerSubtitle}>
@@ -131,7 +155,7 @@ export default function HomeStorageScreen() {
             </Button>
           </View>
         ) : (
-          locations.map((location) => {
+          locations.map((location, locIdx) => {
             const filtered = search.trim()
               ? location.items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
               : location.items;
@@ -140,13 +164,18 @@ export default function HomeStorageScreen() {
               <LocationSection
                 key={location.id}
                 location={{ ...location, items: filtered }}
+                locationIndex={locIdx}
+                totalLocations={locations.length}
                 expanded={expanded.has(location.id) || !!search.trim()}
                 onToggle={() => toggleSection(location.id)}
                 isInList={isInList}
                 onToggleItem={toggleItem}
                 onAddItem={() => openAddItem(location.id)}
-                onDeleteItem={deleteItem}
+                onUnlinkItem={unlinkItem}
                 onDeleteLocation={() => deleteLocation(location.id)}
+                onMoveLocation={(dir) => moveLocation(location.id, dir)}
+                onMoveItem={(itemId, dir) => moveItem(location.id, itemId, dir)}
+                onOpenDetail={setDetailItemId}
               />
             );
           })
@@ -183,9 +212,7 @@ export default function HomeStorageScreen() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => { setLocationName(''); setLocationDialog(false); }}>
-              Cancel
-            </Button>
+            <Button onPress={() => { setLocationName(''); setLocationDialog(false); }}>Cancel</Button>
             <Button onPress={handleAddLocation} disabled={!locationName.trim()}>Add</Button>
           </Dialog.Actions>
         </Dialog>
@@ -218,93 +245,182 @@ export default function HomeStorageScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={itemDialog} onDismiss={() => setItemDialog(false)}>
-          <Dialog.Title>Add Item</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Item name"
-              value={itemName}
-              onChangeText={setItemName}
-              mode="outlined"
-              autoFocus
-              onSubmitEditing={handleAddItem}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => { setItemName(''); setItemDialog(false); }}>Cancel</Button>
-            <Button onPress={handleAddItem} disabled={!itemName.trim()}>Add</Button>
-          </Dialog.Actions>
-        </Dialog>
       </Portal>
+
+      <Modal
+        visible={itemDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { setItemName(''); setPendingSuggestion(null); setItemDialog(false); }}
+      >
+        <View style={styles.addItemOverlay}>
+          <Surface style={styles.addItemSheet} elevation={4}>
+            <Text variant="titleLarge" style={styles.addItemTitle}>Add Item</Text>
+            <FoodSearch
+              value={itemName}
+              onChangeText={(t) => { setItemName(t); setPendingSuggestion(null); }}
+              onSelect={(name, suggestion) => { setItemName(name); setPendingSuggestion(suggestion ?? null); }}
+              localSuggestions={itemSuggestions}
+              autoFocus
+            />
+            <View style={styles.addItemActions}>
+              <Button onPress={() => { setItemName(''); setPendingSuggestion(null); setItemDialog(false); }}>Cancel</Button>
+              <Button onPress={handleAddItem} disabled={!itemName.trim()}>Add</Button>
+            </View>
+          </Surface>
+        </View>
+      </Modal>
+
+      <ItemDetailModal itemId={detailItemId} onDismiss={() => setDetailItemId(null)} />
     </View>
   );
 }
 
 type LocationSectionProps = {
   location: StorageLocationWithItems;
+  locationIndex: number;
+  totalLocations: number;
   expanded: boolean;
   onToggle: () => void;
   isInList: (itemId: string) => boolean;
   onToggleItem: (itemId: string, itemName: string) => void;
   onAddItem: () => void;
-  onDeleteItem: (itemId: string) => void;
+  onUnlinkItem: (itemId: string) => void;
   onDeleteLocation: () => void;
+  onMoveLocation: (direction: 'up' | 'down') => void;
+  onMoveItem: (itemId: string, direction: 'up' | 'down') => void;
+  onOpenDetail: (itemId: string) => void;
 };
 
+type AnimatedItemRowProps = {
+  item: StorageLocationWithItems['items'][0];
+  itemIdx: number;
+  totalItems: number;
+  isInList: (id: string) => boolean;
+  onToggleItem: (id: string, name: string) => void;
+  onUnlinkItem: (id: string) => void;
+  onMoveItem: (id: string, dir: 'up' | 'down') => void;
+  onOpenDetail: (id: string) => void;
+};
+
+function AnimatedItemRow({
+  item, itemIdx, totalItems, isInList, onToggleItem, onUnlinkItem, onMoveItem,
+}: AnimatedItemRowProps) {
+  const rowAnim = useRef(new Animated.Value(0)).current;
+  const checked = isInList(item.id);
+
+  const handleActiveChange = (active: boolean) => {
+    Animated.timing(rowAnim, {
+      toValue: active ? 1 : 0,
+      duration: active ? 200 : 350,
+      easing: active ? Easing.out(Easing.quad) : Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const backgroundColor = rowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.background, colors.primary + '22'],
+  });
+
+  return (
+    <Animated.View style={[sectionStyles.itemRow, { backgroundColor }]}>
+      <DragHandle
+        canMoveUp={itemIdx > 0}
+        canMoveDown={itemIdx < totalItems - 1}
+        onMoveUp={() => onMoveItem(item.id, 'up')}
+        onMoveDown={() => onMoveItem(item.id, 'down')}
+        onActiveChange={handleActiveChange}
+        size="sm"
+      />
+      <Checkbox
+        status={checked ? 'checked' : 'unchecked'}
+        onPress={() => onToggleItem(item.id, item.name)}
+        color={colors.primary}
+      />
+      <Text
+        variant="bodyLarge"
+        style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}
+      >
+        {item.name}
+      </Text>
+      <IconButton
+        icon="delete-outline"
+        size={18}
+        iconColor={colors.error}
+        onPress={() => onUnlinkItem(item.id)}
+      />
+    </Animated.View>
+  );
+}
+
 function LocationSection({
-  location, expanded, onToggle, isInList, onToggleItem, onAddItem, onDeleteItem, onDeleteLocation,
+  location, locationIndex, totalLocations, expanded,
+  onToggle, isInList, onToggleItem, onAddItem,
+  onUnlinkItem, onDeleteLocation, onMoveLocation, onMoveItem,
 }: LocationSectionProps) {
   const checkedCount = location.items.filter((i) => isInList(i.id)).length;
+  const headerAnim = useRef(new Animated.Value(0)).current;
+
+  const handleHeaderActiveChange = (active: boolean) => {
+    Animated.timing(headerAnim, {
+      toValue: active ? 1 : 0,
+      duration: active ? 200 : 350,
+      easing: active ? Easing.out(Easing.quad) : Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const headerBg = headerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.surface, colors.primary + '28'],
+  });
 
   return (
     <View style={sectionStyles.container}>
-      {/* Section Header */}
-      <View style={sectionStyles.header}>
+      <Animated.View style={[sectionStyles.header, { backgroundColor: headerBg }]}>
+        <DragHandle
+          canMoveUp={locationIndex > 0}
+          canMoveDown={locationIndex < totalLocations - 1}
+          onMoveUp={() => onMoveLocation('up')}
+          onMoveDown={() => onMoveLocation('down')}
+          onActiveChange={handleHeaderActiveChange}
+          size="md"
+        />
         <TouchableOpacity style={sectionStyles.titleArea} onPress={onToggle} activeOpacity={0.7}>
           <MaterialCommunityIcons
             name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={24}
+            size={20}
             color={colors.textLight}
           />
           <View style={sectionStyles.titleText}>
             <Text variant="titleMedium" style={sectionStyles.name}>{location.name}</Text>
             {checkedCount > 0 && (
-              <Text variant="bodySmall" style={sectionStyles.badge}>
-                {checkedCount} on list
-              </Text>
+              <Text variant="bodySmall" style={sectionStyles.badge}>{checkedCount} on list</Text>
             )}
           </View>
         </TouchableOpacity>
         <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={onAddItem} />
         <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={onDeleteLocation} />
-      </View>
+      </Animated.View>
 
-      {/* Items */}
       {expanded && (
         <View style={sectionStyles.itemsContainer}>
           {location.items.length === 0 ? (
             <Text style={sectionStyles.emptyItems}>No items — tap + to add</Text>
           ) : (
-            location.items.map((item) => {
-              const checked = isInList(item.id);
-              return (
-                <SwipeableRow key={item.id} onDelete={() => onDeleteItem(item.id)}>
-                  <View style={sectionStyles.itemRow}>
-                    <Checkbox
-                      status={checked ? 'checked' : 'unchecked'}
-                      onPress={() => onToggleItem(item.id, item.name)}
-                      color={colors.primary}
-                    />
-                    <Text
-                      variant="bodyLarge"
-                      style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}
-                    >
-                      {item.name}
-                    </Text>
-                  </View>
-                </SwipeableRow>
-              );
-            })
+            location.items.map((item, itemIdx) => (
+              <AnimatedItemRow
+                key={item.id}
+                item={item}
+                itemIdx={itemIdx}
+                totalItems={location.items.length}
+                isInList={isInList}
+                onToggleItem={onToggleItem}
+                onUnlinkItem={onUnlinkItem}
+                onMoveItem={onMoveItem}
+              />
+            ))
           )}
         </View>
       )}
@@ -339,6 +455,22 @@ const styles = StyleSheet.create({
   searchbar: { margin: spacing.sm, elevation: 0, backgroundColor: colors.surface },
   searchbarInput: { fontSize: 14 },
   snackbar: { marginBottom: 80 },
+  addItemOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  addItemSheet: {
+    width: '100%',
+    maxWidth: 500,
+    borderRadius: 12,
+    padding: spacing.lg,
+    backgroundColor: colors.background,
+  },
+  addItemTitle: { color: colors.text, fontWeight: '600', marginBottom: spacing.md },
+  addItemActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: spacing.md, gap: spacing.sm },
   qtyStepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
   qtyValue: { minWidth: 40, textAlign: 'center', color: colors.text },
 });
@@ -348,7 +480,7 @@ const sectionStyles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: spacing.sm,
+    paddingLeft: spacing.xs,
     paddingRight: spacing.xs,
     paddingVertical: spacing.xs,
     backgroundColor: colors.surface,
@@ -361,11 +493,13 @@ const sectionStyles = StyleSheet.create({
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: spacing.md,
+    paddingLeft: spacing.xs,
     paddingRight: spacing.xs,
     minHeight: 48,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
   },
-  itemName: { flex: 1, color: colors.text, marginLeft: spacing.sm },
+  itemName: { flex: 1, color: colors.text, marginLeft: spacing.xs },
   itemChecked: { textDecorationLine: 'line-through', color: colors.textLight },
   emptyItems: {
     color: colors.textLight,
