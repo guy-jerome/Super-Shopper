@@ -2,12 +2,15 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import {
   Text, Button, ActivityIndicator, Checkbox, IconButton,
-  Divider, Surface, TextInput, ProgressBar, Menu, Dialog, Portal,
+  Divider, Surface, TextInput, ProgressBar, Menu, Dialog, Portal, FAB,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useShoppingStore } from '../../stores/useShoppingStore';
 import { useStoreStore } from '../../stores/useStoreStore';
+import { useItemStore } from '../../stores/useItemStore';
+import { FoodSearch } from '../../components/FoodSearch';
+import type { FoodSuggestion } from '../../hooks/useOpenFoodFacts';
 import { SwipeableRow } from '../../components/SwipeableRow';
 import { colors, spacing } from '../../constants/theme';
 
@@ -18,11 +21,15 @@ export default function ShopScreen() {
   const {
     shoppingList, notes, currentStore, isLoading,
     fetchShoppingList, toggleChecked, updateNotes, updateQuantity,
-    clearCheckedItems, setCurrentStore, removeFromList, markAllChecked,
+    clearCheckedItems, setCurrentStore, removeFromList, markAllChecked, addToList,
   } = useShoppingStore();
   const { stores, fetchStores } = useStoreStore();
+  const { addItem } = useItemStore();
 
   const [editingNotes, setEditingNotes] = useState(false);
+  const [addDialog, setAddDialog] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [pendingSuggestion, setPendingSuggestion] = useState<FoodSuggestion | null>(null);
   const [notesValue, setNotesValue] = useState('');
   const [storeMenuVisible, setStoreMenuVisible] = useState(false);
   const [activeAisle, setActiveAisle] = useState<string | null>(null);
@@ -59,6 +66,22 @@ export default function ShopScreen() {
     await updateQuantity(qtyTarget.id, qtyValue);
     setQtyDialog(false);
     setQtyTarget(null);
+  };
+
+  const handleAddItem = async () => {
+    if (!user || !newItemName.trim()) return;
+    const meta = pendingSuggestion ? {
+      brand: pendingSuggestion.brand ?? null,
+      quantity: pendingSuggestion.quantity ?? null,
+      image_url: pendingSuggestion.imageUrl ?? null,
+    } : undefined;
+    const newItem = await addItem(user.id, newItemName.trim(), [], meta);
+    if (newItem) {
+      await addToList(user.id, newItem.id, 1);
+    }
+    setNewItemName('');
+    setPendingSuggestion(null);
+    setAddDialog(false);
   };
 
   const total = shoppingList.length;
@@ -265,7 +288,32 @@ export default function ShopScreen() {
         )}
       </ScrollView>
 
+      <FAB
+        icon="plus"
+        label="Add Item"
+        style={styles.fab}
+        onPress={() => setAddDialog(true)}
+      />
+
       <Portal>
+        <Dialog visible={addDialog} onDismiss={() => { setNewItemName(''); setPendingSuggestion(null); setAddDialog(false); }}>
+          <Dialog.Title>Add to List</Dialog.Title>
+          <Dialog.Content>
+            <FoodSearch
+              value={newItemName}
+              onChangeText={(t) => { setNewItemName(t); setPendingSuggestion(null); }}
+              onSelect={(name, suggestion) => { setNewItemName(name); setPendingSuggestion(suggestion ?? null); }}
+              autoFocus
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => { setNewItemName(''); setPendingSuggestion(null); setAddDialog(false); }}>
+              Cancel
+            </Button>
+            <Button onPress={handleAddItem} disabled={!newItemName.trim()}>Add</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog visible={qtyDialog} onDismiss={() => setQtyDialog(false)}>
           <Dialog.Title>Edit Quantity</Dialog.Title>
           <Dialog.Content>
@@ -349,7 +397,8 @@ const styles = StyleSheet.create({
   progressBar: { flex: 1, height: 6, borderRadius: 3 },
   progressText: { color: colors.textLight, minWidth: 90, textAlign: 'right' },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: spacing.xl },
+  scrollContent: { paddingBottom: 100 },
+  fab: { position: 'absolute', bottom: spacing.lg, right: spacing.md, backgroundColor: colors.primary },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notesSection: { padding: spacing.md },
   notesHeader: {
