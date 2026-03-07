@@ -21,7 +21,7 @@ export default function StoresScreen() {
     fetchStores, fetchStoreWithAisles,
     addStore, deleteStore,
     addAisle, deleteAisle, moveAisle,
-    addItemToAisle, removeItemFromAisle, moveItemInAisle,
+    addItemToAisle, removeItemFromAisle, moveItemInAisle, updateItemInAisle,
   } = useStoreStore();
   const { items: globalItems, fetchItems } = useItemStore();
 
@@ -35,6 +35,9 @@ export default function StoresScreen() {
   const [itemPositionTag, setItemPositionTag] = useState('');
   const [targetAisleId, setTargetAisleId] = useState('');
   const [expandedAisles, setExpandedAisles] = useState<Set<string>>(new Set());
+  const [editItemDialog, setEditItemDialog] = useState(false);
+  const [editLocId, setEditLocId] = useState('');
+  const [editPositionTag, setEditPositionTag] = useState('');
 
   // Suggestions from the global items list
   const localSuggestions = itemName.trim().length > 0
@@ -75,6 +78,17 @@ export default function StoresScreen() {
     setItemDialog(false);
     // Refresh global items so new items appear
     fetchItems(user.id);
+  };
+
+  const openEditItem = (locId: string, currentPositionTag: string | null) => {
+    setEditLocId(locId);
+    setEditPositionTag(currentPositionTag ?? '');
+    setEditItemDialog(true);
+  };
+
+  const handleSaveEditItem = async () => {
+    await updateItemInAisle(editLocId, editPositionTag.trim() || null);
+    setEditItemDialog(false);
   };
 
   const openAddItem = (aisleId: string) => {
@@ -141,6 +155,7 @@ export default function StoresScreen() {
                 onAddItem={openAddItem}
                 onMoveItem={moveItemInAisle}
                 onRemoveItem={removeItemFromAisle}
+                onEditItem={openEditItem}
               />
             ))
           )}
@@ -162,6 +177,25 @@ export default function StoresScreen() {
             <Dialog.Actions>
               <Button onPress={() => { setAisleName(''); setAisleDialog(false); }}>Cancel</Button>
               <Button onPress={handleAddAisle} disabled={!aisleName.trim()}>Add</Button>
+            </Dialog.Actions>
+          </Dialog>
+
+          <Dialog visible={editItemDialog} onDismiss={() => setEditItemDialog(false)}>
+            <Dialog.Title>Edit Position Tag</Dialog.Title>
+            <Dialog.Content>
+              <TextInput
+                label="Position tag (optional)"
+                value={editPositionTag}
+                onChangeText={setEditPositionTag}
+                mode="outlined"
+                placeholder="e.g. Far wall, Refrigerators, Left shelf"
+                autoFocus
+                onSubmitEditing={handleSaveEditItem}
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setEditItemDialog(false)}>Cancel</Button>
+              <Button onPress={handleSaveEditItem}>Save</Button>
             </Dialog.Actions>
           </Dialog>
 
@@ -271,7 +305,7 @@ export default function StoresScreen() {
 }
 
 function AnimatedAisleItem({
-  loc, locIdx, totalItems, aisleId, onMoveItem, onRemoveItem,
+  loc, locIdx, totalItems, aisleId, onMoveItem, onRemoveItem, onEditItem,
 }: {
   loc: any;
   locIdx: number;
@@ -279,6 +313,7 @@ function AnimatedAisleItem({
   aisleId: string;
   onMoveItem: (aisleId: string, locId: string, dir: 'up' | 'down') => void;
   onRemoveItem: (locId: string) => void;
+  onEditItem: (locId: string, positionTag: string | null) => void;
 }) {
   const rowAnim = useRef(new Animated.Value(0)).current;
 
@@ -317,6 +352,12 @@ function AnimatedAisleItem({
         ) : null}
       </View>
       <IconButton
+        icon="pencil-outline"
+        size={18}
+        iconColor={colors.textLight}
+        onPress={() => onEditItem(loc.id, loc.position_tag ?? null)}
+      />
+      <IconButton
         icon="delete-outline"
         size={18}
         iconColor={colors.textLight}
@@ -328,7 +369,7 @@ function AnimatedAisleItem({
 
 function AisleSection({
   aisle, aisleIdx, totalAisles, isExpanded, onToggle,
-  onMoveAisle, onDeleteAisle, onAddItem, onMoveItem, onRemoveItem,
+  onMoveAisle, onDeleteAisle, onAddItem, onMoveItem, onRemoveItem, onEditItem,
 }: {
   aisle: any;
   aisleIdx: number;
@@ -340,6 +381,7 @@ function AisleSection({
   onAddItem: (aisleId: string) => void;
   onMoveItem: (aisleId: string, locId: string, dir: 'up' | 'down') => void;
   onRemoveItem: (locId: string) => void;
+  onEditItem: (locId: string, positionTag: string | null) => void;
 }) {
   const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -412,6 +454,7 @@ function AisleSection({
                 aisleId={aisle.id}
                 onMoveItem={onMoveItem}
                 onRemoveItem={onRemoveItem}
+                onEditItem={onEditItem}
               />
             ))
           )}
