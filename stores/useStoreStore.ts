@@ -16,6 +16,7 @@ interface StoreStore {
   moveAisle: (aisleId: string, direction: 'up' | 'down') => Promise<void>;
   addItemToAisle: (userId: string, aisleId: string, itemName: string, positionTag?: string, meta?: { brand?: string | null; quantity?: string | null; image_url?: string | null }) => Promise<void>;
   removeItemFromAisle: (itemStoreLocationId: string) => Promise<void>;
+  updateItemInAisle: (locId: string, positionTag: string | null) => Promise<void>;
   moveItemInAisle: (aisleId: string, itemLocId: string, direction: 'up' | 'down') => void;
 }
 
@@ -211,6 +212,30 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
               ...a,
               item_store_locations: a.item_store_locations.filter(
                 (l) => l.id !== itemStoreLocationId
+              ),
+            })),
+          },
+        };
+      });
+    }
+  },
+
+  updateItemInAisle: async (locId, positionTag) => {
+    const { error } = await supabase
+      .from('item_store_locations')
+      .update({ position_tag: positionTag })
+      .eq('id', locId);
+
+    if (!error) {
+      set((state) => {
+        if (!state.activeStore) return state;
+        return {
+          activeStore: {
+            ...state.activeStore,
+            aisles: state.activeStore.aisles.map((a) => ({
+              ...a,
+              item_store_locations: a.item_store_locations.map((l) =>
+                l.id === locId ? { ...l, position_tag: positionTag } : l
               ),
             })),
           },
