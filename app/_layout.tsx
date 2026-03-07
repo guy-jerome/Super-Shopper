@@ -3,16 +3,19 @@ import { StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { theme } from '../constants/theme';
+import { theme, darkTheme } from '../constants/theme';
 import { useAuthStore } from '../stores/useAuthStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 
 export default function RootLayout() {
   const { user, isLoading, initialize } = useAuthStore();
+  const { isDarkMode, loadTheme } = useSettingsStore();
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
     initialize();
+    loadTheme();
   }, []);
 
   useEffect(() => {
@@ -27,7 +30,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <PaperProvider theme={theme}>
+      <PaperProvider theme={isDarkMode ? darkTheme : theme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="auth/login" />

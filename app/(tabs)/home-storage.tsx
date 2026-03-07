@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -32,12 +32,14 @@ import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { DragHandle } from "../../components/DraggableList";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
-import { colors, spacing } from "../../constants/theme";
+import { useColors, spacing, type Colors } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
 
 const today = new Date().toISOString().split("T")[0];
 
 export default function HomeStorageScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuthStore();
   const {
     locations,
@@ -250,6 +252,7 @@ export default function HomeStorageScreen() {
                 onMoveLocation={(dir) => moveLocation(location.id, dir)}
                 onMoveItem={(itemId, dir) => moveItem(location.id, itemId, dir)}
                 onOpenDetail={setDetailItemId}
+                colors={colors}
               />
             );
           })
@@ -431,6 +434,7 @@ type LocationSectionProps = {
   onMoveLocation: (direction: "up" | "down") => void;
   onMoveItem: (itemId: string, direction: "up" | "down") => void;
   onOpenDetail: (itemId: string) => void;
+  colors: Colors;
 };
 
 type AnimatedItemRowProps = {
@@ -442,6 +446,7 @@ type AnimatedItemRowProps = {
   onUnlinkItem: (id: string) => void;
   onMoveItem: (id: string, dir: "up" | "down") => void;
   onOpenDetail: (id: string) => void;
+  colors: Colors;
 };
 
 function AnimatedItemRow({
@@ -453,7 +458,9 @@ function AnimatedItemRow({
   onUnlinkItem,
   onMoveItem,
   onOpenDetail,
+  colors,
 }: AnimatedItemRowProps) {
+  const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
   const rowAnim = useRef(new Animated.Value(0)).current;
   const checked = isInList(item.id);
 
@@ -522,7 +529,9 @@ function LocationSection({
   onMoveLocation,
   onMoveItem,
   onOpenDetail,
+  colors,
 }: LocationSectionProps) {
+  const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
   const checkedCount = location.items.filter((i) => isInList(i.id)).length;
   const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -606,6 +615,7 @@ function LocationSection({
                 onUnlinkItem={onUnlinkItem}
                 onMoveItem={onMoveItem}
                 onOpenDetail={onOpenDetail}
+                colors={colors}
               />
             ))
           )}
@@ -616,7 +626,7 @@ function LocationSection({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   headerSurface: {
     paddingHorizontal: spacing.md,
@@ -687,9 +697,9 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   qtyValue: { minWidth: 40, textAlign: "center", color: colors.text },
-});
+}); }
 
-const sectionStyles = StyleSheet.create({
+function createSectionStyles(colors: Colors) { return StyleSheet.create({
   container: { backgroundColor: colors.background },
   header: {
     flexDirection: "row",
@@ -727,4 +737,4 @@ const sectionStyles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingLeft: spacing.xl,
   },
-});
+}); }

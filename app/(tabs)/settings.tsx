@@ -1,10 +1,15 @@
-import { View, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { View, StyleSheet, Switch } from 'react-native';
 import { Text, List, Divider, Button, Avatar, Surface } from 'react-native-paper';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { colors, spacing } from '../../constants/theme';
+import { useSettingsStore } from '../../stores/useSettingsStore';
+import { useColors, spacing, type Colors } from '../../constants/theme';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuthStore();
+  const { isDarkMode, toggleTheme } = useSettingsStore();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? '??';
 
@@ -40,10 +45,16 @@ export default function SettingsScreen() {
         />
         <Divider />
         <List.Item
-          title="Theme"
-          description="Light mode"
+          title="Dark Mode"
+          description={isDarkMode ? 'Dark' : 'Light'}
           left={(p) => <List.Icon {...p} icon="palette-outline" color={colors.primary} />}
-          right={(p) => <List.Icon {...p} icon="chevron-right" />}
+          right={() => (
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleTheme}
+              trackColor={{ true: colors.primary }}
+            />
+          )}
         />
         <Divider />
       </View>
@@ -63,7 +74,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   headerSurface: {
     paddingHorizontal: spacing.md,
@@ -88,4 +99,4 @@ const styles = StyleSheet.create({
   section: { marginTop: spacing.sm },
   signOutSection: { marginTop: 'auto', padding: spacing.md },
   signOutButton: { borderColor: colors.error },
-});
+}); }

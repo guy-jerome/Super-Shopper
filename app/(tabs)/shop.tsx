@@ -24,11 +24,13 @@ import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { SwipeableRow } from "../../components/SwipeableRow";
-import { colors, spacing } from "../../constants/theme";
+import { useColors, spacing, type Colors } from "../../constants/theme";
 
 const today = new Date().toISOString().split("T")[0];
 
 export default function ShopScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuthStore();
   const {
     shoppingList,
@@ -369,6 +371,7 @@ export default function ShopScreen() {
                       openQtyEdit(item.id, item.item_name, item.quantity)
                     }
                     onOpenDetail={() => setDetailItemId(item.item_id)}
+                    colors={colors}
                   />
                   <Divider style={styles.itemDivider} />
                 </SwipeableRow>
@@ -502,6 +505,7 @@ function ShoppingItem({
   onToggle,
   onEditQty,
   onOpenDetail,
+  colors,
 }: {
   item: {
     id: string;
@@ -513,7 +517,9 @@ function ShoppingItem({
   onToggle: () => void;
   onEditQty: () => void;
   onOpenDetail: () => void;
+  colors: Colors;
 }) {
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.itemRow}>
       <Checkbox
@@ -549,7 +555,7 @@ function ShoppingItem({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   headerSurface: {
     paddingHorizontal: spacing.md,
@@ -667,4 +673,4 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   qtyValue: { minWidth: 40, textAlign: "center", color: colors.text },
-});
+}); }

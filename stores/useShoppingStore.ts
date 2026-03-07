@@ -70,19 +70,30 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
 
   fetchShoppingList: async (userId, date) => {
     set({ isLoading: true });
-    const { data, error } = await supabase
-      .from('shopping_list')
-      .select('*, items(name, item_store_locations(aisle_id, aisles(id, name, order_index, store_id)))')
-      .eq('user_id', userId)
-      .eq('shopping_date', date);
+    const [listResult, notesResult] = await Promise.all([
+      supabase
+        .from('shopping_list')
+        .select('*, items(name, item_store_locations(aisle_id, aisles(id, name, order_index, store_id)))')
+        .eq('user_id', userId)
+        .eq('shopping_date', date),
+      supabase
+        .from('shopping_notes')
+        .select('content')
+        .eq('user_id', userId)
+        .eq('shopping_date', date)
+        .maybeSingle(),
+    ]);
 
-    if (!error && data) {
-      const withNames = (data as any[]).map((row) => ({
+    if (!listResult.error && listResult.data) {
+      const withNames = (listResult.data as any[]).map((row) => ({
         ...row,
         item_name: row.items?.name ?? '',
         store_locations: row.items?.item_store_locations ?? [],
       })) as ShoppingListItemWithName[];
       set({ shoppingList: withNames });
+    }
+    if (!notesResult.error) {
+      set({ notes: notesResult.data?.content ?? '' });
     }
     set({ isLoading: false });
   },
@@ -139,7 +150,10 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
   },
 
   updateNotes: async (userId, date, notes) => {
-    await supabase.from('shopping_notes').upsert({ user_id: userId, shopping_date: date, content: notes });
+    await supabase.from('shopping_notes').upsert(
+      { user_id: userId, shopping_date: date, content: notes },
+      { onConflict: 'user_id,shopping_date' }
+    );
     set({ notes });
   },
 

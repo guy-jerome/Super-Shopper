@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -26,11 +26,14 @@ import { useItemStore } from "../../stores/useItemStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { DragHandle } from "../../components/DraggableList";
-import { colors, spacing } from "../../constants/theme";
+import { useColors, spacing, type Colors } from "../../constants/theme";
 
 type Screen = "list" | "detail";
 
 export default function StoresScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const storeListStyles = useMemo(() => createStoreListStyles(colors), [colors]);
   const { user } = useAuthStore();
   const {
     stores,
@@ -221,6 +224,7 @@ export default function StoresScreen() {
                 }}
                 onEditItem={openEditItem}
                 onOpenDetail={setDetailItemId}
+                colors={colors}
               />
             ))
           )}
@@ -498,6 +502,7 @@ function AnimatedAisleItem({
   onRemoveItem,
   onEditItem,
   onOpenDetail,
+  colors,
 }: {
   loc: any;
   locIdx: number;
@@ -507,7 +512,9 @@ function AnimatedAisleItem({
   onRemoveItem: (locId: string) => void;
   onEditItem: (locId: string, positionTag: string | null) => void;
   onOpenDetail: (itemId: string) => void;
+  colors: Colors;
 }) {
+  const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
   const rowAnim = useRef(new Animated.Value(0)).current;
 
   const handleActiveChange = (active: boolean) => {
@@ -579,6 +586,7 @@ function AisleSection({
   onRemoveItem,
   onEditItem,
   onOpenDetail,
+  colors,
 }: {
   aisle: any;
   aisleIdx: number;
@@ -592,7 +600,9 @@ function AisleSection({
   onRemoveItem: (locId: string) => void;
   onEditItem: (locId: string, positionTag: string | null) => void;
   onOpenDetail: (itemId: string) => void;
+  colors: Colors;
 }) {
+  const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
   const headerAnim = useRef(new Animated.Value(0)).current;
 
   const handleHeaderActiveChange = (active: boolean) => {
@@ -678,6 +688,7 @@ function AisleSection({
                 onRemoveItem={onRemoveItem}
                 onEditItem={onEditItem}
                 onOpenDetail={onOpenDetail}
+                colors={colors}
               />
             ))
           )}
@@ -688,7 +699,7 @@ function AisleSection({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   headerSurface: {
     paddingHorizontal: spacing.md,
@@ -722,9 +733,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   itemDialogContent: { maxHeight: 480 },
-});
+}); }
 
-const storeListStyles = StyleSheet.create({
+function createStoreListStyles(colors: Colors) { return StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -733,9 +744,9 @@ const storeListStyles = StyleSheet.create({
     gap: spacing.md,
   },
   name: { flex: 1, color: colors.text },
-});
+}); }
 
-const sectionStyles = StyleSheet.create({
+function createSectionStyles(colors: Colors) { return StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -777,4 +788,4 @@ const sectionStyles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingLeft: spacing.xl,
   },
-});
+}); }

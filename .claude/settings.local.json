@@ -33,7 +33,8 @@
       "WebSearch",
       "Bash(git worktree:*)",
       "Bash(git:*)",
-      "Bash(do:*)"
+      "Bash(do:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

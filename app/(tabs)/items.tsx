@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import {
   Text,
@@ -26,11 +26,13 @@ import { useShoppingStore } from "../../stores/useShoppingStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
-import { colors, spacing } from "../../constants/theme";
+import { useColors, spacing, type Colors } from "../../constants/theme";
 
 type FilterMode = "all" | "no-home" | "no-store";
 
 export default function ItemsScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuthStore();
   const {
     items,
@@ -229,11 +231,13 @@ export default function ItemsScreen() {
                       icon="home-outline"
                       active={item.hasHomeLocation}
                       label="Home"
+                      colors={colors}
                     />
                     <LocationBadge
                       icon="store-outline"
                       active={item.hasStoreLocation}
                       label="Store"
+                      colors={colors}
                     />
                   </View>
                   {item.tags.length > 0 && (
@@ -371,16 +375,19 @@ function LocationBadge({
   icon,
   active,
   label,
+  colors,
 }: {
   icon: string;
   active: boolean;
   label: string;
+  colors: Colors;
 }) {
+  const styles = useMemo(() => createLocBadgeStyles(colors), [colors]);
   return (
     <View
       style={[
-        locBadgeStyles.badge,
-        active ? locBadgeStyles.active : locBadgeStyles.inactive,
+        styles.badge,
+        active ? styles.active : styles.inactive,
       ]}
     >
       <MaterialCommunityIcons
@@ -389,7 +396,7 @@ function LocationBadge({
         color={active ? colors.primary : colors.textLight}
       />
       <Text
-        style={[locBadgeStyles.label, !active && locBadgeStyles.inactiveLabel]}
+        style={[styles.label, !active && styles.inactiveLabel]}
       >
         {label}
       </Text>
@@ -397,7 +404,7 @@ function LocationBadge({
   );
 }
 
-const locBadgeStyles = StyleSheet.create({
+function createLocBadgeStyles(colors: Colors) { return StyleSheet.create({
   badge: {
     flexDirection: "row",
     alignItems: "center",
@@ -411,9 +418,9 @@ const locBadgeStyles = StyleSheet.create({
   inactive: { borderColor: colors.textLight, opacity: 0.45 },
   label: { fontSize: 11, color: colors.primary },
   inactiveLabel: { color: colors.textLight },
-});
+}); }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   headerSurface: {
     paddingHorizontal: spacing.md,
@@ -488,4 +495,4 @@ const styles = StyleSheet.create({
     borderColor: colors.primary + "44",
   },
   tagText: { fontSize: 11, color: colors.primary },
-});
+}); }
