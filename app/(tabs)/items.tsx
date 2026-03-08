@@ -21,14 +21,13 @@ import {
   useItemStore,
   type ItemSortOrder,
   type ItemWithLocations,
+  type FilterMode,
 } from "../../stores/useItemStore";
 import { useShoppingStore } from "../../stores/useShoppingStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { useColors, spacing, type Colors } from "../../constants/theme";
-
-type FilterMode = "all" | "no-home" | "no-store";
 
 export default function ItemsScreen() {
   const colors = useColors();
@@ -38,6 +37,8 @@ export default function ItemsScreen() {
     items,
     isLoading,
     sortOrder,
+    filterMode,
+    setFilterMode,
     fetchItems,
     setSortOrder,
     addItem,
@@ -47,7 +48,6 @@ export default function ItemsScreen() {
   } = useItemStore();
 
   const [search, setSearch] = useState("");
-  const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const [addDialog, setAddDialog] = useState(false);
   const [newItemName, setNewItemName] = useState("");
