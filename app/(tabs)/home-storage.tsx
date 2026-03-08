@@ -122,16 +122,27 @@ export default function HomeStorageScreen() {
       await removeFromList(existing.id);
       setSnackbar(`${name} removed from list`);
     } else {
-      setQtyTarget({ id: itemId, name });
-      setQty(1);
-      setQtyDialog(true);
+      await addToList(user.id, itemId, 1);
+      setSnackbar(`${name} added to list`);
     }
+  };
+
+  const openQtyDialog = (itemId: string, name: string) => {
+    setQtyTarget({ id: itemId, name });
+    setQty(1);
+    setQtyDialog(true);
   };
 
   const confirmAddToList = async () => {
     if (!user || !qtyTarget) return;
-    await addToList(user.id, qtyTarget.id, qty);
-    setSnackbar(`${qtyTarget.name} added to shopping list`);
+    // If already on list, update quantity; otherwise add fresh
+    const existing = shoppingList.find((s) => s.item_id === qtyTarget.id);
+    if (existing) {
+      await addToList(user.id, qtyTarget.id, qty);
+    } else {
+      await addToList(user.id, qtyTarget.id, qty);
+    }
+    setSnackbar(`${qtyTarget.name} added ×${qty}`);
     setQtyDialog(false);
     setQtyTarget(null);
   };
@@ -174,10 +185,30 @@ export default function HomeStorageScreen() {
     setApplyingTemplate(true);
     const template = STORAGE_TEMPLATES[templateIndex];
     for (const loc of template.locations) {
-      const newLoc = await addLocation(user.id, loc.name);
-      if (newLoc && loc.subsections) {
+      // Don't duplicate an existing location with the same name
+      const currentLocs = useStorageStore.getState().locations;
+      const existingLoc = currentLocs.find(
+        (l) => l.name.toLowerCase() === loc.name.toLowerCase()
+      );
+      let parentId: string;
+      if (existingLoc) {
+        parentId = existingLoc.id;
+      } else {
+        const newLoc = await addLocation(user.id, loc.name);
+        if (!newLoc) continue;
+        parentId = newLoc.id;
+      }
+      if (loc.subsections) {
+        const freshLocs = useStorageStore.getState().locations;
+        const parent = freshLocs.find((l) => l.id === parentId);
+        const existingSubs = parent?.subsections ?? [];
         for (const subName of loc.subsections) {
-          await addLocation(user.id, subName, newLoc.id);
+          const alreadyExists = existingSubs.some(
+            (s) => s.name.toLowerCase() === subName.toLowerCase()
+          );
+          if (!alreadyExists) {
+            await addLocation(user.id, subName, parentId);
+          }
         }
       }
     }
@@ -301,6 +332,7 @@ export default function HomeStorageScreen() {
                 onToggleSub={toggleSubsection}
                 isInList={isInList}
                 onToggleItem={toggleItem}
+                onOpenQtyDialog={openQtyDialog}
                 onAddItem={openAddItem}
                 onUnlinkItem={(itemId) => {
                   let name = "this item";
@@ -544,11 +576,13 @@ type LocationSectionProps = {
   onToggleSub: (id: string) => void;
   isInList: (itemId: string) => boolean;
   onToggleItem: (itemId: string, itemName: string) => void;
+  onOpenQtyDialog: (itemId: string, itemName: string) => void;
   onAddItem: (locationId: string) => void;
   onUnlinkItem: (itemId: string) => void;
   onDeleteLocation: (id: string, name: string) => void;
   onRenameLocation: (id: string, name: string) => void;
   onMoveLocation: (direction: "up" | "down") => void;
+
   onMoveSubsection: (subId: string, direction: "up" | "down") => void;
   onMoveItem: (locationId: string, itemId: string, direction: "up" | "down") => void;
   onAddSubsection: () => void;
@@ -565,6 +599,7 @@ function AnimatedItemRow({
   locationId,
   isInList,
   onToggleItem,
+  onOpenQtyDialog,
   onUnlinkItem,
   onMoveItem,
   onOpenDetail,
@@ -577,6 +612,7 @@ function AnimatedItemRow({
   locationId: string;
   isInList: (id: string) => boolean;
   onToggleItem: (id: string, name: string) => void;
+  onOpenQtyDialog: (id: string, name: string) => void;
   onUnlinkItem: (id: string) => void;
   onMoveItem: (locId: string, id: string, dir: "up" | "down") => void;
   onOpenDetail: (id: string) => void;
@@ -612,21 +648,28 @@ function AnimatedItemRow({
         onActiveChange={handleActiveChange}
         size="sm"
       />
-      <Checkbox
-        status={checked ? "checked" : "unchecked"}
+      <TouchableOpacity
         onPress={() => onToggleItem(item.id, item.name)}
-        color={colors.primary}
-      />
-      <View style={sectionStyles.itemNameWrap}>
-        <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
-          {item.name}
-        </Text>
-        {(item.brand || item.quantity) ? (
-          <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
-            {[item.brand, item.quantity].filter(Boolean).join(" · ")}
+        onLongPress={() => onOpenQtyDialog(item.id, item.name)}
+        activeOpacity={0.7}
+        style={sectionStyles.itemTouchable}
+      >
+        <Checkbox
+          status={checked ? "checked" : "unchecked"}
+          onPress={() => onToggleItem(item.id, item.name)}
+          color={colors.primary}
+        />
+        <View style={sectionStyles.itemNameWrap}>
+          <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
+            {item.name}
           </Text>
-        ) : null}
-      </View>
+          {(item.brand || item.quantity) ? (
+            <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
+              {[item.brand, item.quantity].filter(Boolean).join(" · ")}
+            </Text>
+          ) : null}
+        </View>
+      </TouchableOpacity>
       <IconButton icon="eye-outline" size={18} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
       <IconButton icon="delete-outline" size={18} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
     </Animated.View>
@@ -645,6 +688,7 @@ function SubsectionSection({
   onToggle,
   isInList,
   onToggleItem,
+  onOpenQtyDialog,
   onAddItem,
   onUnlinkItem,
   onMoveSubsection,
@@ -663,6 +707,7 @@ function SubsectionSection({
   onToggle: () => void;
   isInList: (id: string) => boolean;
   onToggleItem: (id: string, name: string) => void;
+  onOpenQtyDialog: (id: string, name: string) => void;
   onAddItem: (locId: string) => void;
   onUnlinkItem: (id: string) => void;
   onMoveSubsection: (subId: string, dir: "up" | "down") => void;
@@ -753,6 +798,7 @@ function SubsectionSection({
                 locationId={subsection.id}
                 isInList={isInList}
                 onToggleItem={onToggleItem}
+                onOpenQtyDialog={onOpenQtyDialog}
                 onUnlinkItem={onUnlinkItem}
                 onMoveItem={onMoveItem}
                 onOpenDetail={onOpenDetail}
@@ -780,6 +826,7 @@ function LocationSection({
   onToggleSub,
   isInList,
   onToggleItem,
+  onOpenQtyDialog,
   onAddItem,
   onUnlinkItem,
   onDeleteLocation,
@@ -864,6 +911,7 @@ function LocationSection({
               locationId={location.id}
               isInList={isInList}
               onToggleItem={onToggleItem}
+              onOpenQtyDialog={onOpenQtyDialog}
               onUnlinkItem={onUnlinkItem}
               onMoveItem={onMoveItem}
               onOpenDetail={onOpenDetail}
@@ -888,6 +936,7 @@ function LocationSection({
                 onToggle={() => onToggleSub(sub.id)}
                 isInList={isInList}
                 onToggleItem={onToggleItem}
+                onOpenQtyDialog={onOpenQtyDialog}
                 onAddItem={onAddItem}
                 onUnlinkItem={onUnlinkItem}
                 onMoveSubsection={onMoveSubsection}
@@ -1030,6 +1079,7 @@ function createSectionStyles(colors: Colors) {
       marginLeft: spacing.sm,
       marginRight: spacing.xs,
     },
+    itemTouchable: { flex: 1, flexDirection: "row", alignItems: "center" },
     itemNameWrap: { flex: 1, marginLeft: spacing.xs },
     itemName: { color: colors.text },
     itemMeta: { color: colors.textLight, marginTop: 1 },

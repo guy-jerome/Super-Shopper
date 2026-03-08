@@ -46,8 +46,10 @@ export default function StoresScreen() {
     fetchStores,
     fetchStoreWithAisles,
     addStore,
+    updateStore,
     deleteStore,
     addAisle,
+    updateAisle,
     deleteAisle,
     moveAisle,
     addItemToAisle,
@@ -76,6 +78,8 @@ export default function StoresScreen() {
   const [editPositionTag, setEditPositionTag] = useState("");
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [renameDialog, setRenameDialog] = useState<{ id: string; name: string; type: 'store' | 'aisle' } | null>(null);
+  const [renameName, setRenameName] = useState("");
   const [templateDialog, setTemplateDialog] = useState(false);
   const [templateStoreName, setTemplateStoreName] = useState("");
   const [pendingTemplateIdx, setPendingTemplateIdx] = useState<number | null>(null);
@@ -179,6 +183,22 @@ export default function StoresScreen() {
     setRefreshing(false);
   }, [activeStore?.id]);
 
+  const handleRename = async () => {
+    if (!renameDialog || !renameName.trim()) return;
+    if (renameDialog.type === 'store') {
+      await updateStore(renameDialog.id, renameName.trim());
+    } else {
+      await updateAisle(renameDialog.id, renameName.trim());
+    }
+    setRenameDialog(null);
+    setRenameName("");
+  };
+
+  const openRename = (id: string, name: string, type: 'store' | 'aisle') => {
+    setRenameDialog({ id, name, type });
+    setRenameName(name);
+  };
+
   const toggleAisle = (id: string) =>
     setExpandedAisles((prev) => {
       const next = new Set(prev);
@@ -211,6 +231,11 @@ export default function StoresScreen() {
                 {activeStore.aisles.length !== 1 ? "s" : ""}
               </Text>
             </View>
+            <IconButton
+              icon="pencil-outline"
+              iconColor={colors.textLight}
+              onPress={() => openRename(activeStore.id, activeStore.name, 'store')}
+            />
             <IconButton
               icon="plus-circle-outline"
               iconColor={colors.primary}
@@ -250,6 +275,7 @@ export default function StoresScreen() {
                 isExpanded={expandedAisles.has(aisle.id)}
                 onToggle={() => toggleAisle(aisle.id)}
                 onMoveAisle={moveAisle}
+                onRenameAisle={(id, name) => openRename(id, name, 'aisle')}
                 onDeleteAisle={(id) =>
                   setConfirmDialog({
                     action: () => deleteAisle(id),
@@ -276,6 +302,24 @@ export default function StoresScreen() {
         </ScrollView>
 
         <Portal>
+          <Dialog visible={!!renameDialog} onDismiss={() => { setRenameDialog(null); setRenameName(""); }}>
+            <Dialog.Title>Rename {renameDialog?.type === 'store' ? 'Store' : 'Aisle'}</Dialog.Title>
+            <Dialog.Content>
+              <TextInput
+                label="Name"
+                value={renameName}
+                onChangeText={setRenameName}
+                mode="outlined"
+                autoFocus
+                onSubmitEditing={handleRename}
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => { setRenameDialog(null); setRenameName(""); }}>Cancel</Button>
+              <Button onPress={handleRename} disabled={!renameName.trim()}>Save</Button>
+            </Dialog.Actions>
+          </Dialog>
+
           <Dialog
             visible={!!confirmDialog}
             onDismiss={() => setConfirmDialog(null)}
@@ -453,6 +497,7 @@ export default function StoresScreen() {
               <TouchableOpacity
                 style={storeListStyles.row}
                 onPress={() => openStore(store.id)}
+                onLongPress={() => openRename(store.id, store.name, 'store')}
                 activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
@@ -566,6 +611,24 @@ export default function StoresScreen() {
       </Modal>
 
       <Portal>
+        <Dialog visible={!!renameDialog} onDismiss={() => { setRenameDialog(null); setRenameName(""); }}>
+          <Dialog.Title>Rename {renameDialog?.type === 'store' ? 'Store' : 'Aisle'}</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Name"
+              value={renameName}
+              onChangeText={setRenameName}
+              mode="outlined"
+              autoFocus
+              onSubmitEditing={handleRename}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => { setRenameDialog(null); setRenameName(""); }}>Cancel</Button>
+            <Button onPress={handleRename} disabled={!renameName.trim()}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog
           visible={!!confirmDialog}
           onDismiss={() => setConfirmDialog(null)}
@@ -716,6 +779,7 @@ function AisleSection({
   isExpanded,
   onToggle,
   onMoveAisle,
+  onRenameAisle,
   onDeleteAisle,
   onAddItem,
   onMoveItem,
@@ -730,6 +794,7 @@ function AisleSection({
   isExpanded: boolean;
   onToggle: () => void;
   onMoveAisle: (id: string, dir: "up" | "down") => void;
+  onRenameAisle: (id: string, name: string) => void;
   onDeleteAisle: (id: string) => void;
   onAddItem: (aisleId: string) => void;
   onMoveItem: (aisleId: string, locId: string, dir: "up" | "down") => void;
@@ -771,6 +836,7 @@ function AisleSection({
         <TouchableOpacity
           style={sectionStyles.titleArea}
           onPress={onToggle}
+          onLongPress={() => onRenameAisle(aisle.id, aisle.name)}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons
@@ -792,6 +858,12 @@ function AisleSection({
             {aisle.item_store_locations.length} items
           </Text>
         </TouchableOpacity>
+        <IconButton
+          icon="pencil-outline"
+          size={20}
+          iconColor={colors.textLight}
+          onPress={() => onRenameAisle(aisle.id, aisle.name)}
+        />
         <IconButton
           icon="plus-circle-outline"
           size={22}

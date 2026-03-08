@@ -13,6 +13,7 @@ interface StoreStore {
   updateStore: (id: string, name: string) => Promise<void>;
   deleteStore: (id: string) => Promise<void>;
   addAisle: (storeId: string, name: string, sectionTag?: string) => Promise<void>;
+  updateAisle: (aisleId: string, name: string) => Promise<void>;
   deleteAisle: (aisleId: string) => Promise<void>;
   moveAisle: (aisleId: string, direction: 'up' | 'down') => Promise<void>;
   addItemToAisle: (userId: string, aisleId: string, itemName: string, positionTag?: string, meta?: { brand?: string | null; quantity?: string | null; image_url?: string | null }) => Promise<void>;
@@ -82,6 +83,9 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
     if (!error) {
       set((state) => ({
         stores: state.stores.map((s) => (s.id === id ? { ...s, name } : s)),
+        activeStore: state.activeStore?.id === id
+          ? { ...state.activeStore, name }
+          : state.activeStore,
       }));
     }
   },
@@ -109,6 +113,27 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
           activeStore: {
             ...state.activeStore,
             aisles: [...state.activeStore.aisles, { ...data, item_store_locations: [] }],
+          },
+        };
+      });
+    }
+  },
+
+  updateAisle: async (aisleId, name) => {
+    const { error } = await supabase
+      .from('aisles')
+      .update({ name, updated_at: new Date().toISOString() })
+      .eq('id', aisleId);
+
+    if (!error) {
+      set((state) => {
+        if (!state.activeStore) return state;
+        return {
+          activeStore: {
+            ...state.activeStore,
+            aisles: state.activeStore.aisles.map((a) =>
+              a.id === aisleId ? { ...a, name } : a
+            ),
           },
         };
       });
