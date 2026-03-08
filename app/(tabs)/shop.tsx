@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
+import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Share } from "react-native";
 import {
   Text,
   Button,
@@ -136,6 +136,21 @@ export default function ShopScreen() {
   const checkedCount = shoppingList.filter((i) => i.checked).length;
   const progress = total > 0 ? checkedCount / total : 0;
 
+  const handleExport = async () => {
+    if (shoppingList.length === 0) return;
+    const unchecked = shoppingList.filter((i) => !i.checked);
+    const checked = shoppingList.filter((i) => i.checked);
+    const lines: string[] = [`Shopping List — ${today}`, ""];
+    if (unchecked.length > 0) {
+      unchecked.forEach((i) => lines.push(`• ${i.item_name}${i.quantity > 1 ? ` ×${i.quantity}` : ""}`));
+    }
+    if (checked.length > 0) {
+      lines.push("", "✓ Already collected:");
+      checked.forEach((i) => lines.push(`  ✓ ${i.item_name}`));
+    }
+    await Share.share({ message: lines.join("\n"), title: "Shopping List" });
+  };
+
   // Group items by aisle when a store is selected — keyed by aisle_id to avoid duplicate name issues
   const aisleGroups = useMemo(() => {
     if (!currentStore) return null;
@@ -204,6 +219,14 @@ export default function ShopScreen() {
           <Text variant="headlineMedium" style={styles.headerTitle}>
             Shop
           </Text>
+          {shoppingList.length > 0 && (
+            <IconButton
+              icon="share-variant-outline"
+              size={22}
+              iconColor={colors.primary}
+              onPress={handleExport}
+            />
+          )}
           <Menu
             visible={storeMenuVisible}
             onDismiss={() => setStoreMenuVisible(false)}
