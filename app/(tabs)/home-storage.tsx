@@ -33,6 +33,7 @@ import { useItemStore } from "../../stores/useItemStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { DragHandle } from "../../components/DraggableList";
+import { SwipeableRow } from "../../components/SwipeableRow";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { useColors, spacing, type Colors } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
@@ -655,41 +656,42 @@ function AnimatedItemRow({
   });
 
   return (
-    <Animated.View style={[sectionStyles.itemRow, { backgroundColor }, indented && sectionStyles.itemRowIndented]}>
-      {indented && <View style={sectionStyles.subsectionIndent} />}
-      <DragHandle
-        canMoveUp={itemIdx > 0}
-        canMoveDown={itemIdx < totalItems - 1}
-        onMoveUp={() => onMoveItem(locationId, item.id, "up")}
-        onMoveDown={() => onMoveItem(locationId, item.id, "down")}
-        onActiveChange={handleActiveChange}
-        size="sm"
-      />
-      <TouchableOpacity
-        onPress={() => onToggleItem(item.id, item.name)}
-        onLongPress={() => onOpenQtyDialog(item.id, item.name)}
-        activeOpacity={0.7}
-        style={sectionStyles.itemTouchable}
-      >
-        <Checkbox
-          status={checked ? "checked" : "unchecked"}
-          onPress={() => onToggleItem(item.id, item.name)}
-          color={colors.primary}
+    <SwipeableRow onDelete={() => onUnlinkItem(item.id)}>
+      <Animated.View style={[sectionStyles.itemRow, { backgroundColor }, indented && sectionStyles.itemRowIndented]}>
+        {indented && <View style={sectionStyles.subsectionIndent} />}
+        <DragHandle
+          canMoveUp={itemIdx > 0}
+          canMoveDown={itemIdx < totalItems - 1}
+          onMoveUp={() => onMoveItem(locationId, item.id, "up")}
+          onMoveDown={() => onMoveItem(locationId, item.id, "down")}
+          onActiveChange={handleActiveChange}
+          size="sm"
         />
-        <View style={sectionStyles.itemNameWrap}>
-          <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
-            {item.name}
-          </Text>
-          {(item.brand || item.quantity) ? (
-            <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
-              {[item.brand, item.quantity].filter(Boolean).join(" · ")}
+        <TouchableOpacity
+          onPress={() => onToggleItem(item.id, item.name)}
+          onLongPress={() => onOpenQtyDialog(item.id, item.name)}
+          activeOpacity={0.7}
+          style={sectionStyles.itemTouchable}
+        >
+          <Checkbox
+            status={checked ? "checked" : "unchecked"}
+            onPress={() => onToggleItem(item.id, item.name)}
+            color={colors.primary}
+          />
+          <View style={sectionStyles.itemNameWrap}>
+            <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
+              {item.name}
             </Text>
-          ) : null}
-        </View>
-      </TouchableOpacity>
-      <IconButton icon="eye-outline" size={18} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
-      <IconButton icon="delete-outline" size={18} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
-    </Animated.View>
+            {(item.brand || item.quantity) ? (
+              <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
+                {[item.brand, item.quantity].filter(Boolean).join(" · ")}
+              </Text>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+        <IconButton icon="eye-outline" size={18} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
+      </Animated.View>
+    </SwipeableRow>
   );
 }
 
