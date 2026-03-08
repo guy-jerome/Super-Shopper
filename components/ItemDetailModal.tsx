@@ -11,6 +11,7 @@ import {
   Surface,
   Portal,
   Dialog,
+  Snackbar,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -52,6 +53,7 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
   const [tagInput, setTagInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
     if (item) {
@@ -101,9 +103,13 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
     });
     if (result.canceled) return;
     setUploading(true);
-    await uploadItemImage(item.id, user.id, result.assets[0].uri);
+    const success = await uploadItemImage(item.id, user.id, result.assets[0].uri);
     setUploading(false);
-    setImgError(false);
+    if (success) {
+      setImgError(false);
+    } else {
+      setUploadError("Image upload failed. Check your connection and try again.");
+    }
   };
 
   const toggleList = async () => {
@@ -412,6 +418,15 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
             </View>
           )}
         </ScrollView>
+
+        <Snackbar
+          visible={!!uploadError}
+          onDismiss={() => setUploadError("")}
+          duration={4000}
+          action={{ label: "OK", onPress: () => setUploadError("") }}
+        >
+          {uploadError}
+        </Snackbar>
       </View>
     </Modal>
   );

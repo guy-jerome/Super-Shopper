@@ -28,7 +28,7 @@ interface ItemStore {
   updateItemTags: (id: string, tags: string[]) => Promise<void>;
   updateItemName: (id: string, name: string) => Promise<void>;
   updateItemDetails: (id: string, details: ItemMeta) => Promise<void>;
-  uploadItemImage: (itemId: string, userId: string, uri: string) => Promise<void>;
+  uploadItemImage: (itemId: string, userId: string, uri: string) => Promise<boolean>;
   deleteItem: (id: string) => Promise<void>;
 }
 
@@ -206,10 +206,13 @@ export const useItemStore = create<ItemStore>((set, get) => ({
       const { error } = await supabase.storage
         .from('item-images')
         .upload(path, blob, { upsert: true, contentType: mimeType });
-      if (error) return;
+      if (error) return false;
       const { data: { publicUrl } } = supabase.storage.from('item-images').getPublicUrl(path);
       await get().updateItemDetails(itemId, { image_url: publicUrl });
-    } catch {}
+      return true;
+    } catch {
+      return false;
+    }
   },
 
   deleteItem: async (id) => {
