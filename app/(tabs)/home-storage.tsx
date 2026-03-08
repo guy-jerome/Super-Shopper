@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import * as Haptics from "expo-haptics";
 import {
   View,
   ScrollView,
@@ -118,6 +119,7 @@ export default function HomeStorageScreen() {
 
   const toggleItem = async (itemId: string, name: string) => {
     if (!user) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     const existing = shoppingList.find((s) => s.item_id === itemId);
     if (existing) {
       await removeFromList(existing.id);
