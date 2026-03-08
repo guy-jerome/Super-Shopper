@@ -140,13 +140,28 @@ export const useItemStore = create<ItemStore>((set, get) => ({
 
   uploadItemImage: async (itemId, userId, uri) => {
     try {
-      const ext = (uri.split('.').pop()?.split('?')[0]?.toLowerCase() ?? 'jpg').replace('jpeg', 'jpg');
+      let blob: Blob;
+
+      if (uri.startsWith('data:')) {
+        // Web image picker returns data: URIs
+        const match = uri.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+        const mimeType = match?.[1] ?? 'image/jpeg';
+        const base64 = uri.split(',')[1];
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        blob = new Blob([bytes], { type: mimeType });
+      } else {
+        const response = await fetch(uri);
+        blob = await response.blob();
+      }
+
+      const mimeType = blob.type || 'image/jpeg';
+      const ext = (mimeType.split('/')[1] ?? 'jpeg').replace('jpeg', 'jpg').split('+')[0];
       const path = `${userId}/${itemId}.${ext}`;
-      const response = await fetch(uri);
-      const blob = await response.blob();
       const { error } = await supabase.storage
         .from('item-images')
-        .upload(path, blob, { upsert: true, contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+        .upload(path, blob, { upsert: true, contentType: mimeType });
       if (error) return;
       const { data: { publicUrl } } = supabase.storage.from('item-images').getPublicUrl(path);
       await get().updateItemDetails(itemId, { image_url: publicUrl });

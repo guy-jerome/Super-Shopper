@@ -6,15 +6,36 @@ interface StorageStore {
   locations: StorageLocationWithItems[];
   isLoading: boolean;
   fetchLocations: (userId: string) => Promise<void>;
-  addLocation: (userId: string, name: string) => Promise<void>;
+  addLocation: (userId: string, name: string, parentId?: string) => Promise<StorageLocationWithItems | null>;
   updateLocation: (id: string, name: string) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
   reorderLocations: (locations: StorageLocationWithItems[]) => Promise<void>;
   moveLocation: (id: string, direction: 'up' | 'down') => Promise<void>;
+  moveSubsection: (parentId: string, id: string, direction: 'up' | 'down') => Promise<void>;
   addItem: (userId: string, locationId: string, name: string, meta?: { brand?: string | null; quantity?: string | null; image_url?: string | null }) => Promise<void>;
   updateItem: (id: string, name: string) => Promise<void>;
   unlinkItem: (id: string) => Promise<void>;
   moveItem: (locationId: string, itemId: string, direction: 'up' | 'down') => Promise<void>;
+}
+
+function sortItems(items: any[]) {
+  return [...items].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+}
+
+function buildTree(flat: any[]): StorageLocationWithItems[] {
+  const parents = flat.filter((l) => !l.parent_id);
+  return parents.map((p) => ({
+    ...p,
+    items: sortItems(p.items ?? []),
+    subsections: flat
+      .filter((c) => c.parent_id === p.id)
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((c) => ({
+        ...c,
+        items: sortItems(c.items ?? []),
+        subsections: [],
+      })),
+  }));
 }
 
 export const useStorageStore = create<StorageStore>((set, get) => ({
@@ -30,27 +51,39 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
       .order('order_index', { ascending: true });
 
     if (!error && data) {
-      // Sort items within each location by order_index
-      const sorted = (data as unknown as StorageLocationWithItems[]).map((loc) => ({
-        ...loc,
-        items: [...loc.items].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
-      }));
-      set({ locations: sorted });
+      set({ locations: buildTree(data) });
     }
     set({ isLoading: false });
   },
 
-  addLocation: async (userId, name) => {
+  addLocation: async (userId, name, parentId) => {
     const { locations } = get();
+    const orderIndex = parentId
+      ? (locations.find((l) => l.id === parentId)?.subsections.length ?? 0)
+      : locations.length;
+
     const { data, error } = await supabase
       .from('storage_locations')
-      .insert({ user_id: userId, name, order_index: locations.length })
+      .insert({ user_id: userId, name, order_index: orderIndex, parent_id: parentId ?? null })
       .select()
       .single();
 
-    if (!error && data) {
-      set({ locations: [...locations, { ...data, items: [] }] });
+    if (error || !data) return null;
+
+    const newLoc: StorageLocationWithItems = { ...data, items: [], subsections: [] };
+
+    if (parentId) {
+      set((state) => ({
+        locations: state.locations.map((l) =>
+          l.id === parentId
+            ? { ...l, subsections: [...l.subsections, newLoc] }
+            : l
+        ),
+      }));
+    } else {
+      set((state) => ({ locations: [...state.locations, newLoc] }));
     }
+    return newLoc;
   },
 
   updateLocation: async (id, name) => {
@@ -61,7 +94,13 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
 
     if (!error) {
       set((state) => ({
-        locations: state.locations.map((l) => (l.id === id ? { ...l, name } : l)),
+        locations: state.locations.map((l) => {
+          if (l.id === id) return { ...l, name };
+          return {
+            ...l,
+            subsections: l.subsections.map((s) => (s.id === id ? { ...s, name } : s)),
+          };
+        }),
       }));
     }
   },
@@ -69,7 +108,14 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
   deleteLocation: async (id) => {
     const { error } = await supabase.from('storage_locations').delete().eq('id', id);
     if (!error) {
-      set((state) => ({ locations: state.locations.filter((l) => l.id !== id) }));
+      set((state) => ({
+        locations: state.locations
+          .filter((l) => l.id !== id)
+          .map((l) => ({
+            ...l,
+            subsections: l.subsections.filter((s) => s.id !== id),
+          })),
+      }));
     }
   },
 
@@ -91,6 +137,28 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
     const next = [...locations];
     [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
     await get().reorderLocations(next);
+  },
+
+  moveSubsection: async (parentId, id, direction) => {
+    const { locations } = get();
+    const parent = locations.find((l) => l.id === parentId);
+    if (!parent) return;
+    const idx = parent.subsections.findIndex((s) => s.id === id);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= parent.subsections.length) return;
+    const next = [...parent.subsections];
+    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+    set((state) => ({
+      locations: state.locations.map((l) =>
+        l.id === parentId ? { ...l, subsections: next } : l
+      ),
+    }));
+    await Promise.all(
+      next.map((s, i) =>
+        supabase.from('storage_locations').update({ order_index: i }).eq('id', s.id)
+      )
+    );
   },
 
   addItem: async (userId, locationId, name, meta) => {
@@ -118,8 +186,15 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
         .single();
       item = updated;
     } else {
-      const loc = get().locations.find((l) => l.id === locationId);
-      const nextIndex = loc ? loc.items.length : 0;
+      // Count items in the target location (could be a subsection)
+      const { locations } = get();
+      let nextIndex = 0;
+      for (const loc of locations) {
+        if (loc.id === locationId) { nextIndex = loc.items.length; break; }
+        for (const sub of loc.subsections) {
+          if (sub.id === locationId) { nextIndex = sub.items.length; break; }
+        }
+      }
       const { data: created } = await supabase
         .from('items')
         .insert({ user_id: userId, name, home_location_id: locationId, order_index: nextIndex, tags: [], brand: meta?.brand ?? null, quantity: meta?.quantity ?? null, image_url: meta?.image_url ?? null })
@@ -130,9 +205,15 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
 
     if (item) {
       set((state) => ({
-        locations: state.locations.map((l) =>
-          l.id === locationId ? { ...l, items: [...l.items, item] } : l
-        ),
+        locations: state.locations.map((l) => {
+          if (l.id === locationId) return { ...l, items: [...l.items, item] };
+          return {
+            ...l,
+            subsections: l.subsections.map((s) =>
+              s.id === locationId ? { ...s, items: [...s.items, item] } : s
+            ),
+          };
+        }),
       }));
     }
   },
@@ -148,12 +229,15 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
         locations: state.locations.map((l) => ({
           ...l,
           items: l.items.map((item) => (item.id === id ? { ...item, name } : item)),
+          subsections: l.subsections.map((s) => ({
+            ...s,
+            items: s.items.map((item) => (item.id === id ? { ...item, name } : item)),
+          })),
         })),
       }));
     }
   },
 
-  // Removes item from its home storage location without deleting from global items
   unlinkItem: async (id) => {
     const { error } = await supabase
       .from('items')
@@ -165,6 +249,10 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
         locations: state.locations.map((l) => ({
           ...l,
           items: l.items.filter((item) => item.id !== id),
+          subsections: l.subsections.map((s) => ({
+            ...s,
+            items: s.items.filter((item) => item.id !== id),
+          })),
         })),
       }));
     }
@@ -172,21 +260,37 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
 
   moveItem: async (locationId, itemId, direction) => {
     const { locations } = get();
-    const loc = locations.find((l) => l.id === locationId);
-    if (!loc) return;
-    const idx = loc.items.findIndex((i) => i.id === itemId);
+
+    // Find the location (top-level or subsection)
+    let items: any[] | null = null;
+    for (const loc of locations) {
+      if (loc.id === locationId) { items = loc.items; break; }
+      for (const sub of loc.subsections) {
+        if (sub.id === locationId) { items = sub.items; break; }
+      }
+      if (items) break;
+    }
+    if (!items) return;
+
+    const idx = items.findIndex((i) => i.id === itemId);
     if (idx < 0) return;
     const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= loc.items.length) return;
-    const newItems = [...loc.items];
+    if (newIdx < 0 || newIdx >= items.length) return;
+    const newItems = [...items];
     [newItems[idx], newItems[newIdx]] = [newItems[newIdx], newItems[idx]];
-    // Optimistic update
+
     set((state) => ({
-      locations: state.locations.map((l) =>
-        l.id === locationId ? { ...l, items: newItems } : l
-      ),
+      locations: state.locations.map((l) => {
+        if (l.id === locationId) return { ...l, items: newItems };
+        return {
+          ...l,
+          subsections: l.subsections.map((s) =>
+            s.id === locationId ? { ...s, items: newItems } : s
+          ),
+        };
+      }),
     }));
-    // Persist new order_index values for the two swapped items
+
     await Promise.all([
       supabase.from('items').update({ order_index: idx }).eq('id', newItems[idx].id),
       supabase.from('items').update({ order_index: newIdx }).eq('id', newItems[newIdx].id),

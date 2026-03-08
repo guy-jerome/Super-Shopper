@@ -23,6 +23,7 @@ import {
   Surface,
   Snackbar,
   Searchbar,
+  Chip,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/useAuthStore";
@@ -35,6 +36,7 @@ import { DragHandle } from "../../components/DraggableList";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { useColors, spacing, type Colors } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
+import { STORAGE_TEMPLATES } from "../../constants/templates";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -50,6 +52,7 @@ export default function HomeStorageScreen() {
     updateLocation,
     deleteLocation,
     moveLocation,
+    moveSubsection,
     addItem,
     unlinkItem,
     moveItem,
@@ -59,39 +62,47 @@ export default function HomeStorageScreen() {
   const { items: globalItems, fetchItems } = useItemStore();
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());
+
+  // Template picker
+  const [templateDialog, setTemplateDialog] = useState(false);
+
+  // Add location dialog (custom)
   const [locationDialog, setLocationDialog] = useState(false);
   const [locationName, setLocationName] = useState("");
+
+  // Add subsection dialog
+  const [subsectionDialog, setSubsectionDialog] = useState(false);
+  const [subsectionName, setSubsectionName] = useState("");
+  const [targetParentId, setTargetParentId] = useState("");
+
+  // Add item dialog
   const [itemDialog, setItemDialog] = useState(false);
   const [itemName, setItemName] = useState("");
   const [targetLocationId, setTargetLocationId] = useState("");
+
   const [snackbar, setSnackbar] = useState("");
   const [search, setSearch] = useState("");
+
+  // Qty stepper
   const [qtyDialog, setQtyDialog] = useState(false);
-  const [qtyTarget, setQtyTarget] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
+  const [qtyTarget, setQtyTarget] = useState<{ id: string; name: string } | null>(null);
   const [qty, setQty] = useState(1);
-  const [pendingSuggestion, setPendingSuggestion] =
-    useState<FoodSuggestion | null>(null);
+
+  const [pendingSuggestion, setPendingSuggestion] = useState<FoodSuggestion | null>(null);
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    action: () => void;
-    message: string;
-  } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ action: () => void; message: string } | null>(null);
   const [renameDialog, setRenameDialog] = useState<{ id: string; name: string } | null>(null);
-  const [renameName, setRenameName] = useState('');
+  const [renameName, setRenameName] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Suggestions from global items that are not already in a home location
+  // Template applying state
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
+
   const itemSuggestions =
     itemName.trim().length > 0
       ? globalItems
-          .filter(
-            (i) =>
-              !i.hasHomeLocation &&
-              i.name.toLowerCase().includes(itemName.toLowerCase()),
-          )
+          .filter((i) => !i.hasHomeLocation && i.name.toLowerCase().includes(itemName.toLowerCase()))
           .slice(0, 5)
       : [];
 
@@ -102,8 +113,7 @@ export default function HomeStorageScreen() {
     fetchItems(user.id);
   }, [user?.id]);
 
-  const isInList = (itemId: string) =>
-    shoppingList.some((s) => s.item_id === itemId);
+  const isInList = (itemId: string) => shoppingList.some((s) => s.item_id === itemId);
 
   const toggleItem = async (itemId: string, name: string) => {
     if (!user) return;
@@ -134,11 +144,45 @@ export default function HomeStorageScreen() {
       return next;
     });
 
+  const toggleSubsection = (id: string) =>
+    setExpandedSubs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   const handleAddLocation = async () => {
     if (!user || !locationName.trim()) return;
     await addLocation(user.id, locationName.trim());
     setLocationName("");
     setLocationDialog(false);
+  };
+
+  const handleAddSubsection = async () => {
+    if (!user || !subsectionName.trim() || !targetParentId) return;
+    await addLocation(user.id, subsectionName.trim(), targetParentId);
+    setSubsectionName("");
+    setSubsectionDialog(false);
+    // Auto-expand the parent so user sees the new subsection
+    setExpanded((prev) => new Set([...prev, targetParentId]));
+  };
+
+  const handleApplyTemplate = async (templateIndex: number) => {
+    if (!user) return;
+    setTemplateDialog(false);
+    setApplyingTemplate(true);
+    const template = STORAGE_TEMPLATES[templateIndex];
+    for (const loc of template.locations) {
+      const newLoc = await addLocation(user.id, loc.name);
+      if (newLoc && loc.subsections) {
+        for (const subName of loc.subsections) {
+          await addLocation(user.id, subName, newLoc.id);
+        }
+      }
+    }
+    setApplyingTemplate(false);
+    setSnackbar(`${template.label} template applied!`);
   };
 
   const handleAddItem = async () => {
@@ -166,7 +210,7 @@ export default function HomeStorageScreen() {
     if (!renameDialog || !renameName.trim()) return;
     await updateLocation(renameDialog.id, renameName.trim());
     setRenameDialog(null);
-    setRenameName('');
+    setRenameName("");
   };
 
   const handleRefresh = useCallback(async () => {
@@ -207,76 +251,87 @@ export default function HomeStorageScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+          <RefreshControl refreshing={refreshing || applyingTemplate} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
       >
         {locations.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="home-outline"
-              size={64}
-              color={colors.textLight}
-            />
-            <Text variant="titleLarge" style={styles.emptyTitle}>
-              No locations yet
-            </Text>
+            <MaterialCommunityIcons name="home-outline" size={64} color={colors.textLight} />
+            <Text variant="titleLarge" style={styles.emptyTitle}>No locations yet</Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
               Add locations like Pantry, Fridge, or Freezer
             </Text>
             <Button
               mode="contained"
+              icon="lightning-bolt"
+              onPress={() => setTemplateDialog(true)}
+              style={[styles.emptyAction, { marginBottom: spacing.sm }]}
+            >
+              Use a Template
+            </Button>
+            <Button
+              mode="outlined"
               icon="plus"
               onPress={() => setLocationDialog(true)}
               style={styles.emptyAction}
             >
-              Add Location
+              Add Custom Location
             </Button>
           </View>
         ) : (
           locations.map((location, locIdx) => {
+            const allItems = [
+              ...location.items,
+              ...location.subsections.flatMap((s) => s.items),
+            ];
             const filtered = search.trim()
-              ? location.items.filter((i) =>
-                  i.name.toLowerCase().includes(search.toLowerCase()),
-                )
-              : location.items;
-            if (search.trim() && filtered.length === 0) return null;
+              ? allItems.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
+              : null;
+            if (search.trim() && filtered!.length === 0) return null;
             return (
               <LocationSection
                 key={location.id}
-                location={{ ...location, items: filtered }}
+                location={location}
                 locationIndex={locIdx}
                 totalLocations={locations.length}
                 expanded={expanded.has(location.id) || !!search.trim()}
+                expandedSubs={expandedSubs}
+                search={search}
                 onToggle={() => toggleSection(location.id)}
+                onToggleSub={toggleSubsection}
                 isInList={isInList}
                 onToggleItem={toggleItem}
-                onAddItem={() => openAddItem(location.id)}
+                onAddItem={openAddItem}
                 onUnlinkItem={(itemId) => {
                   let name = "this item";
-                  for (const loc of locations) {
+                  const allLocs = [location, ...location.subsections];
+                  for (const loc of allLocs) {
                     const found = loc.items.find((i) => i.id === itemId);
-                    if (found) {
-                      name = found.name;
-                      break;
-                    }
+                    if (found) { name = found.name; break; }
                   }
                   setConfirmDialog({
                     action: () => unlinkItem(itemId),
                     message: `Remove "${name}" from this location?`,
                   });
                 }}
-                onRenameLocation={() => {
-                  setRenameDialog({ id: location.id, name: location.name });
-                  setRenameName(location.name);
+                onRenameLocation={(id, name) => {
+                  setRenameDialog({ id, name });
+                  setRenameName(name);
                 }}
-                onDeleteLocation={() =>
+                onDeleteLocation={(id, name) =>
                   setConfirmDialog({
-                    action: () => deleteLocation(location.id),
-                    message: `Delete "${location.name}"? All items inside will be unlinked.`,
+                    action: () => deleteLocation(id),
+                    message: `Delete "${name}"? All items inside will be unlinked.`,
                   })
                 }
                 onMoveLocation={(dir) => moveLocation(location.id, dir)}
-                onMoveItem={(itemId, dir) => moveItem(location.id, itemId, dir)}
+                onMoveSubsection={(subId, dir) => moveSubsection(location.id, subId, dir)}
+                onMoveItem={(locId, itemId, dir) => moveItem(locId, itemId, dir)}
+                onAddSubsection={() => {
+                  setTargetParentId(location.id);
+                  setSubsectionName("");
+                  setSubsectionDialog(true);
+                }}
                 onOpenDetail={setDetailItemId}
                 colors={colors}
               />
@@ -302,14 +357,12 @@ export default function HomeStorageScreen() {
       />
 
       <Portal>
-        <Dialog
-          visible={!!renameDialog}
-          onDismiss={() => { setRenameDialog(null); setRenameName(''); }}
-        >
-          <Dialog.Title>Rename Location</Dialog.Title>
+        {/* Rename dialog */}
+        <Dialog visible={!!renameDialog} onDismiss={() => { setRenameDialog(null); setRenameName(""); }}>
+          <Dialog.Title>Rename</Dialog.Title>
           <Dialog.Content>
             <TextInput
-              label="Location name"
+              label="Name"
               value={renameName}
               onChangeText={setRenameName}
               mode="outlined"
@@ -318,15 +371,13 @@ export default function HomeStorageScreen() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => { setRenameDialog(null); setRenameName(''); }}>Cancel</Button>
+            <Button onPress={() => { setRenameDialog(null); setRenameName(""); }}>Cancel</Button>
             <Button onPress={handleRenameLocation} disabled={!renameName.trim()}>Save</Button>
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog
-          visible={locationDialog}
-          onDismiss={() => setLocationDialog(false)}
-        >
+        {/* Add location dialog */}
+        <Dialog visible={locationDialog} onDismiss={() => setLocationDialog(false)}>
           <Dialog.Title>Add Storage Location</Dialog.Title>
           <Dialog.Content>
             <TextInput
@@ -337,177 +388,201 @@ export default function HomeStorageScreen() {
               autoFocus
               onSubmitEditing={handleAddLocation}
             />
+            <Button
+              mode="text"
+              icon="lightning-bolt"
+              onPress={() => { setLocationDialog(false); setTemplateDialog(true); }}
+              style={{ marginTop: spacing.sm }}
+            >
+              Use a template instead
+            </Button>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button
-              onPress={() => {
-                setLocationName("");
-                setLocationDialog(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onPress={handleAddLocation} disabled={!locationName.trim()}>
-              Add
-            </Button>
+            <Button onPress={() => { setLocationName(""); setLocationDialog(false); }}>Cancel</Button>
+            <Button onPress={handleAddLocation} disabled={!locationName.trim()}>Add</Button>
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog
-          visible={!!confirmDialog}
-          onDismiss={() => setConfirmDialog(null)}
-        >
+        {/* Add subsection dialog */}
+        <Dialog visible={subsectionDialog} onDismiss={() => setSubsectionDialog(false)}>
+          <Dialog.Title>Add Sub-section</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Name (e.g. Upper Shelf, Door, Cheese Drawer)"
+              value={subsectionName}
+              onChangeText={setSubsectionName}
+              mode="outlined"
+              autoFocus
+              onSubmitEditing={handleAddSubsection}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => { setSubsectionName(""); setSubsectionDialog(false); }}>Cancel</Button>
+            <Button onPress={handleAddSubsection} disabled={!subsectionName.trim()}>Add</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Confirm delete dialog */}
+        <Dialog visible={!!confirmDialog} onDismiss={() => setConfirmDialog(null)}>
           <Dialog.Title>Confirm Delete</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={{ color: colors.text }}>
-              {confirmDialog?.message}
-            </Text>
+            <Text variant="bodyMedium" style={{ color: colors.text }}>{confirmDialog?.message}</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button
-              textColor={colors.error}
-              onPress={() => {
-                confirmDialog?.action();
-                setConfirmDialog(null);
-              }}
-            >
-              Delete
-            </Button>
+            <Button textColor={colors.error} onPress={() => { confirmDialog?.action(); setConfirmDialog(null); }}>Delete</Button>
           </Dialog.Actions>
         </Dialog>
 
+        {/* Qty dialog */}
         <Dialog visible={qtyDialog} onDismiss={() => setQtyDialog(false)}>
           <Dialog.Title>Add to Shopping List</Dialog.Title>
           <Dialog.Content>
-            <Text
-              variant="bodyMedium"
-              style={{ marginBottom: spacing.md, color: colors.text }}
-            >
-              {qtyTarget?.name}
-            </Text>
+            <Text variant="bodyMedium" style={{ marginBottom: spacing.md, color: colors.text }}>{qtyTarget?.name}</Text>
             <View style={styles.qtyStepper}>
-              <IconButton
-                icon="minus"
-                mode="contained-tonal"
-                size={20}
-                onPress={() => setQty((q) => Math.max(1, q - 1))}
-              />
-              <Text variant="titleLarge" style={styles.qtyValue}>
-                {qty}
-              </Text>
-              <IconButton
-                icon="plus"
-                mode="contained-tonal"
-                size={20}
-                onPress={() => setQty((q) => q + 1)}
-              />
+              <IconButton icon="minus" mode="contained-tonal" size={20} onPress={() => setQty((q) => Math.max(1, q - 1))} />
+              <Text variant="titleLarge" style={styles.qtyValue}>{qty}</Text>
+              <IconButton icon="plus" mode="contained-tonal" size={20} onPress={() => setQty((q) => q + 1)} />
             </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setQtyDialog(false)}>Cancel</Button>
-            <Button onPress={confirmAddToList} mode="contained">
-              Add
-            </Button>
+            <Button onPress={confirmAddToList} mode="contained">Add</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
+      {/* Template picker modal */}
+      <Modal
+        visible={templateDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTemplateDialog(false)}
+      >
+        <View style={styles.templateOverlay}>
+          <Surface style={styles.templateSheet} elevation={4}>
+            <Text variant="titleLarge" style={styles.templateTitle}>Choose a Template</Text>
+            <Text variant="bodySmall" style={styles.templateSubtitle}>
+              Pre-fills your home storage with common locations
+            </Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: spacing.md }}>
+              {STORAGE_TEMPLATES.map((tmpl, i) => (
+                <TouchableOpacity
+                  key={tmpl.label}
+                  style={[styles.templateCard, { borderColor: colors.surface }]}
+                  onPress={() => handleApplyTemplate(i)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name={tmpl.icon as any} size={32} color={colors.primary} />
+                  <View style={styles.templateCardText}>
+                    <Text variant="titleMedium" style={{ color: colors.text, fontWeight: "600" }}>{tmpl.label}</Text>
+                    <Text variant="bodySmall" style={{ color: colors.textLight }}>{tmpl.description}</Text>
+                    <View style={styles.templateChips}>
+                      {tmpl.locations.slice(0, 4).map((l) => (
+                        <Chip key={l.name} compact style={styles.templateChip} textStyle={{ fontSize: 10 }}>{l.name}</Chip>
+                      ))}
+                      {tmpl.locations.length > 4 && (
+                        <Chip compact style={styles.templateChip} textStyle={{ fontSize: 10 }}>+{tmpl.locations.length - 4} more</Chip>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <Button
+              mode="text"
+              onPress={() => { setTemplateDialog(false); setLocationDialog(true); }}
+              style={{ marginTop: spacing.sm }}
+            >
+              Add Custom Location Instead
+            </Button>
+            <Button onPress={() => setTemplateDialog(false)}>Cancel</Button>
+          </Surface>
+        </View>
+      </Modal>
+
+      {/* Add item modal */}
       <Modal
         visible={itemDialog}
         transparent
         animationType="fade"
-        onRequestClose={() => {
-          setItemName("");
-          setPendingSuggestion(null);
-          setItemDialog(false);
-        }}
+        onRequestClose={() => { setItemName(""); setPendingSuggestion(null); setItemDialog(false); }}
       >
         <View style={styles.addItemOverlay}>
           <Surface style={styles.addItemSheet} elevation={4}>
-            <Text variant="titleLarge" style={styles.addItemTitle}>
-              Add Item
-            </Text>
+            <Text variant="titleLarge" style={styles.addItemTitle}>Add Item</Text>
             <FoodSearch
               value={itemName}
-              onChangeText={(t) => {
-                setItemName(t);
-                setPendingSuggestion(null);
-              }}
-              onSelect={(name, suggestion) => {
-                setItemName(name);
-                setPendingSuggestion(suggestion ?? null);
-              }}
+              onChangeText={(t) => { setItemName(t); setPendingSuggestion(null); }}
+              onSelect={(name, suggestion) => { setItemName(name); setPendingSuggestion(suggestion ?? null); }}
               localSuggestions={itemSuggestions}
               autoFocus
             />
             <View style={styles.addItemActions}>
-              <Button
-                onPress={() => {
-                  setItemName("");
-                  setPendingSuggestion(null);
-                  setItemDialog(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button onPress={handleAddItem} disabled={!itemName.trim()}>
-                Add
-              </Button>
+              <Button onPress={() => { setItemName(""); setPendingSuggestion(null); setItemDialog(false); }}>Cancel</Button>
+              <Button onPress={handleAddItem} disabled={!itemName.trim()}>Add</Button>
             </View>
           </Surface>
         </View>
       </Modal>
 
-      <ItemDetailModal
-        itemId={detailItemId}
-        onDismiss={() => setDetailItemId(null)}
-      />
+      <ItemDetailModal itemId={detailItemId} onDismiss={() => setDetailItemId(null)} />
     </View>
   );
 }
+
+// ─── Sub-types ───────────────────────────────────────────────────────────────
 
 type LocationSectionProps = {
   location: StorageLocationWithItems;
   locationIndex: number;
   totalLocations: number;
   expanded: boolean;
+  expandedSubs: Set<string>;
+  search: string;
   onToggle: () => void;
+  onToggleSub: (id: string) => void;
   isInList: (itemId: string) => boolean;
   onToggleItem: (itemId: string, itemName: string) => void;
-  onAddItem: () => void;
+  onAddItem: (locationId: string) => void;
   onUnlinkItem: (itemId: string) => void;
-  onDeleteLocation: () => void;
-  onRenameLocation: () => void;
+  onDeleteLocation: (id: string, name: string) => void;
+  onRenameLocation: (id: string, name: string) => void;
   onMoveLocation: (direction: "up" | "down") => void;
-  onMoveItem: (itemId: string, direction: "up" | "down") => void;
+  onMoveSubsection: (subId: string, direction: "up" | "down") => void;
+  onMoveItem: (locationId: string, itemId: string, direction: "up" | "down") => void;
+  onAddSubsection: () => void;
   onOpenDetail: (itemId: string) => void;
   colors: Colors;
 };
 
-type AnimatedItemRowProps = {
-  item: StorageLocationWithItems["items"][0];
-  itemIdx: number;
-  totalItems: number;
-  isInList: (id: string) => boolean;
-  onToggleItem: (id: string, name: string) => void;
-  onUnlinkItem: (id: string) => void;
-  onMoveItem: (id: string, dir: "up" | "down") => void;
-  onOpenDetail: (id: string) => void;
-  colors: Colors;
-};
+// ─── AnimatedItemRow ─────────────────────────────────────────────────────────
 
 function AnimatedItemRow({
   item,
   itemIdx,
   totalItems,
+  locationId,
   isInList,
   onToggleItem,
   onUnlinkItem,
   onMoveItem,
   onOpenDetail,
   colors,
-}: AnimatedItemRowProps) {
+  indented = false,
+}: {
+  item: StorageLocationWithItems["items"][0];
+  itemIdx: number;
+  totalItems: number;
+  locationId: string;
+  isInList: (id: string) => boolean;
+  onToggleItem: (id: string, name: string) => void;
+  onUnlinkItem: (id: string) => void;
+  onMoveItem: (locId: string, id: string, dir: "up" | "down") => void;
+  onOpenDetail: (id: string) => void;
+  colors: Colors;
+  indented?: boolean;
+}) {
   const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
   const rowAnim = useRef(new Animated.Value(0)).current;
   const checked = isInList(item.id);
@@ -527,12 +602,13 @@ function AnimatedItemRow({
   });
 
   return (
-    <Animated.View style={[sectionStyles.itemRow, { backgroundColor }]}>
+    <Animated.View style={[sectionStyles.itemRow, { backgroundColor }, indented && sectionStyles.itemRowIndented]}>
+      {indented && <View style={sectionStyles.subsectionIndent} />}
       <DragHandle
         canMoveUp={itemIdx > 0}
         canMoveDown={itemIdx < totalItems - 1}
-        onMoveUp={() => onMoveItem(item.id, "up")}
-        onMoveDown={() => onMoveItem(item.id, "down")}
+        onMoveUp={() => onMoveItem(locationId, item.id, "up")}
+        onMoveDown={() => onMoveItem(locationId, item.id, "down")}
         onActiveChange={handleActiveChange}
         size="sm"
       />
@@ -542,40 +618,166 @@ function AnimatedItemRow({
         color={colors.primary}
       />
       <View style={sectionStyles.itemNameWrap}>
-        <Text
-          variant="bodyLarge"
-          style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}
-        >
+        <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
           {item.name}
         </Text>
         {(item.brand || item.quantity) ? (
           <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
-            {[item.brand, item.quantity].filter(Boolean).join(' · ')}
+            {[item.brand, item.quantity].filter(Boolean).join(" · ")}
           </Text>
         ) : null}
       </View>
-      <IconButton
-        icon="eye-outline"
-        size={18}
-        iconColor={colors.textLight}
-        onPress={() => onOpenDetail(item.id)}
-      />
-      <IconButton
-        icon="delete-outline"
-        size={18}
-        iconColor={colors.error}
-        onPress={() => onUnlinkItem(item.id)}
-      />
+      <IconButton icon="eye-outline" size={18} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
+      <IconButton icon="delete-outline" size={18} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
     </Animated.View>
   );
 }
+
+// ─── SubsectionSection ────────────────────────────────────────────────────────
+
+function SubsectionSection({
+  subsection,
+  subIdx,
+  totalSubs,
+  parentId,
+  isExpanded,
+  search,
+  onToggle,
+  isInList,
+  onToggleItem,
+  onAddItem,
+  onUnlinkItem,
+  onMoveSubsection,
+  onMoveItem,
+  onRenameLocation,
+  onDeleteLocation,
+  onOpenDetail,
+  colors,
+}: {
+  subsection: StorageLocationWithItems;
+  subIdx: number;
+  totalSubs: number;
+  parentId: string;
+  isExpanded: boolean;
+  search: string;
+  onToggle: () => void;
+  isInList: (id: string) => boolean;
+  onToggleItem: (id: string, name: string) => void;
+  onAddItem: (locId: string) => void;
+  onUnlinkItem: (id: string) => void;
+  onMoveSubsection: (subId: string, dir: "up" | "down") => void;
+  onMoveItem: (locId: string, itemId: string, dir: "up" | "down") => void;
+  onRenameLocation: (id: string, name: string) => void;
+  onDeleteLocation: (id: string, name: string) => void;
+  onOpenDetail: (id: string) => void;
+  colors: Colors;
+}) {
+  const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
+  const headerAnim = useRef(new Animated.Value(0)).current;
+
+  const handleHeaderActiveChange = (active: boolean) => {
+    Animated.timing(headerAnim, {
+      toValue: active ? 1 : 0,
+      duration: active ? 200 : 350,
+      easing: active ? Easing.out(Easing.quad) : Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const headerBg = headerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.surface + "cc", colors.primary + "20"],
+  });
+
+  const filteredItems = search.trim()
+    ? subsection.items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
+    : subsection.items;
+
+  return (
+    <View style={sectionStyles.subsectionContainer}>
+      <Animated.View style={[sectionStyles.subsectionHeader, { backgroundColor: headerBg }]}>
+        <View style={sectionStyles.subsectionLine} />
+        <DragHandle
+          canMoveUp={subIdx > 0}
+          canMoveDown={subIdx < totalSubs - 1}
+          onMoveUp={() => onMoveSubsection(subsection.id, "up")}
+          onMoveDown={() => onMoveSubsection(subsection.id, "down")}
+          onActiveChange={handleHeaderActiveChange}
+          size="sm"
+        />
+        <TouchableOpacity
+          style={sectionStyles.titleArea}
+          onPress={onToggle}
+          onLongPress={() => onRenameLocation(subsection.id, subsection.name)}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={colors.textLight}
+          />
+          <View style={sectionStyles.titleText}>
+            <Text variant="bodyLarge" style={sectionStyles.subsectionName}>
+              {subsection.name}
+            </Text>
+            <Text variant="bodySmall" style={sectionStyles.itemCount}>
+              {subsection.items.length} item{subsection.items.length !== 1 ? "s" : ""}
+              {subsection.items.filter((i) => isInList(i.id)).length > 0
+                ? ` · ${subsection.items.filter((i) => isInList(i.id)).length} on list`
+                : ""}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <IconButton icon="plus-circle-outline" size={18} iconColor={colors.primary} onPress={() => onAddItem(subsection.id)} />
+        <IconButton
+          icon="delete-outline"
+          size={18}
+          iconColor={colors.error}
+          onPress={() => onDeleteLocation(subsection.id, subsection.name)}
+        />
+      </Animated.View>
+
+      {(isExpanded || !!search.trim()) && (
+        <View style={sectionStyles.itemsContainer}>
+          {filteredItems.length === 0 ? (
+            <Text style={[sectionStyles.emptyItems, { paddingLeft: spacing.xl + spacing.md }]}>
+              No items — tap + to add
+            </Text>
+          ) : (
+            filteredItems.map((item, itemIdx) => (
+              <AnimatedItemRow
+                key={item.id}
+                item={item}
+                itemIdx={itemIdx}
+                totalItems={filteredItems.length}
+                locationId={subsection.id}
+                isInList={isInList}
+                onToggleItem={onToggleItem}
+                onUnlinkItem={onUnlinkItem}
+                onMoveItem={onMoveItem}
+                onOpenDetail={onOpenDetail}
+                colors={colors}
+                indented
+              />
+            ))
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── LocationSection ──────────────────────────────────────────────────────────
 
 function LocationSection({
   location,
   locationIndex,
   totalLocations,
   expanded,
+  expandedSubs,
+  search,
   onToggle,
+  onToggleSub,
   isInList,
   onToggleItem,
   onAddItem,
@@ -583,12 +785,17 @@ function LocationSection({
   onDeleteLocation,
   onRenameLocation,
   onMoveLocation,
+  onMoveSubsection,
   onMoveItem,
+  onAddSubsection,
   onOpenDetail,
   colors,
 }: LocationSectionProps) {
   const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
-  const checkedCount = location.items.filter((i) => isInList(i.id)).length;
+  const checkedCount = location.items.filter((i) => isInList(i.id)).length +
+    location.subsections.flatMap((s) => s.items).filter((i) => isInList(i.id)).length;
+  const totalItems = location.items.length +
+    location.subsections.reduce((sum, s) => sum + s.items.length, 0);
   const headerAnim = useRef(new Animated.Value(0)).current;
 
   const handleHeaderActiveChange = (active: boolean) => {
@@ -605,11 +812,13 @@ function LocationSection({
     outputRange: [colors.surface, colors.primary + "28"],
   });
 
+  const filteredItems = search.trim()
+    ? location.items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
+    : location.items;
+
   return (
     <View style={sectionStyles.container}>
-      <Animated.View
-        style={[sectionStyles.header, { backgroundColor: headerBg }]}
-      >
+      <Animated.View style={[sectionStyles.header, { backgroundColor: headerBg }]}>
         <DragHandle
           canMoveUp={locationIndex > 0}
           canMoveDown={locationIndex < totalLocations - 1}
@@ -621,7 +830,7 @@ function LocationSection({
         <TouchableOpacity
           style={sectionStyles.titleArea}
           onPress={onToggle}
-          onLongPress={onRenameLocation}
+          onLongPress={() => onRenameLocation(location.id, location.name)}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons
@@ -630,51 +839,69 @@ function LocationSection({
             color={colors.textLight}
           />
           <View style={sectionStyles.titleText}>
-            <Text variant="titleMedium" style={sectionStyles.name}>
-              {location.name}
-            </Text>
+            <Text variant="titleMedium" style={sectionStyles.name}>{location.name}</Text>
             <Text variant="bodySmall" style={sectionStyles.itemCount}>
-              {location.items.length} item
-              {location.items.length !== 1 ? "s" : ""}
+              {totalItems} item{totalItems !== 1 ? "s" : ""}
               {checkedCount > 0 ? ` · ${checkedCount} on list` : ""}
+              {location.subsections.length > 0 ? ` · ${location.subsections.length} section${location.subsections.length !== 1 ? "s" : ""}` : ""}
             </Text>
           </View>
         </TouchableOpacity>
-        <IconButton
-          icon="plus-circle-outline"
-          size={22}
-          iconColor={colors.primary}
-          onPress={onAddItem}
-        />
-        <IconButton
-          icon="delete-outline"
-          size={22}
-          iconColor={colors.error}
-          onPress={onDeleteLocation}
-        />
+        <IconButton icon="folder-plus-outline" size={20} iconColor={colors.textLight} onPress={onAddSubsection} />
+        <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={() => onAddItem(location.id)} />
+        <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onDeleteLocation(location.id, location.name)} />
       </Animated.View>
 
       {expanded && (
         <View style={sectionStyles.itemsContainer}>
-          {location.items.length === 0 ? (
-            <Text style={sectionStyles.emptyItems}>
-              No items — tap + to add
-            </Text>
-          ) : (
-            location.items.map((item, itemIdx) => (
-              <AnimatedItemRow
-                key={item.id}
-                item={item}
-                itemIdx={itemIdx}
-                totalItems={location.items.length}
+          {/* Direct items on the parent location */}
+          {filteredItems.map((item, itemIdx) => (
+            <AnimatedItemRow
+              key={item.id}
+              item={item}
+              itemIdx={itemIdx}
+              totalItems={filteredItems.length}
+              locationId={location.id}
+              isInList={isInList}
+              onToggleItem={onToggleItem}
+              onUnlinkItem={onUnlinkItem}
+              onMoveItem={onMoveItem}
+              onOpenDetail={onOpenDetail}
+              colors={colors}
+            />
+          ))}
+
+          {/* Subsections */}
+          {location.subsections.map((sub, subIdx) => {
+            const subHasMatch = !search.trim() ||
+              sub.items.some((i) => i.name.toLowerCase().includes(search.toLowerCase()));
+            if (search.trim() && !subHasMatch) return null;
+            return (
+              <SubsectionSection
+                key={sub.id}
+                subsection={sub}
+                subIdx={subIdx}
+                totalSubs={location.subsections.length}
+                parentId={location.id}
+                isExpanded={expandedSubs.has(sub.id)}
+                search={search}
+                onToggle={() => onToggleSub(sub.id)}
                 isInList={isInList}
                 onToggleItem={onToggleItem}
+                onAddItem={onAddItem}
                 onUnlinkItem={onUnlinkItem}
+                onMoveSubsection={onMoveSubsection}
                 onMoveItem={onMoveItem}
+                onRenameLocation={onRenameLocation}
+                onDeleteLocation={onDeleteLocation}
                 onOpenDetail={onOpenDetail}
                 colors={colors}
               />
-            ))
+            );
+          })}
+
+          {filteredItems.length === 0 && location.subsections.length === 0 && (
+            <Text style={sectionStyles.emptyItems}>No items — tap + to add</Text>
           )}
         </View>
       )}
@@ -683,117 +910,155 @@ function LocationSection({
   );
 }
 
-function createStyles(colors: Colors) { return StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  headerSurface: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.background,
-  },
-  headerTitle: { color: colors.text, fontWeight: "bold" },
-  headerSubtitle: { color: colors.textLight, marginTop: 2 },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 100 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xl * 2,
-    paddingHorizontal: spacing.xl,
-  },
-  emptyTitle: {
-    color: colors.text,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  emptySubtitle: { color: colors.textLight, textAlign: "center" },
-  emptyAction: { marginTop: spacing.lg },
-  fab: {
-    position: "absolute",
-    bottom: spacing.lg,
-    right: spacing.md,
-    backgroundColor: colors.primary,
-  },
-  searchbar: {
-    margin: spacing.sm,
-    elevation: 0,
-    backgroundColor: colors.surface,
-  },
-  searchbarInput: { fontSize: 14 },
-  snackbar: { marginBottom: 80 },
-  addItemOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: spacing.lg,
-  },
-  addItemSheet: {
-    width: "100%",
-    maxWidth: 500,
-    borderRadius: 12,
-    padding: spacing.lg,
-    backgroundColor: colors.background,
-  },
-  addItemTitle: {
-    color: colors.text,
-    fontWeight: "600",
-    marginBottom: spacing.md,
-  },
-  addItemActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  qtyStepper: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.lg,
-  },
-  qtyValue: { minWidth: 40, textAlign: "center", color: colors.text },
-}); }
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-function createSectionStyles(colors: Colors) { return StyleSheet.create({
-  container: { backgroundColor: colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: spacing.xs,
-    paddingRight: spacing.xs,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.surface,
-  },
-  titleArea: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  titleText: { flex: 1 },
-  name: { color: colors.text, fontWeight: "600" },
-  badge: { color: colors.primary },
-  itemCount: { color: colors.textLight },
-  itemsContainer: { backgroundColor: colors.background },
-  itemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: spacing.xs,
-    paddingRight: spacing.xs,
-    minHeight: 48,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surface,
-  },
-  itemNameWrap: { flex: 1, marginLeft: spacing.xs },
-  itemName: { color: colors.text },
-  itemMeta: { color: colors.textLight, marginTop: 1 },
-  itemChecked: { textDecorationLine: "line-through", color: colors.textLight },
-  emptyItems: {
-    color: colors.textLight,
-    fontStyle: "italic",
-    paddingVertical: spacing.sm,
-    paddingLeft: spacing.xl,
-  },
-}); }
+function createStyles(colors: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    headerSurface: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
+      backgroundColor: colors.background,
+    },
+    headerTitle: { color: colors.text, fontWeight: "bold" },
+    headerSubtitle: { color: colors.textLight, marginTop: 2 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingBottom: 100 },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xl * 2,
+      paddingHorizontal: spacing.xl,
+    },
+    emptyTitle: { color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm },
+    emptySubtitle: { color: colors.textLight, textAlign: "center", marginBottom: spacing.lg },
+    emptyAction: { marginTop: spacing.sm, minWidth: 220 },
+    fab: {
+      position: "absolute",
+      bottom: spacing.lg,
+      right: spacing.md,
+      backgroundColor: colors.primary,
+    },
+    searchbar: { margin: spacing.sm, elevation: 0, backgroundColor: colors.surface },
+    searchbarInput: { fontSize: 14 },
+    snackbar: { marginBottom: 80 },
+    addItemOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: spacing.lg,
+    },
+    addItemSheet: {
+      width: "100%",
+      maxWidth: 500,
+      borderRadius: 12,
+      padding: spacing.lg,
+      backgroundColor: colors.background,
+    },
+    addItemTitle: { color: colors.text, fontWeight: "600", marginBottom: spacing.md },
+    addItemActions: { flexDirection: "row", justifyContent: "flex-end", marginTop: spacing.md, gap: spacing.sm },
+    qtyStepper: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.lg },
+    qtyValue: { minWidth: 40, textAlign: "center", color: colors.text },
+    templateOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: spacing.lg,
+    },
+    templateSheet: {
+      width: "100%",
+      maxWidth: 520,
+      maxHeight: "85%",
+      borderRadius: 16,
+      padding: spacing.lg,
+      backgroundColor: colors.background,
+    },
+    templateTitle: { color: colors.text, fontWeight: "700" },
+    templateSubtitle: { color: colors.textLight, marginTop: 2 },
+    templateCard: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: spacing.md,
+      padding: spacing.md,
+      borderRadius: 12,
+      borderWidth: 1,
+      marginBottom: spacing.sm,
+    },
+    templateCardText: { flex: 1 },
+    templateChips: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: spacing.xs },
+    templateChip: { height: 22 },
+  });
+}
+
+function createSectionStyles(colors: Colors) {
+  return StyleSheet.create({
+    container: { backgroundColor: colors.background },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingLeft: spacing.xs,
+      paddingRight: spacing.xs,
+      paddingVertical: spacing.xs,
+      backgroundColor: colors.surface,
+    },
+    titleArea: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    titleText: { flex: 1 },
+    name: { color: colors.text, fontWeight: "600" },
+    itemCount: { color: colors.textLight },
+    itemsContainer: { backgroundColor: colors.background },
+    itemRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingLeft: spacing.xs,
+      paddingRight: spacing.xs,
+      minHeight: 48,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surface,
+    },
+    itemRowIndented: {
+      paddingLeft: 0,
+    },
+    subsectionIndent: {
+      width: spacing.md,
+      alignSelf: "stretch",
+      borderLeftWidth: 2,
+      borderLeftColor: colors.primary + "40",
+      marginLeft: spacing.sm,
+      marginRight: spacing.xs,
+    },
+    itemNameWrap: { flex: 1, marginLeft: spacing.xs },
+    itemName: { color: colors.text },
+    itemMeta: { color: colors.textLight, marginTop: 1 },
+    itemChecked: { textDecorationLine: "line-through", color: colors.textLight },
+    emptyItems: {
+      color: colors.textLight,
+      fontStyle: "italic",
+      paddingVertical: spacing.sm,
+      paddingLeft: spacing.xl,
+    },
+    // Subsection styles
+    subsectionContainer: {
+      backgroundColor: colors.background,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.primary + "30",
+      marginLeft: spacing.md,
+    },
+    subsectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingLeft: spacing.xs,
+      paddingRight: spacing.xs,
+      paddingVertical: 2,
+      backgroundColor: colors.surface + "cc",
+    },
+    subsectionLine: {
+      width: 2,
+      alignSelf: "stretch",
+    },
+    subsectionName: { color: colors.text, fontWeight: "500", fontSize: 14 },
+  });
+}

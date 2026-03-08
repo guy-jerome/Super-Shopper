@@ -9,6 +9,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          parent_id: string | null;
           name: string;
           order_index: number;
           created_at: string;

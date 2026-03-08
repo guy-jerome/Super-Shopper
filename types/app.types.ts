@@ -11,6 +11,7 @@ export type SharedList = Database['public']['Tables']['shared_lists']['Row'];
 
 export type StorageLocationWithItems = StorageLocation & {
   items: Item[];
+  subsections: StorageLocationWithItems[];
 };
 
 export type AisleWithItems = Aisle & {

@@ -7,6 +7,7 @@ import {
   Animated,
   Easing,
   RefreshControl,
+  Modal,
 } from "react-native";
 import {
   Text,
@@ -19,7 +20,9 @@ import {
   IconButton,
   Divider,
   Surface,
+  Chip,
 } from "react-native-paper";
+import { STORE_TEMPLATES } from "../../constants/templates";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useStoreStore } from "../../stores/useStoreStore";
@@ -73,6 +76,10 @@ export default function StoresScreen() {
   const [editPositionTag, setEditPositionTag] = useState("");
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [templateDialog, setTemplateDialog] = useState(false);
+  const [templateStoreName, setTemplateStoreName] = useState("");
+  const [pendingTemplateIdx, setPendingTemplateIdx] = useState<number | null>(null);
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
 
   // Suggestions from the global items list
   const localSuggestions =
@@ -99,6 +106,25 @@ export default function StoresScreen() {
     await addStore(user.id, storeName.trim());
     setStoreName("");
     setStoreDialog(false);
+  };
+
+  const handleApplyTemplate = async () => {
+    if (!user || !templateStoreName.trim() || pendingTemplateIdx === null) return;
+    const template = STORE_TEMPLATES[pendingTemplateIdx];
+    setApplyingTemplate(true);
+    setPendingTemplateIdx(null);
+    setTemplateDialog(false);
+    await addStore(user.id, templateStoreName.trim());
+    // addStore updates Zustand state synchronously, read it back
+    const { stores: updated } = useStoreStore.getState();
+    const created = updated.find((s) => s.name === templateStoreName.trim());
+    if (created) {
+      for (const aisleName of template.aisles) {
+        await addAisle(created.id, aisleName);
+      }
+    }
+    setTemplateStoreName("");
+    setApplyingTemplate(false);
   };
 
   const handleAddAisle = async () => {
@@ -396,7 +422,7 @@ export default function StoresScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefreshList} colors={[colors.primary]} tintColor={colors.primary} />
+          <RefreshControl refreshing={refreshing || applyingTemplate} onRefresh={handleRefreshList} colors={[colors.primary]} tintColor={colors.primary} />
         }
       >
         {stores.length === 0 ? (
@@ -412,6 +438,14 @@ export default function StoresScreen() {
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
               Tap + to add stores like Walmart or Costco
             </Text>
+            <Button
+              mode="contained"
+              icon="lightning-bolt"
+              onPress={() => setTemplateDialog(true)}
+              style={styles.emptyAction}
+            >
+              Use a Template
+            </Button>
           </View>
         ) : (
           stores.map((store) => (
@@ -459,6 +493,78 @@ export default function StoresScreen() {
         onPress={() => setStoreDialog(true)}
       />
 
+      {/* Template picker modal */}
+      <Modal
+        visible={templateDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTemplateDialog(false)}
+      >
+        <View style={styles.templateOverlay}>
+          <Surface style={styles.templateSheet} elevation={4}>
+            {pendingTemplateIdx === null ? (
+              <>
+                <Text variant="titleLarge" style={styles.templateTitle}>Choose a Template</Text>
+                <Text variant="bodySmall" style={styles.templateSubtitle}>
+                  Pre-fills your store with common aisles
+                </Text>
+                <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: spacing.md }}>
+                  {STORE_TEMPLATES.map((tmpl, i) => (
+                    <TouchableOpacity
+                      key={tmpl.label}
+                      style={[styles.templateCard, { borderColor: colors.surface }]}
+                      onPress={() => setPendingTemplateIdx(i)}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialCommunityIcons name={tmpl.icon as any} size={32} color={colors.primary} />
+                      <View style={styles.templateCardText}>
+                        <Text variant="titleMedium" style={{ color: colors.text, fontWeight: "600" }}>{tmpl.label}</Text>
+                        <Text variant="bodySmall" style={{ color: colors.textLight }}>{tmpl.description}</Text>
+                        <View style={styles.templateChips}>
+                          {tmpl.aisles.slice(0, 4).map((a) => (
+                            <Chip key={a} compact style={styles.templateChip} textStyle={{ fontSize: 10 }}>{a}</Chip>
+                          ))}
+                          {tmpl.aisles.length > 4 && (
+                            <Chip compact style={styles.templateChip} textStyle={{ fontSize: 10 }}>+{tmpl.aisles.length - 4} more</Chip>
+                          )}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <Button mode="text" onPress={() => { setTemplateDialog(false); setStoreDialog(true); }} style={{ marginTop: spacing.sm }}>
+                  Add Custom Store Instead
+                </Button>
+                <Button onPress={() => setTemplateDialog(false)}>Cancel</Button>
+              </>
+            ) : (
+              <>
+                <Text variant="titleLarge" style={styles.templateTitle}>
+                  Name Your Store
+                </Text>
+                <Text variant="bodySmall" style={[styles.templateSubtitle, { marginBottom: spacing.md }]}>
+                  {STORE_TEMPLATES[pendingTemplateIdx].label} template · {STORE_TEMPLATES[pendingTemplateIdx].aisles.length} aisles
+                </Text>
+                <TextInput
+                  label="Store name (e.g. Walmart, Costco)"
+                  value={templateStoreName}
+                  onChangeText={setTemplateStoreName}
+                  mode="outlined"
+                  autoFocus
+                  onSubmitEditing={handleApplyTemplate}
+                />
+                <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: spacing.md, gap: spacing.sm }}>
+                  <Button onPress={() => { setPendingTemplateIdx(null); setTemplateStoreName(""); }}>Back</Button>
+                  <Button mode="contained" onPress={handleApplyTemplate} disabled={!templateStoreName.trim()}>
+                    Create Store
+                  </Button>
+                </View>
+              </>
+            )}
+          </Surface>
+        </View>
+      </Modal>
+
       <Portal>
         <Dialog
           visible={!!confirmDialog}
@@ -495,6 +601,14 @@ export default function StoresScreen() {
               autoFocus
               onSubmitEditing={handleAddStore}
             />
+            <Button
+              mode="text"
+              icon="lightning-bolt"
+              onPress={() => { setStoreDialog(false); setTemplateDialog(true); }}
+              style={{ marginTop: spacing.sm }}
+            >
+              Use a template instead
+            </Button>
           </Dialog.Content>
           <Dialog.Actions>
             <Button
@@ -755,6 +869,37 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     backgroundColor: colors.primary,
   },
   itemDialogContent: { maxHeight: 480 },
+  emptyAction: { marginTop: spacing.md, minWidth: 200 },
+  outline: { borderColor: colors.surface },
+  templateOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.lg,
+  },
+  templateSheet: {
+    width: "100%",
+    maxWidth: 520,
+    maxHeight: "85%",
+    borderRadius: 16,
+    padding: spacing.lg,
+    backgroundColor: colors.background,
+  },
+  templateTitle: { color: colors.text, fontWeight: "700" },
+  templateSubtitle: { color: colors.textLight, marginTop: 2 },
+  templateCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  templateCardText: { flex: 1 },
+  templateChips: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: spacing.xs },
+  templateChip: { height: 22 },
 }); }
 
 function createStoreListStyles(colors: Colors) { return StyleSheet.create({
