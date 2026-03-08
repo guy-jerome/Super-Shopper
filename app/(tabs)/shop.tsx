@@ -175,14 +175,15 @@ export default function ShopScreen() {
         ...group,
         items: group.items
           .sort((a, b) => a.position_index - b.position_index)
-          .map((x) => x.item),
+          .map((x) => x.item)
+          .sort((a, b) => Number(a.checked) - Number(b.checked)),
       }));
     if (general.length > 0)
       sorted.push({
         aisleId: "__general__",
         name: "General",
         order: 9999,
-        items: general,
+        items: [...general].sort((a, b) => Number(a.checked) - Number(b.checked)),
       });
     return sorted;
   }, [shoppingList, currentStore]);
@@ -404,7 +405,7 @@ export default function ShopScreen() {
             </View>
           ))
         ) : (
-          shoppingList.map((item) => (
+          [...shoppingList].sort((a, b) => Number(a.checked) - Number(b.checked)).map((item) => (
             <SwipeableRow
               key={item.id}
               onDelete={() => removeFromList(item.id)}

@@ -6,13 +6,11 @@ Organized by impact vs effort. Each item is scoped to be workable as a standalon
 
 ## 🔴 Critical Bugs / Broken Features
 
-### B1 — Item reorder doesn't persist
-Items can be dragged up/down in home-storage but the `order_index` column doesn't exist yet.
-**Fix:** Run migration in Supabase SQL editor:
+### B1 — Item reorder doesn't persist ⏳ awaiting SQL migration
+Code is complete. Run this in Supabase SQL editor to activate:
 ```sql
 ALTER TABLE items ADD COLUMN IF NOT EXISTS order_index INTEGER NOT NULL DEFAULT 0;
 ```
-No code changes needed — `useStorageStore.moveItem` already writes this column.
 
 ### B2 — Delete account silently fails
 `useAuthStore.deleteAccount` calls `supabase.rpc('delete_user')` but the RPC doesn't exist in Supabase.
@@ -30,40 +28,26 @@ The Items tab add flow has no dedup check — only home-storage and store add fl
 
 ## 🟠 High Impact, Relatively Quick
 
-### Q1 — Quick-add to shopping list (skip qty dialog for qty=1)
-**Problem:** Every checkbox tap forces a qty stepper dialog even when you just want 1.
-**Fix:** Single tap = add qty 1 immediately, long-press = open qty dialog. Saves 2 taps per item per trip.
-**Files:** `home-storage.tsx` — change `toggleItem` logic.
+### ~~Q1 — Quick-add to shopping list~~ ✅ Done
+Single tap = qty 1 instantly. Long-press = qty dialog. Long-press rename also added pencil icons on all store/aisle/location/subsection headers.
 
-### Q2 — "Add to today's list" button in ItemDetailModal
-**Problem:** No way to add an item to the shopping list from its detail view.
-**Fix:** Add a cart-plus button in `ItemDetailModal` header. Call `useShoppingStore.addToList`.
-**Files:** `components/ItemDetailModal.tsx`
+### ~~Q2 — "Add to today's list" button in ItemDetailModal~~ ✅ Done
+Cart-plus/cart-check icon in header toggles the item on/off today's shopping list.
 
-### Q3 — Checked items move to bottom in shop mode
-**Problem:** Checked items stay in place, making it hard to see what's left.
-**Fix:** Automatically sort checked items to the bottom within each aisle section.
-**Files:** `app/(tabs)/shop.tsx` — sort `item_store_locations` by checked status when rendering.
+### ~~Q3 — Checked items move to bottom in shop mode~~ ✅ Done
+Sorted checked items to bottom within each aisle group (and general/no-store list) via secondary `.sort((a, b) => Number(a.checked) - Number(b.checked))` in `aisleGroups` useMemo.
 
-### Q4 — Collapsed sections auto-expand on search
-**Problem:** Searching shows "0 results" for a section that's collapsed and has matches — confusing.
-**Fix:** When search text is non-empty, treat all locations as expanded.
-**Files:** `home-storage.tsx` — already partially done for subsections, needs to apply to parent too.
+### ~~Q4 — Collapsed sections auto-expand on search~~ ✅ Done (was already implemented)
+Both parent and subsection expand when search has text (`expanded.has(id) || !!search.trim()`).
 
-### Q5 — Sort preference persists across sessions
-**Problem:** Sort order in Items tab resets every app restart.
-**Fix:** Persist `sortOrder` in `useItemStore` via AsyncStorage (same pattern as `useSettingsStore`).
-**Files:** `stores/useItemStore.ts`
+### ~~Q5 — Sort preference persists across sessions~~ ✅ Done
+`sortOrder` persisted to AsyncStorage key `super-shopper:item-sort`, loaded in `app/_layout.tsx` on startup.
 
-### Q6 — Filter resets on tab navigation
-**Problem:** Active filter chip (No Home / No Store) resets when switching tabs.
-**Fix:** Store filter state in `useItemStore` (already in Zustand, just needs to not be local state).
-**Files:** `app/(tabs)/items.tsx`
+### ~~Q6 — Filter resets on tab navigation~~ ✅ Done
+`filterMode` moved from local React state to `useItemStore` Zustand store — survives tab switches.
 
-### Q7 — Delete item from within ItemDetailModal
-**Problem:** Can't delete an item while viewing it — must close modal and find it in the list.
-**Fix:** Add a delete (trash) icon button in the modal header.
-**Files:** `components/ItemDetailModal.tsx`
+### ~~Q7 — Delete item from within ItemDetailModal~~ ✅ Done
+Trash icon in header opens confirmation dialog before permanently deleting the item.
 
 ### Q8 — "Add all to list" button per location
 **Problem:** No bulk action — must tap every item individually per trip.
@@ -114,10 +98,8 @@ The Items tab add flow has no dedup check — only home-storage and store add fl
 **Fix:** Activate `useOfflineSync()` in `_layout.tsx` (already imported but check if called), wire mutation queue for key actions.
 **Files:** `app/_layout.tsx`, `hooks/useOfflineSync.ts`
 
-### M9 — Item count badge on Shop tab
-**Problem:** No way to know how many items are on the list without switching to the Shop tab.
-**Fix:** Show a badge count on the Shop tab icon using Expo Router's tab `tabBarBadge` option.
-**Files:** `app/(tabs)/_layout.tsx`
+### ~~M9 — Item count badge on Shop tab~~ ✅ Done
+`tabBarBadge` on Shop tab shows unchecked item count. Updates reactively. Works on native (web doesn't render tab badges).
 
 ### M10 — Aisle "side" field — expose in UI
 **Problem:** The `aisles` table has a `side` column (e.g., "Left", "Right", "Far wall") that shows in the aisle header but is never editable.
