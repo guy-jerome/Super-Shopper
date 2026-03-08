@@ -9,12 +9,17 @@ import {
   ActivityIndicator,
   Divider,
   Surface,
+  Portal,
+  Dialog,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useItemStore } from "../stores/useItemStore";
+import { useShoppingStore } from "../stores/useShoppingStore";
 import { useColors, spacing, type Colors } from "../constants/theme";
+
+const today = new Date().toISOString().split("T")[0];
 
 type Props = {
   itemId: string | null;
@@ -31,10 +36,15 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
     updateItemTags,
     updateItemDetails,
     uploadItemImage,
+    deleteItem,
   } = useItemStore();
+  const { shoppingList, addToList, removeFromList } = useShoppingStore();
   const item = items.find((i) => i.id === itemId) ?? null;
+  const listEntry = shoppingList.find((s) => s.item_id === itemId);
+  const isOnList = !!listEntry;
 
   const [editing, setEditing] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBrand, setEditBrand] = useState("");
   const [editQuantity, setEditQuantity] = useState("");
@@ -96,6 +106,22 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
     setImgError(false);
   };
 
+  const toggleList = async () => {
+    if (!user || !item) return;
+    if (listEntry) {
+      await removeFromList(listEntry.id);
+    } else {
+      await addToList(user.id, item.id, 1);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!item) return;
+    await deleteItem(item.id);
+    setDeleteDialog(false);
+    onDismiss();
+  };
+
   const dismiss = () => {
     setEditing(false);
     onDismiss();
@@ -128,11 +154,23 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
             ) : null}
           </View>
           {!editing ? (
-            <IconButton
-              icon="pencil-outline"
-              onPress={startEdit}
-              iconColor={colors.primary}
-            />
+            <>
+              <IconButton
+                icon={isOnList ? "cart-check" : "cart-plus"}
+                onPress={toggleList}
+                iconColor={isOnList ? "#4caf50" : colors.primary}
+              />
+              <IconButton
+                icon="trash-can-outline"
+                onPress={() => setDeleteDialog(true)}
+                iconColor={colors.error}
+              />
+              <IconButton
+                icon="pencil-outline"
+                onPress={startEdit}
+                iconColor={colors.primary}
+              />
+            </>
           ) : (
             <IconButton
               icon="check"
@@ -142,6 +180,21 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
           )}
         </View>
         <Divider />
+
+        <Portal>
+          <Dialog visible={deleteDialog} onDismiss={() => setDeleteDialog(false)}>
+            <Dialog.Title>Delete Item?</Dialog.Title>
+            <Dialog.Content>
+              <Text>
+                This will permanently delete {item?.name} and remove it from all locations.
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setDeleteDialog(false)}>Cancel</Button>
+              <Button textColor={colors.error} onPress={confirmDelete}>Delete</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
 
         <ScrollView
           style={styles.scroll}
