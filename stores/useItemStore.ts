@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Item } from '../types/app.types';
 
 export type ItemSortOrder = 'name' | 'recent' | 'tags';
+export type FilterMode = 'all' | 'no-home' | 'no-store';
 
 export type ItemWithLocations = Item & {
   hasHomeLocation: boolean;
@@ -16,6 +17,8 @@ interface ItemStore {
   isLoading: boolean;
   sortOrder: ItemSortOrder;
   setSortOrder: (order: ItemSortOrder) => void;
+  filterMode: FilterMode;
+  setFilterMode: (mode: FilterMode) => void;
   fetchItems: (userId: string) => Promise<void>;
   addItem: (userId: string, name: string, tags?: string[], meta?: ItemMeta) => Promise<ItemWithLocations | null>;
   updateItemTags: (id: string, tags: string[]) => Promise<void>;
@@ -42,6 +45,9 @@ export const useItemStore = create<ItemStore>((set, get) => ({
   items: [],
   isLoading: false,
   sortOrder: 'name',
+  filterMode: 'all',
+
+  setFilterMode: (mode) => set({ filterMode: mode }),
 
   setSortOrder: (order) => {
     set((state) => ({ sortOrder: order, items: sortItems(state.items, order) }));
