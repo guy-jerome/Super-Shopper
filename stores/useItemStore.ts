@@ -1,6 +1,9 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import type { Item } from '../types/app.types';
+
+const SORT_KEY = 'super-shopper:item-sort';
 
 export type ItemSortOrder = 'name' | 'recent' | 'tags';
 
@@ -16,6 +19,7 @@ interface ItemStore {
   isLoading: boolean;
   sortOrder: ItemSortOrder;
   setSortOrder: (order: ItemSortOrder) => void;
+  loadSortOrder: () => Promise<void>;
   fetchItems: (userId: string) => Promise<void>;
   addItem: (userId: string, name: string, tags?: string[], meta?: ItemMeta) => Promise<ItemWithLocations | null>;
   updateItemTags: (id: string, tags: string[]) => Promise<void>;
@@ -45,6 +49,16 @@ export const useItemStore = create<ItemStore>((set, get) => ({
 
   setSortOrder: (order) => {
     set((state) => ({ sortOrder: order, items: sortItems(state.items, order) }));
+    AsyncStorage.setItem(SORT_KEY, order).catch(() => {});
+  },
+
+  loadSortOrder: async () => {
+    try {
+      const saved = await AsyncStorage.getItem(SORT_KEY);
+      if (saved === 'name' || saved === 'recent' || saved === 'tags') {
+        set({ sortOrder: saved });
+      }
+    } catch {}
   },
 
   fetchItems: async (userId) => {
