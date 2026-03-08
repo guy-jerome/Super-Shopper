@@ -13,7 +13,7 @@ interface StoreStore {
   updateStore: (id: string, name: string) => Promise<void>;
   deleteStore: (id: string) => Promise<void>;
   addAisle: (storeId: string, name: string, sectionTag?: string) => Promise<void>;
-  updateAisle: (aisleId: string, name: string) => Promise<void>;
+  updateAisle: (aisleId: string, name: string, side?: string | null) => Promise<void>;
   deleteAisle: (aisleId: string) => Promise<void>;
   moveAisle: (aisleId: string, direction: 'up' | 'down') => Promise<void>;
   addItemToAisle: (userId: string, aisleId: string, itemName: string, positionTag?: string, meta?: { brand?: string | null; quantity?: string | null; image_url?: string | null }) => Promise<void>;
@@ -119,10 +119,12 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
     }
   },
 
-  updateAisle: async (aisleId, name) => {
+  updateAisle: async (aisleId, name, side) => {
+    const patch: any = { name, updated_at: new Date().toISOString() };
+    if (side !== undefined) patch.side = side ?? null;
     const { error } = await supabase
       .from('aisles')
-      .update({ name, updated_at: new Date().toISOString() })
+      .update(patch)
       .eq('id', aisleId);
 
     if (!error) {
@@ -132,7 +134,7 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
           activeStore: {
             ...state.activeStore,
             aisles: state.activeStore.aisles.map((a) =>
-              a.id === aisleId ? { ...a, name } : a
+              a.id === aisleId ? { ...a, name, ...(side !== undefined && { side: side ?? null }) } : a
             ),
           },
         };
