@@ -78,8 +78,9 @@ export default function StoresScreen() {
   const [editPositionTag, setEditPositionTag] = useState("");
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [renameDialog, setRenameDialog] = useState<{ id: string; name: string; type: 'store' | 'aisle' } | null>(null);
+  const [renameDialog, setRenameDialog] = useState<{ id: string; name: string; type: 'store' | 'aisle'; side?: string | null } | null>(null);
   const [renameName, setRenameName] = useState("");
+  const [renameSide, setRenameSide] = useState("");
   const [templateDialog, setTemplateDialog] = useState(false);
   const [templateStoreName, setTemplateStoreName] = useState("");
   const [pendingTemplateIdx, setPendingTemplateIdx] = useState<number | null>(null);
@@ -188,15 +189,17 @@ export default function StoresScreen() {
     if (renameDialog.type === 'store') {
       await updateStore(renameDialog.id, renameName.trim());
     } else {
-      await updateAisle(renameDialog.id, renameName.trim());
+      await updateAisle(renameDialog.id, renameName.trim(), renameSide.trim() || null);
     }
     setRenameDialog(null);
     setRenameName("");
+    setRenameSide("");
   };
 
-  const openRename = (id: string, name: string, type: 'store' | 'aisle') => {
-    setRenameDialog({ id, name, type });
+  const openRename = (id: string, name: string, type: 'store' | 'aisle', side?: string | null) => {
+    setRenameDialog({ id, name, type, side });
     setRenameName(name);
+    setRenameSide(side ?? '');
   };
 
   const toggleAisle = (id: string) =>
@@ -275,7 +278,7 @@ export default function StoresScreen() {
                 isExpanded={expandedAisles.has(aisle.id)}
                 onToggle={() => toggleAisle(aisle.id)}
                 onMoveAisle={moveAisle}
-                onRenameAisle={(id, name) => openRename(id, name, 'aisle')}
+                onRenameAisle={(id, name, side) => openRename(id, name, 'aisle', side)}
                 onDeleteAisle={(id) =>
                   setConfirmDialog({
                     action: () => deleteAisle(id),
@@ -302,7 +305,7 @@ export default function StoresScreen() {
         </ScrollView>
 
         <Portal>
-          <Dialog visible={!!renameDialog} onDismiss={() => { setRenameDialog(null); setRenameName(""); }}>
+          <Dialog visible={!!renameDialog} onDismiss={() => { setRenameDialog(null); setRenameName(""); setRenameSide(""); }}>
             <Dialog.Title>Rename {renameDialog?.type === 'store' ? 'Store' : 'Aisle'}</Dialog.Title>
             <Dialog.Content>
               <TextInput
@@ -313,9 +316,20 @@ export default function StoresScreen() {
                 autoFocus
                 onSubmitEditing={handleRename}
               />
+              {renameDialog?.type === 'aisle' && (
+                <TextInput
+                  label="Side / Section (optional)"
+                  value={renameSide}
+                  onChangeText={setRenameSide}
+                  mode="outlined"
+                  placeholder="e.g. Left, Right, Far wall"
+                  style={{ marginTop: 12 }}
+                  onSubmitEditing={handleRename}
+                />
+              )}
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => { setRenameDialog(null); setRenameName(""); }}>Cancel</Button>
+              <Button onPress={() => { setRenameDialog(null); setRenameName(""); setRenameSide(""); }}>Cancel</Button>
               <Button onPress={handleRename} disabled={!renameName.trim()}>Save</Button>
             </Dialog.Actions>
           </Dialog>
@@ -794,7 +808,7 @@ function AisleSection({
   isExpanded: boolean;
   onToggle: () => void;
   onMoveAisle: (id: string, dir: "up" | "down") => void;
-  onRenameAisle: (id: string, name: string) => void;
+  onRenameAisle: (id: string, name: string, side?: string | null) => void;
   onDeleteAisle: (id: string) => void;
   onAddItem: (aisleId: string) => void;
   onMoveItem: (aisleId: string, locId: string, dir: "up" | "down") => void;
@@ -836,7 +850,7 @@ function AisleSection({
         <TouchableOpacity
           style={sectionStyles.titleArea}
           onPress={onToggle}
-          onLongPress={() => onRenameAisle(aisle.id, aisle.name)}
+          onLongPress={() => onRenameAisle(aisle.id, aisle.name, aisle.side)}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons
