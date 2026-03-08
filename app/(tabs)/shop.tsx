@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Share } from "react-native";
+import * as Haptics from "expo-haptics";
 import {
   Text,
   Button,
@@ -130,6 +131,11 @@ export default function ShopScreen() {
     setNewItemName("");
     setPendingSuggestion(null);
     setAddDialog(false);
+  };
+
+  const handleToggleChecked = (id: string, checked: boolean) => {
+    Haptics.impactAsync(checked ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    toggleChecked(id, checked);
   };
 
   const total = shoppingList.length;
@@ -414,7 +420,7 @@ export default function ShopScreen() {
                 >
                   <ShoppingItem
                     item={item}
-                    onToggle={() => toggleChecked(item.id, !item.checked)}
+                    onToggle={() => handleToggleChecked(item.id, !item.checked)}
                     onEditQty={() =>
                       openQtyEdit(item.id, item.item_name, item.quantity)
                     }
@@ -434,7 +440,7 @@ export default function ShopScreen() {
             >
               <ShoppingItem
                 item={item}
-                onToggle={() => toggleChecked(item.id, !item.checked)}
+                onToggle={() => handleToggleChecked(item.id, !item.checked)}
                 onEditQty={() =>
                   openQtyEdit(item.id, item.item_name, item.quantity)
                 }
