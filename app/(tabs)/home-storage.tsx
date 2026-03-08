@@ -773,6 +773,7 @@ function SubsectionSection({
             </Text>
           </View>
         </TouchableOpacity>
+        <IconButton icon="pencil-outline" size={18} iconColor={colors.textLight} onPress={() => onRenameLocation(subsection.id, subsection.name)} />
         <IconButton icon="plus-circle-outline" size={18} iconColor={colors.primary} onPress={() => onAddItem(subsection.id)} />
         <IconButton
           icon="delete-outline"
@@ -894,6 +895,7 @@ function LocationSection({
             </Text>
           </View>
         </TouchableOpacity>
+        <IconButton icon="pencil-outline" size={20} iconColor={colors.textLight} onPress={() => onRenameLocation(location.id, location.name)} />
         <IconButton icon="folder-plus-outline" size={20} iconColor={colors.textLight} onPress={onAddSubsection} />
         <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={() => onAddItem(location.id)} />
         <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onDeleteLocation(location.id, location.name)} />
