@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useColorScheme } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, Text } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,7 +11,9 @@ import { useOfflineSync } from '../hooks/useOfflineSync';
 
 export default function RootLayout() {
   const { user, isLoading, initialize } = useAuthStore();
-  const { isDarkMode, loadTheme } = useSettingsStore();
+  const { themeMode, loadTheme } = useSettingsStore();
+  const systemScheme = useColorScheme();
+  const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && systemScheme === 'dark');
   const { loadSortOrder } = useItemStore();
   const { status } = useOfflineSync();
   const router = useRouter();

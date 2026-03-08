@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
-import { View, StyleSheet, Switch } from 'react-native';
+import { View, StyleSheet, useColorScheme } from 'react-native';
 import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar } from 'react-native-paper';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useSettingsStore } from '../../stores/useSettingsStore';
+import { useSettingsStore, type ThemeMode } from '../../stores/useSettingsStore';
 import { useColors, spacing, type Colors } from '../../constants/theme';
 
 export default function SettingsScreen() {
   const { user, signOut, updatePassword, deleteAccount } = useAuthStore();
-  const { isDarkMode, toggleTheme } = useSettingsStore();
+  const { themeMode, setThemeMode } = useSettingsStore();
+  const systemScheme = useColorScheme();
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -91,15 +92,24 @@ export default function SettingsScreen() {
         />
         <Divider />
         <List.Item
-          title="Dark Mode"
-          description={isDarkMode ? 'Dark' : 'Light'}
+          title="Theme"
+          description={themeMode === 'system' ? 'System default' : themeMode === 'dark' ? 'Dark' : 'Light'}
           left={(p) => <List.Icon {...p} icon="palette-outline" color={colors.primary} />}
           right={() => (
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ true: colors.primary }}
-            />
+            <View style={styles.themeSegment}>
+              {(['light', 'system', 'dark'] as ThemeMode[]).map((m) => (
+                <Button
+                  key={m}
+                  mode={themeMode === m ? 'contained' : 'outlined'}
+                  compact
+                  onPress={() => setThemeMode(m, systemScheme === 'dark')}
+                  style={styles.themeBtn}
+                  labelStyle={styles.themeBtnLabel}
+                >
+                  {m === 'system' ? 'Auto' : m === 'dark' ? 'Dark' : 'Light'}
+                </Button>
+              ))}
+            </View>
           )}
         />
         <Divider />
@@ -228,4 +238,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   dialogActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dialogRightActions: { flexDirection: 'row', gap: spacing.xs },
   versionText: { color: colors.textLight, fontSize: 12, textAlign: 'center', paddingBottom: spacing.md },
+  themeSegment: { flexDirection: 'row', gap: 4, alignItems: 'center' },
+  themeBtn: { minWidth: 0 },
+  themeBtnLabel: { fontSize: 11 },
 }); }
