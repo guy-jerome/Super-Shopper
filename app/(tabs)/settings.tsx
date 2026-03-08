@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, StyleSheet, Switch } from 'react-native';
 import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar } from 'react-native-paper';
+import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useColors, spacing, type Colors } from '../../constants/theme';
@@ -184,6 +185,10 @@ export default function SettingsScreen() {
         </Dialog>
       </Portal>
 
+      <Text style={styles.versionText}>
+        Version {Constants.expoConfig?.version ?? '—'}
+      </Text>
+
       <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={3000}>
         {snackbar}
       </Snackbar>
@@ -222,4 +227,5 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   errorText: { color: colors.error, fontSize: 13, marginTop: spacing.xs },
   dialogActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dialogRightActions: { flexDirection: 'row', gap: spacing.xs },
+  versionText: { color: colors.textLight, fontSize: 12, textAlign: 'center', paddingBottom: spacing.md },
 }); }
