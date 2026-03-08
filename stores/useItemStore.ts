@@ -89,6 +89,30 @@ export const useItemStore = create<ItemStore>((set, get) => ({
   },
 
   addItem: async (userId, name, tags = [], meta) => {
+    // Dedup: return existing item if one with same name already exists
+    const { data: existing } = await supabase
+      .from('items')
+      .select('*, item_store_locations(id)')
+      .eq('user_id', userId)
+      .ilike('name', name)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      const { sortOrder, items } = get();
+      const existingItem: ItemWithLocations = {
+        ...(existing as any),
+        tags: (existing as any).tags ?? [],
+        hasHomeLocation: (existing as any).home_location_id !== null,
+        hasStoreLocation: ((existing as any).item_store_locations?.length ?? 0) > 0,
+      };
+      // Add to store if not already tracked
+      if (!items.find((i) => i.id === existing.id)) {
+        set((state) => ({ items: sortItems([...state.items, existingItem], sortOrder) }));
+      }
+      return existingItem;
+    }
+
     const { data, error } = await supabase
       .from('items')
       .insert({ user_id: userId, name, tags, brand: meta?.brand ?? null, quantity: meta?.quantity ?? null, image_url: meta?.image_url ?? null })
