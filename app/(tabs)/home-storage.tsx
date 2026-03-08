@@ -127,6 +127,21 @@ export default function HomeStorageScreen() {
     }
   };
 
+  const addAllToList = async (location: StorageLocationWithItems) => {
+    if (!user) return;
+    const allItems = [
+      ...location.items,
+      ...location.subsections.flatMap((s) => s.items),
+    ];
+    const unlisted = allItems.filter((i) => !isInList(i.id));
+    if (unlisted.length === 0) {
+      setSnackbar("All items already on list");
+      return;
+    }
+    await Promise.all(unlisted.map((i) => addToList(user.id, i.id, 1)));
+    setSnackbar(`${unlisted.length} item${unlisted.length !== 1 ? "s" : ""} added to list`);
+  };
+
   const openQtyDialog = (itemId: string, name: string) => {
     setQtyTarget({ id: itemId, name });
     setQty(1);
@@ -334,6 +349,7 @@ export default function HomeStorageScreen() {
                 onToggleItem={toggleItem}
                 onOpenQtyDialog={openQtyDialog}
                 onAddItem={openAddItem}
+                onAddAllToList={addAllToList}
                 onUnlinkItem={(itemId) => {
                   let name = "this item";
                   const allLocs = [location, ...location.subsections];
@@ -578,6 +594,7 @@ type LocationSectionProps = {
   onToggleItem: (itemId: string, itemName: string) => void;
   onOpenQtyDialog: (itemId: string, itemName: string) => void;
   onAddItem: (locationId: string) => void;
+  onAddAllToList: (location: StorageLocationWithItems) => void;
   onUnlinkItem: (itemId: string) => void;
   onDeleteLocation: (id: string, name: string) => void;
   onRenameLocation: (id: string, name: string) => void;
@@ -829,6 +846,7 @@ function LocationSection({
   onToggleItem,
   onOpenQtyDialog,
   onAddItem,
+  onAddAllToList,
   onUnlinkItem,
   onDeleteLocation,
   onRenameLocation,
@@ -896,6 +914,7 @@ function LocationSection({
           </View>
         </TouchableOpacity>
         <IconButton icon="pencil-outline" size={20} iconColor={colors.textLight} onPress={() => onRenameLocation(location.id, location.name)} />
+        <IconButton icon="cart-arrow-down" size={20} iconColor={colors.primary} onPress={() => onAddAllToList(location)} />
         <IconButton icon="folder-plus-outline" size={20} iconColor={colors.textLight} onPress={onAddSubsection} />
         <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={() => onAddItem(location.id)} />
         <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onDeleteLocation(location.id, location.name)} />
