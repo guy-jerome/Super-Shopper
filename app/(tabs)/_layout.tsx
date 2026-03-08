@@ -1,9 +1,12 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColors } from '../../constants/theme';
+import { useShoppingStore } from '../../stores/useShoppingStore';
 
 export default function TabLayout() {
   const colors = useColors();
+  const { shoppingList } = useShoppingStore();
+  const uncheckedCount = shoppingList.filter((i) => !i.checked).length;
 
   return (
     <Tabs
@@ -53,6 +56,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="cart" color={color} size={size} />
           ),
+          tabBarBadge: uncheckedCount > 0 ? uncheckedCount : undefined,
         }}
       />
       <Tabs.Screen
