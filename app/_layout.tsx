@@ -6,11 +6,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { theme, darkTheme } from '../constants/theme';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useItemStore } from '../stores/useItemStore';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
 export default function RootLayout() {
   const { user, isLoading, initialize } = useAuthStore();
   const { isDarkMode, loadTheme } = useSettingsStore();
+  const { loadSortOrder } = useItemStore();
   const { status } = useOfflineSync();
   const router = useRouter();
   const segments = useSegments();
@@ -18,6 +20,7 @@ export default function RootLayout() {
   useEffect(() => {
     initialize();
     loadTheme();
+    loadSortOrder();
   }, []);
 
   useEffect(() => {
