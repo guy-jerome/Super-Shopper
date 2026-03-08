@@ -58,6 +58,8 @@ export default function ItemsScreen() {
   const [deleteConfirm, setDeleteConfirm] = useState<{
     id: string;
     name: string;
+    hasHomeLocation: boolean;
+    hasStoreLocation: boolean;
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -280,7 +282,7 @@ export default function ItemsScreen() {
                   size={20}
                   iconColor={colors.error}
                   onPress={() =>
-                    setDeleteConfirm({ id: item.id, name: item.name })
+                    setDeleteConfirm({ id: item.id, name: item.name, hasHomeLocation: item.hasHomeLocation, hasStoreLocation: item.hasStoreLocation })
                   }
                 />
               </TouchableOpacity>
@@ -358,6 +360,18 @@ export default function ItemsScreen() {
             <Text variant="bodyMedium" style={{ color: colors.text }}>
               Delete "{deleteConfirm?.name}"? This cannot be undone.
             </Text>
+            {(deleteConfirm?.hasHomeLocation || deleteConfirm?.hasStoreLocation) && (
+              <Text variant="bodySmall" style={{ color: colors.textLight, marginTop: 8 }}>
+                Also removes it from:{" "}
+                {[
+                  deleteConfirm.hasHomeLocation && "home storage",
+                  deleteConfirm.hasStoreLocation && "store aisles",
+                ]
+                  .filter(Boolean)
+                  .join(" and ")}
+                .
+              </Text>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setDeleteConfirm(null)}>Cancel</Button>
