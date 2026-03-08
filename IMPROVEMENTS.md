@@ -16,13 +16,11 @@ ALTER TABLE items ADD COLUMN IF NOT EXISTS order_index INTEGER NOT NULL DEFAULT 
 `useAuthStore.deleteAccount` calls `supabase.rpc('delete_user')` but the RPC doesn't exist in Supabase.
 **Fix:** Create the `delete_user` SQL function in Supabase, or switch to direct row deletion with cascades.
 
-### B3 — Duplicate items possible via Items tab
-The Items tab add flow has no dedup check — only home-storage and store add flows run the `ilike` check before inserting.
-**Fix:** Run same ilike dedup in `useItemStore.addItem`.
+### ~~B3 — Duplicate items possible via Items tab~~ ✅ Done
+`useItemStore.addItem` now runs same `ilike` dedup before insert — returns existing item if found.
 
-### B4 — Image upload failures are silent
-`useItemStore` upload catch block is empty; users get no feedback if the Supabase Storage upload fails.
-**Fix:** Surface error in `ItemDetailModal` with a snackbar.
+### ~~B4 — Image upload failures are silent~~ ✅ Done
+`uploadItemImage` returns `boolean`; `ItemDetailModal` shows a snackbar on upload failure.
 
 ---
 
@@ -49,10 +47,8 @@ Both parent and subsection expand when search has text (`expanded.has(id) || !!s
 ### ~~Q7 — Delete item from within ItemDetailModal~~ ✅ Done
 Trash icon in header opens confirmation dialog before permanently deleting the item.
 
-### Q8 — "Add all to list" button per location
-**Problem:** No bulk action — must tap every item individually per trip.
-**Fix:** Add an "Add all" icon button in the location header that bulk-adds all unlisted items.
-**Files:** `home-storage.tsx`
+### ~~Q8 — "Add all to list" button per location~~ ✅ Done
+`cart-arrow-down` icon in each location header bulk-adds all unlisted items; shows snackbar with count. Skips already-listed items.
 
 ---
 
@@ -164,8 +160,8 @@ Several `IconButton` rows have 3–4 buttons with size=18–20. On mobile these 
 ### P4 — Loading skeleton instead of spinner
 Replace `ActivityIndicator` on initial loads with placeholder skeleton rows for a smoother perceived load time.
 
-### P5 — App version in Settings
-Display version from `app.json` or `expo-constants` at the bottom of settings. Helps with bug reports.
+### ~~P5 — App version in Settings~~ ✅ Done
+"Version 1.0.0" displayed below Sign Out button via `Constants.expoConfig?.version`.
 
 ### P6 — Empty state improvements
 Several empty states are generic. Add context-specific tips:
