@@ -34,7 +34,10 @@
       "Bash(git worktree:*)",
       "Bash(git:*)",
       "Bash(do:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npm start:*)",
+      "Bash(npx expo:*)",
+      "Bash(curl:*)"
     ]
   }
 }

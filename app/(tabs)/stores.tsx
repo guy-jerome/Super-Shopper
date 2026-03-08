@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  RefreshControl,
 } from "react-native";
 import {
   Text,
@@ -71,6 +72,7 @@ export default function StoresScreen() {
   const [editLocId, setEditLocId] = useState("");
   const [editPositionTag, setEditPositionTag] = useState("");
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Suggestions from the global items list
   const localSuggestions =
@@ -137,6 +139,20 @@ export default function StoresScreen() {
     setItemDialog(true);
   };
 
+  const handleRefreshList = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    await fetchStores(user.id);
+    setRefreshing(false);
+  }, [user?.id]);
+
+  const handleRefreshDetail = useCallback(async () => {
+    if (!activeStore) return;
+    setRefreshing(true);
+    await fetchStoreWithAisles(activeStore.id);
+    setRefreshing(false);
+  }, [activeStore?.id]);
+
   const toggleAisle = (id: string) =>
     setExpandedAisles((prev) => {
       const next = new Set(prev);
@@ -180,6 +196,9 @@ export default function StoresScreen() {
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefreshDetail} colors={[colors.primary]} tintColor={colors.primary} />
+          }
         >
           {activeStore.aisles.length === 0 ? (
             <View style={styles.emptyState}>
@@ -376,6 +395,9 @@ export default function StoresScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefreshList} colors={[colors.primary]} tintColor={colors.primary} />
+        }
       >
         {stores.length === 0 ? (
           <View style={styles.emptyState}>

@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo, useRef } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
 import {
   Text,
   Button,
@@ -25,6 +25,7 @@ import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { SwipeableRow } from "../../components/SwipeableRow";
 import { useColors, spacing, type Colors } from "../../constants/theme";
+import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -66,6 +67,7 @@ export default function ShopScreen() {
   } | null>(null);
   const [qtyValue, setQtyValue] = useState(1);
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const aisleSectionOffsets = useRef<Record<string, number>>({});
 
@@ -75,6 +77,19 @@ export default function ShopScreen() {
     fetchStores(user.id);
     fetchItems(user.id);
   }, [user?.id]);
+
+  const handleRealtimeChange = useCallback(() => {
+    if (user) fetchShoppingList(user.id, today);
+  }, [user?.id]);
+
+  const handleRefresh = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    await fetchShoppingList(user.id, today);
+    setRefreshing(false);
+  }, [user?.id]);
+
+  useRealtimeSubscription('shopping_list', user?.id ?? '', handleRealtimeChange);
 
   useEffect(() => {
     setNotesValue(notes);
@@ -130,7 +145,7 @@ export default function ShopScreen() {
         aisleId: string;
         name: string;
         order: number;
-        items: typeof shoppingList;
+        items: { item: (typeof shoppingList)[0]; position_index: number }[];
       }
     >();
     const general: typeof shoppingList = [];
@@ -148,13 +163,20 @@ export default function ShopScreen() {
             items: [],
           });
         }
-        map.get(loc.aisle_id)!.items.push(item);
+        map.get(loc.aisle_id)!.items.push({ item, position_index: loc.position_index });
       } else {
         general.push(item);
       }
     }
 
-    const sorted = [...map.values()].sort((a, b) => a.order - b.order);
+    const sorted = [...map.values()]
+      .sort((a, b) => a.order - b.order)
+      .map((group) => ({
+        ...group,
+        items: group.items
+          .sort((a, b) => a.position_index - b.position_index)
+          .map((x) => x.item),
+      }));
     if (general.length > 0)
       sorted.push({
         aisleId: "__general__",
@@ -268,6 +290,9 @@ export default function ShopScreen() {
         ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+        }
       >
         {/* Notes */}
         <View style={styles.notesSection}>
@@ -391,6 +416,7 @@ export default function ShopScreen() {
                   openQtyEdit(item.id, item.item_name, item.quantity)
                 }
                 onOpenDetail={() => setDetailItemId(item.item_id)}
+                colors={colors}
               />
               <Divider style={styles.itemDivider} />
             </SwipeableRow>
@@ -511,6 +537,8 @@ function ShoppingItem({
     id: string;
     item_id: string;
     item_name: string;
+    item_brand?: string | null;
+    item_quantity?: string | null;
     quantity: number;
     checked: boolean;
   };
@@ -520,6 +548,7 @@ function ShoppingItem({
   colors: Colors;
 }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const meta = [item.item_brand, item.item_quantity].filter(Boolean).join(' · ');
   return (
     <View style={styles.itemRow}>
       <Checkbox
@@ -528,12 +557,19 @@ function ShoppingItem({
         color={colors.primary}
       />
       <View style={styles.itemInfo}>
-        <Text
-          variant="bodyLarge"
-          style={[styles.itemName, item.checked && styles.itemChecked]}
-        >
-          {item.item_name}
-        </Text>
+        <View style={styles.itemNameWrap}>
+          <Text
+            variant="bodyLarge"
+            style={[styles.itemName, item.checked && styles.itemChecked]}
+          >
+            {item.item_name}
+          </Text>
+          {!!meta && (
+            <Text variant="bodySmall" style={styles.itemMeta} numberOfLines={1}>
+              {meta}
+            </Text>
+          )}
+        </View>
         <TouchableOpacity onPress={onEditQty} style={styles.qtyBadge}>
           <Text variant="bodySmall" style={styles.qtyBadgeText}>
             × {item.quantity}
@@ -621,7 +657,9 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
-  itemName: { flex: 1, color: colors.text },
+  itemNameWrap: { flex: 1 },
+  itemName: { color: colors.text },
+  itemMeta: { color: colors.textLight, marginTop: 1 },
   itemChecked: { textDecorationLine: "line-through", color: colors.textLight },
   qtyBadge: {
     flexDirection: "row",

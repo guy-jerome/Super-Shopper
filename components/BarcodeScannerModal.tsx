@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, Modal } from 'react-native';
 import { Text, Button, ActivityIndicator, IconButton } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { lookupBarcode } from '../hooks/useOpenFoodFacts';
 import type { FoodSuggestion } from '../hooks/useOpenFoodFacts';
-import { colors, spacing } from '../constants/theme';
+import { useColors, spacing, type Colors } from '../constants/theme';
 
 type Props = {
   visible: boolean;
@@ -13,6 +13,8 @@ type Props = {
 };
 
 export function BarcodeScannerModal({ visible, onDismiss, onResult }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -95,7 +97,7 @@ export function BarcodeScannerModal({ visible, onDismiss, onResult }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   header: {
     flexDirection: 'row',
@@ -155,4 +157,4 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   errorText: { color: '#fff', textAlign: 'center' },
-});
+}); }

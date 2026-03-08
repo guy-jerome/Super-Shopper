@@ -28,11 +28,14 @@ async function saveCurrentStore(store: StoreProfile | null): Promise<void> {
 
 export type StoreLocation = {
   aisle_id: string;
+  position_index: number;
   aisles: { id: string; name: string; order_index: number; store_id: string };
 };
 
 export type ShoppingListItemWithName = ShoppingListItem & {
   item_name: string;
+  item_brand: string | null;
+  item_quantity: string | null;
   store_locations: StoreLocation[];
 };
 
@@ -52,6 +55,7 @@ interface ShoppingStore {
   updateNotes: (userId: string, date: string, notes: string) => Promise<void>;
   clearCheckedItems: () => Promise<void>;
   markAllChecked: (ids: string[], checked: boolean) => Promise<void>;
+  updateAisleItemOrder: (aisleId: string, positions: { itemId: string; position_index: number }[]) => void;
 }
 
 export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
@@ -73,7 +77,7 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     const [listResult, notesResult] = await Promise.all([
       supabase
         .from('shopping_list')
-        .select('*, items(name, item_store_locations(aisle_id, aisles(id, name, order_index, store_id)))')
+        .select('*, items(name, brand, quantity, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
         .eq('user_id', userId)
         .eq('shopping_date', date),
       supabase
@@ -88,6 +92,8 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
       const withNames = (listResult.data as any[]).map((row) => ({
         ...row,
         item_name: row.items?.name ?? '',
+        item_brand: row.items?.brand ?? null,
+        item_quantity: row.items?.quantity ?? null,
         store_locations: row.items?.item_store_locations ?? [],
       })) as ShoppingListItemWithName[];
       set({ shoppingList: withNames });
@@ -103,13 +109,15 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     const { data, error } = await supabase
       .from('shopping_list')
       .insert({ user_id: userId, item_id: itemId, quantity, shopping_date: date })
-      .select('*, items(name, item_store_locations(aisle_id, aisles(id, name, order_index, store_id)))')
+      .select('*, items(name, brand, quantity, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
       .single();
 
     if (!error && data) {
       const withName: ShoppingListItemWithName = {
         ...(data as any),
         item_name: (data as any).items?.name ?? '',
+        item_brand: (data as any).items?.brand ?? null,
+        item_quantity: (data as any).items?.quantity ?? null,
         store_locations: (data as any).items?.item_store_locations ?? [],
       };
       set((state) => ({ shoppingList: [...state.shoppingList, withName] }));
@@ -175,6 +183,20 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
 
     await supabase.from('shopping_list').delete().in('id', checkedIds);
     set((state) => ({ shoppingList: state.shoppingList.filter((i) => !i.checked) }));
+  },
+
+  updateAisleItemOrder: (aisleId, positions) => {
+    const posMap = new Map(positions.map((p) => [p.itemId, p.position_index]));
+    set((state) => ({
+      shoppingList: state.shoppingList.map((item) => ({
+        ...item,
+        store_locations: item.store_locations.map((loc) =>
+          loc.aisle_id === aisleId && posMap.has(item.item_id)
+            ? { ...loc, position_index: posMap.get(item.item_id)! }
+            : loc
+        ),
+      })),
+    }));
   },
 }));
 

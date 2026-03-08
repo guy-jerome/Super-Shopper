@@ -14,7 +14,7 @@ interface StorageStore {
   addItem: (userId: string, locationId: string, name: string, meta?: { brand?: string | null; quantity?: string | null; image_url?: string | null }) => Promise<void>;
   updateItem: (id: string, name: string) => Promise<void>;
   unlinkItem: (id: string) => Promise<void>;
-  moveItem: (locationId: string, itemId: string, direction: 'up' | 'down') => void;
+  moveItem: (locationId: string, itemId: string, direction: 'up' | 'down') => Promise<void>;
 }
 
 export const useStorageStore = create<StorageStore>((set, get) => ({
@@ -30,7 +30,12 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
       .order('order_index', { ascending: true });
 
     if (!error && data) {
-      set({ locations: data as unknown as StorageLocationWithItems[] });
+      // Sort items within each location by order_index
+      const sorted = (data as unknown as StorageLocationWithItems[]).map((loc) => ({
+        ...loc,
+        items: [...loc.items].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
+      }));
+      set({ locations: sorted });
     }
     set({ isLoading: false });
   },
@@ -113,9 +118,11 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
         .single();
       item = updated;
     } else {
+      const loc = get().locations.find((l) => l.id === locationId);
+      const nextIndex = loc ? loc.items.length : 0;
       const { data: created } = await supabase
         .from('items')
-        .insert({ user_id: userId, name, home_location_id: locationId, tags: [], brand: meta?.brand ?? null, quantity: meta?.quantity ?? null, image_url: meta?.image_url ?? null })
+        .insert({ user_id: userId, name, home_location_id: locationId, order_index: nextIndex, tags: [], brand: meta?.brand ?? null, quantity: meta?.quantity ?? null, image_url: meta?.image_url ?? null })
         .select()
         .single();
       item = created;
@@ -163,7 +170,7 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
     }
   },
 
-  moveItem: (locationId, itemId, direction) => {
+  moveItem: async (locationId, itemId, direction) => {
     const { locations } = get();
     const loc = locations.find((l) => l.id === locationId);
     if (!loc) return;
@@ -173,10 +180,16 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
     if (newIdx < 0 || newIdx >= loc.items.length) return;
     const newItems = [...loc.items];
     [newItems[idx], newItems[newIdx]] = [newItems[newIdx], newItems[idx]];
+    // Optimistic update
     set((state) => ({
       locations: state.locations.map((l) =>
         l.id === locationId ? { ...l, items: newItems } : l
       ),
     }));
+    // Persist new order_index values for the two swapped items
+    await Promise.all([
+      supabase.from('items').update({ order_index: idx }).eq('id', newItems[idx].id),
+      supabase.from('items').update({ order_index: newIdx }).eq('id', newItems[newIdx].id),
+    ]);
   },
 }));

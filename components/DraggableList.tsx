@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Animated, StyleSheet, PanResponder, Easing } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors } from '../constants/theme';
+import { useColors } from '../constants/theme';
 
 type DragHandleProps = {
   canMoveUp: boolean;
@@ -20,6 +20,7 @@ export function DragHandle({
   onActiveChange,
   size = 'md',
 }: DragHandleProps) {
+  const colors = useColors();
   const [active, setActive] = useState(false);
   const glowAnim = useRef(new Animated.Value(0)).current;
   const lastStep = useRef(0);

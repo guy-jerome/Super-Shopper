@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
 import {
   Text,
   FAB,
@@ -59,6 +59,7 @@ export default function ItemsScreen() {
     id: string;
     name: string;
   } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { shoppingList, addToList, fetchShoppingList } = useShoppingStore();
   const today = new Date().toISOString().split("T")[0];
@@ -107,6 +108,13 @@ export default function ItemsScreen() {
     setPendingSuggestion(null);
     setAddDialog(false);
   };
+
+  const handleRefresh = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    await fetchItems(user.id);
+    setRefreshing(false);
+  }, [user?.id]);
 
   const sortLabel: Record<ItemSortOrder, string> = {
     name: "Name (A–Z)",
@@ -193,6 +201,9 @@ export default function ItemsScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+        }
       >
         {filteredItems.length === 0 ? (
           <View style={styles.emptyState}>

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { StoreProfile, StoreWithAisles } from '../types/app.types';
+import { useShoppingStore } from './useShoppingStore';
 
 interface StoreStore {
   stores: StoreProfile[];
@@ -266,6 +267,11 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
         },
       };
     });
+    // Update shopping store immediately so shop tab re-sorts without a refetch
+    useShoppingStore.getState().updateAisleItemOrder(
+      aisleId,
+      newLocs.map((l, i) => ({ itemId: (l as any).item_id, position_index: i }))
+    );
     // Persist position_index
     Promise.all(
       newLocs.map((l, i) =>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -7,6 +7,7 @@ import {
   Animated,
   Easing,
   Modal,
+  RefreshControl,
 } from "react-native";
 import {
   Text,
@@ -46,6 +47,7 @@ export default function HomeStorageScreen() {
     isLoading,
     fetchLocations,
     addLocation,
+    updateLocation,
     deleteLocation,
     moveLocation,
     addItem,
@@ -77,6 +79,9 @@ export default function HomeStorageScreen() {
     action: () => void;
     message: string;
   } | null>(null);
+  const [renameDialog, setRenameDialog] = useState<{ id: string; name: string } | null>(null);
+  const [renameName, setRenameName] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Suggestions from global items that are not already in a home location
   const itemSuggestions =
@@ -157,6 +162,20 @@ export default function HomeStorageScreen() {
     setItemDialog(true);
   };
 
+  const handleRenameLocation = async () => {
+    if (!renameDialog || !renameName.trim()) return;
+    await updateLocation(renameDialog.id, renameName.trim());
+    setRenameDialog(null);
+    setRenameName('');
+  };
+
+  const handleRefresh = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    await Promise.all([fetchLocations(user.id), fetchShoppingList(user.id, today)]);
+    setRefreshing(false);
+  }, [user?.id]);
+
   if (isLoading && locations.length === 0) {
     return (
       <View style={styles.centered}>
@@ -187,6 +206,9 @@ export default function HomeStorageScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+        }
       >
         {locations.length === 0 ? (
           <View style={styles.emptyState}>
@@ -243,6 +265,10 @@ export default function HomeStorageScreen() {
                     message: `Remove "${name}" from this location?`,
                   });
                 }}
+                onRenameLocation={() => {
+                  setRenameDialog({ id: location.id, name: location.name });
+                  setRenameName(location.name);
+                }}
                 onDeleteLocation={() =>
                   setConfirmDialog({
                     action: () => deleteLocation(location.id),
@@ -276,6 +302,27 @@ export default function HomeStorageScreen() {
       />
 
       <Portal>
+        <Dialog
+          visible={!!renameDialog}
+          onDismiss={() => { setRenameDialog(null); setRenameName(''); }}
+        >
+          <Dialog.Title>Rename Location</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Location name"
+              value={renameName}
+              onChangeText={setRenameName}
+              mode="outlined"
+              autoFocus
+              onSubmitEditing={handleRenameLocation}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => { setRenameDialog(null); setRenameName(''); }}>Cancel</Button>
+            <Button onPress={handleRenameLocation} disabled={!renameName.trim()}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog
           visible={locationDialog}
           onDismiss={() => setLocationDialog(false)}
@@ -431,6 +478,7 @@ type LocationSectionProps = {
   onAddItem: () => void;
   onUnlinkItem: (itemId: string) => void;
   onDeleteLocation: () => void;
+  onRenameLocation: () => void;
   onMoveLocation: (direction: "up" | "down") => void;
   onMoveItem: (itemId: string, direction: "up" | "down") => void;
   onOpenDetail: (itemId: string) => void;
@@ -493,12 +541,19 @@ function AnimatedItemRow({
         onPress={() => onToggleItem(item.id, item.name)}
         color={colors.primary}
       />
-      <Text
-        variant="bodyLarge"
-        style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}
-      >
-        {item.name}
-      </Text>
+      <View style={sectionStyles.itemNameWrap}>
+        <Text
+          variant="bodyLarge"
+          style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}
+        >
+          {item.name}
+        </Text>
+        {(item.brand || item.quantity) ? (
+          <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
+            {[item.brand, item.quantity].filter(Boolean).join(' · ')}
+          </Text>
+        ) : null}
+      </View>
       <IconButton
         icon="eye-outline"
         size={18}
@@ -526,6 +581,7 @@ function LocationSection({
   onAddItem,
   onUnlinkItem,
   onDeleteLocation,
+  onRenameLocation,
   onMoveLocation,
   onMoveItem,
   onOpenDetail,
@@ -565,6 +621,7 @@ function LocationSection({
         <TouchableOpacity
           style={sectionStyles.titleArea}
           onPress={onToggle}
+          onLongPress={onRenameLocation}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons
@@ -729,7 +786,9 @@ function createSectionStyles(colors: Colors) { return StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.surface,
   },
-  itemName: { flex: 1, color: colors.text, marginLeft: spacing.xs },
+  itemNameWrap: { flex: 1, marginLeft: spacing.xs },
+  itemName: { color: colors.text },
+  itemMeta: { color: colors.textLight, marginTop: 1 },
   itemChecked: { textDecorationLine: "line-through", color: colors.textLight },
   emptyItems: {
     color: colors.textLight,

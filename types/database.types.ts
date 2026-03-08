@@ -50,6 +50,7 @@ export interface Database {
           user_id: string;
           name: string;
           home_location_id: string | null;
+          order_index: number;
           tags: string[];
           brand: string | null;
           quantity: string | null;
@@ -57,7 +58,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['items']['Row'], 'id' | 'created_at' | 'updated_at' | 'home_location_id'> & { home_location_id?: string | null };
+        Insert: Omit<Database['public']['Tables']['items']['Row'], 'id' | 'created_at' | 'updated_at' | 'home_location_id' | 'order_index'> & { home_location_id?: string | null; order_index?: number };
         Update: Partial<Database['public']['Tables']['items']['Insert']>;
         Relationships: [];
       };

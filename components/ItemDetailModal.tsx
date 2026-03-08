@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { View, ScrollView, Image, StyleSheet, Modal } from "react-native";
 import {
   Text,
@@ -13,8 +13,8 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useAuthStore } from "../stores/useAuthStore";
-import { useItemStore, type ItemWithLocations } from "../stores/useItemStore";
-import { colors, spacing } from "../constants/theme";
+import { useItemStore } from "../stores/useItemStore";
+import { useColors, spacing, type Colors } from "../constants/theme";
 
 type Props = {
   itemId: string | null;
@@ -22,6 +22,8 @@ type Props = {
 };
 
 export function ItemDetailModal({ itemId, onDismiss }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuthStore();
   const {
     items,
@@ -303,11 +305,13 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
                         label="Brand"
                         value={item.brand || "Not set"}
                         muted={!item.brand}
+                        colors={colors}
                       />
                       <DetailStat
                         label="Size"
                         value={item.quantity || "Not set"}
                         muted={!item.quantity}
+                        colors={colors}
                       />
                     </View>
                   </Surface>
@@ -321,11 +325,13 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
                         icon="home-outline"
                         active={item.hasHomeLocation}
                         label="Home"
+                        colors={colors}
                       />
                       <LocationBadge
                         icon="store-outline"
                         active={item.hasStoreLocation}
                         label="Store"
+                        colors={colors}
                       />
                     </View>
                   </Surface>
@@ -362,24 +368,22 @@ function LocationBadge({
   icon,
   active,
   label,
+  colors,
 }: {
   icon: string;
   active: boolean;
   label: string;
+  colors: Colors;
 }) {
+  const styles = useMemo(() => createBadgeStyles(colors), [colors]);
   return (
-    <View
-      style={[
-        badgeStyles.badge,
-        active ? badgeStyles.active : badgeStyles.inactive,
-      ]}
-    >
+    <View style={[styles.badge, active ? styles.active : styles.inactive]}>
       <MaterialCommunityIcons
         name={icon as any}
         size={13}
         color={active ? colors.primary : colors.textLight}
       />
-      <Text style={[badgeStyles.label, !active && badgeStyles.inactiveLabel]}>
+      <Text style={[styles.label, !active && styles.inactiveLabel]}>
         {label}
       </Text>
     </View>
@@ -390,11 +394,14 @@ function DetailStat({
   label,
   value,
   muted = false,
+  colors,
 }: {
   label: string;
   value: string;
   muted?: boolean;
+  colors: Colors;
 }) {
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.detailStat}>
       <Text variant="labelSmall" style={styles.detailStatLabel}>
@@ -410,7 +417,7 @@ function DetailStat({
   );
 }
 
-const badgeStyles = StyleSheet.create({
+function createBadgeStyles(colors: Colors) { return StyleSheet.create({
   badge: {
     flexDirection: "row",
     alignItems: "center",
@@ -424,9 +431,9 @@ const badgeStyles = StyleSheet.create({
   inactive: { borderColor: colors.textLight, opacity: 0.45 },
   label: { fontSize: 12, color: colors.primary },
   inactiveLabel: { color: colors.textLight },
-});
+}); }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
@@ -558,4 +565,4 @@ const styles = StyleSheet.create({
   tagInputField: { flex: 1 },
   tagAddBtn: { marginTop: spacing.xs },
   saveBtn: { marginTop: spacing.lg, backgroundColor: colors.primary },
-});
+}); }

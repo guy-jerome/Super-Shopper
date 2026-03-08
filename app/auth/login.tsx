@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { colors, spacing } from '../../constants/theme';
+import { useColors, spacing, type Colors } from '../../constants/theme';
 
 export default function LoginScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -81,7 +83,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
   header: { alignItems: 'center', marginBottom: spacing.xl },
@@ -92,4 +94,4 @@ const styles = StyleSheet.create({
   button: { marginTop: spacing.sm },
   buttonContent: { paddingVertical: spacing.xs },
   linkButton: { marginTop: spacing.sm },
-});
+}); }

@@ -1,8 +1,8 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { IconButton } from 'react-native-paper';
-import { colors } from '../constants/theme';
+import { useColors, type Colors } from '../constants/theme';
 
 type Props = {
   onDelete: () => void;
@@ -10,6 +10,8 @@ type Props = {
 };
 
 export function SwipeableRow({ onDelete, children }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const swipeRef = useRef<Swipeable>(null);
 
   const renderRightAction = (_: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
@@ -38,11 +40,11 @@ export function SwipeableRow({ onDelete, children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   deleteAction: {
     backgroundColor: colors.error,
     justifyContent: 'center',
     alignItems: 'center',
     width: 72,
   },
-});
+}); }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -14,7 +14,7 @@ import { useOpenFoodFacts } from "../hooks/useOpenFoodFacts";
 import { useFoodHistory } from "../hooks/useFoodHistory";
 import type { FoodSuggestion } from "../hooks/useOpenFoodFacts";
 import { BarcodeScannerModal } from "./BarcodeScannerModal";
-import { colors, spacing } from "../constants/theme";
+import { useColors, spacing, type Colors } from "../constants/theme";
 
 type LocalSuggestion = { id: string; name: string };
 
@@ -33,6 +33,8 @@ export function FoodSearch({
   localSuggestions = [],
   autoFocus,
 }: FoodSearchProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [scannerOpen, setScannerOpen] = useState(false);
   const {
     suggestions,
@@ -116,6 +118,7 @@ export function FoodSearch({
                 key={i}
                 suggestion={h}
                 onPress={() => handleSelect(h)}
+                colors={colors}
               />
             ))}
           </ScrollView>
@@ -146,6 +149,7 @@ export function FoodSearch({
                     key={i}
                     suggestion={s}
                     onPress={() => handleSelect(s)}
+                    colors={colors}
                   />
                 ))}
               </ScrollView>
@@ -187,10 +191,13 @@ export function FoodSearch({
 function FoodResultRow({
   suggestion,
   onPress,
+  colors,
 }: {
   suggestion: FoodSuggestion;
   onPress: () => void;
+  colors: Colors;
 }) {
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -235,7 +242,7 @@ function FoodResultRow({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: Colors) { return StyleSheet.create({
   chipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -284,4 +291,4 @@ const styles = StyleSheet.create({
   resultInfo: { flex: 1 },
   resultName: { color: colors.text },
   resultMeta: { color: colors.textLight, marginTop: 1 },
-});
+}); }

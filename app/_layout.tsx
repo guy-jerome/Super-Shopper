@@ -1,15 +1,17 @@
 import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { PaperProvider } from 'react-native-paper';
+import { PaperProvider, Text } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { theme, darkTheme } from '../constants/theme';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useOfflineSync } from '../hooks/useOfflineSync';
 
 export default function RootLayout() {
   const { user, isLoading, initialize } = useAuthStore();
   const { isDarkMode, loadTheme } = useSettingsStore();
+  const { status } = useOfflineSync();
   const router = useRouter();
   const segments = useSegments();
 
@@ -31,6 +33,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <PaperProvider theme={isDarkMode ? darkTheme : theme}>
+        {status !== 'online' && (
+          <View style={status === 'offline' ? styles.offlineBanner : styles.syncBanner}>
+            <Text style={styles.bannerText}>
+              {status === 'offline' ? 'No internet connection' : 'Syncing...'}
+            </Text>
+          </View>
+        )}
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="auth/login" />
@@ -43,4 +52,15 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  offlineBanner: {
+    backgroundColor: '#B71C1C',
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  syncBanner: {
+    backgroundColor: '#1565C0',
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  bannerText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });
