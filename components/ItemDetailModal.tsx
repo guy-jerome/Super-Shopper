@@ -38,6 +38,7 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
     updateItemDetails,
     uploadItemImage,
     deleteItem,
+    getAllTags,
   } = useItemStore();
   const { shoppingList, addToList, removeFromList } = useShoppingStore();
   const item = items.find((i) => i.id === itemId) ?? null;
@@ -51,7 +52,16 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
   const [editQuantity, setEditQuantity] = useState("");
   const [editTagList, setEditTagList] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const tagSuggestions = useMemo(() => {
+    const q = tagInput.trim().toLowerCase();
+    if (!q) return [];
+    return getAllTags().filter(
+      (t) => t.includes(q) && !editTagList.map((x) => x.toLowerCase()).includes(t)
+    );
+  }, [tagInput, editTagList]);
   const [imgError, setImgError] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
@@ -327,10 +337,12 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
                 <TextInput
                   label="Add tag"
                   value={tagInput}
-                  onChangeText={setTagInput}
+                  onChangeText={(t) => { setTagInput(t); setShowTagSuggestions(true); }}
                   mode="outlined"
                   style={styles.tagInputField}
                   onSubmitEditing={addTag}
+                  onFocus={() => setShowTagSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowTagSuggestions(false), 150)}
                 />
                 <Button
                   onPress={addTag}
@@ -340,6 +352,24 @@ export function ItemDetailModal({ itemId, onDismiss }: Props) {
                   Add
                 </Button>
               </View>
+              {showTagSuggestions && tagSuggestions.length > 0 && (
+                <View style={styles.tagSuggestions}>
+                  {tagSuggestions.map((t) => (
+                    <Chip
+                      key={t}
+                      compact
+                      style={styles.tagSuggestionChip}
+                      onPress={() => {
+                        setEditTagList((prev) => [...prev, t]);
+                        setTagInput("");
+                        setShowTagSuggestions(false);
+                      }}
+                    >
+                      {t}
+                    </Chip>
+                  ))}
+                </View>
+              )}
               <Button
                 mode="contained"
                 onPress={saveEdit}
@@ -632,5 +662,15 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   },
   tagInputField: { flex: 1 },
   tagAddBtn: { marginTop: spacing.xs },
+  tagSuggestions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    padding: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+  },
+  tagSuggestionChip: { backgroundColor: colors.background },
   saveBtn: { marginTop: spacing.lg, backgroundColor: colors.primary },
 }); }
