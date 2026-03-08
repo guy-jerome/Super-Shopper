@@ -690,6 +690,7 @@ function AnimatedItemRow({
           </View>
         </TouchableOpacity>
         <IconButton icon="eye-outline" size={18} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
+        <IconButton icon="delete-outline" size={18} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
       </Animated.View>
     </SwipeableRow>
   );
