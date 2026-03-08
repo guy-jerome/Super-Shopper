@@ -306,7 +306,7 @@ export default function HomeStorageScreen() {
             <MaterialCommunityIcons name="home-outline" size={64} color={colors.textLight} />
             <Text variant="titleLarge" style={styles.emptyTitle}>No locations yet</Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              Add locations like Pantry, Fridge, or Freezer
+              Use a template to instantly create Fridge, Pantry, and Freezer — or tap + to add your own locations.
             </Text>
             <Button
               mode="contained"

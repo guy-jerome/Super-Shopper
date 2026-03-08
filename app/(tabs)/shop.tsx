@@ -346,8 +346,7 @@ export default function ShopScreen() {
               List is empty
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              Go to Home Storage and check items you need to buy, or add items
-              from the Items tab
+              Go to the Home tab and tap items you need to buy — they'll appear here organised by store aisle.
             </Text>
           </View>
         ) : aisleGroups ? (
