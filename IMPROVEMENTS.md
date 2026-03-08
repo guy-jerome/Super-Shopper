@@ -64,25 +64,19 @@ Trash icon in header opens confirmation dialog before permanently deleting the i
 **Fix:** Search bar at the top of the Items tab already covers items. Extend results to show which location and which store aisle the item lives in.
 **Files:** `app/(tabs)/items.tsx`, `stores/useItemStore.ts`
 
-### M3 — Tag autocomplete / suggestions
-**Problem:** Tags are free-form with no suggestions — easy to create "dairy", "Dairy", "DAIRY" as separate tags.
-**Fix:** When typing a tag in `ItemDetailModal`, show a dropdown of existing tags the user has used before.
-**Files:** `components/ItemDetailModal.tsx`, `stores/useItemStore.ts` (derive unique tags list)
+### ~~M3 — Tag autocomplete / suggestions~~ ✅ Done
+Typing in the tag field shows matching previously-used tags as tappable chips. Derived from `getAllTags()` in `useItemStore`.
 
-### M4 — Item usage details in delete confirmation
-**Problem:** Deleting an item just says the name. Users don't know it will remove it from 3 locations and 2 store aisles.
-**Fix:** Show a count like "This will remove Milk from Fridge and 2 store aisles."
-**Files:** `app/(tabs)/items.tsx`
+### ~~M4 — Item usage details in delete confirmation~~ ✅ Done
+Delete dialog shows "Also removes it from: home storage and store aisles." based on item's location flags.
 
 ### M5 — Undo for destructive actions
 **Problem:** Delete location, delete item, clear checked — all irreversible with no undo.
 **Fix:** Snackbar with an "Undo" button that re-inserts the deleted row within a 5-second window. Pattern: buffer the delete, show snackbar, execute only if not cancelled.
 **Files:** `home-storage.tsx`, `app/(tabs)/items.tsx`, `app/(tabs)/shop.tsx`
 
-### M6 — "System theme" option in settings
-**Problem:** Dark mode is manual toggle only. Many users expect system-level auto-switching.
-**Fix:** Add a third mode ("System") alongside Light/Dark. Use `useColorScheme()` from React Native when in system mode.
-**Files:** `stores/useSettingsStore.ts`, `constants/theme.ts`, `app/(tabs)/settings.tsx`
+### ~~M6 — "System theme" option in settings~~ ✅ Done
+Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS via `useColorScheme()`. `themeMode` persisted to AsyncStorage.
 
 ### M7 — Shopping list history (past dates)
 **Problem:** No way to see what was bought last week.
@@ -151,8 +145,8 @@ Trash icon in header opens confirmation dialog before permanently deleting the i
 ### P1 — Haptic feedback on key actions
 Add subtle haptics (check/uncheck, delete, reorder) using `expo-haptics`.
 
-### P2 — Swipe-to-delete in home-storage item rows
-`SwipeableRow` component already exists and is used in shop.tsx. Wire it up in home-storage too.
+### ~~P2 — Swipe-to-delete in home-storage item rows~~ ✅ Done
+`AnimatedItemRow` wrapped in `SwipeableRow` — swipe left reveals red delete action. Explicit delete button removed from rows.
 
 ### P3 — Larger tap targets on icon buttons
 Several `IconButton` rows have 3–4 buttons with size=18–20. On mobile these are very tight. Increase to size=22 with proper padding.
