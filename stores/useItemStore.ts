@@ -23,6 +23,7 @@ interface ItemStore {
   loadSortOrder: () => Promise<void>;
   filterMode: FilterMode;
   setFilterMode: (mode: FilterMode) => void;
+  getAllTags: () => string[];
   fetchItems: (userId: string) => Promise<void>;
   addItem: (userId: string, name: string, tags?: string[], meta?: ItemMeta) => Promise<ItemWithLocations | null>;
   updateItemTags: (id: string, tags: string[]) => Promise<void>;
@@ -52,6 +53,14 @@ export const useItemStore = create<ItemStore>((set, get) => ({
   filterMode: 'all',
 
   setFilterMode: (mode) => set({ filterMode: mode }),
+
+  getAllTags: () => {
+    const seen = new Set<string>();
+    for (const item of get().items) {
+      for (const tag of item.tags) seen.add(tag.toLowerCase());
+    }
+    return Array.from(seen).sort();
+  },
 
   setSortOrder: (order) => {
     set((state) => ({ sortOrder: order, items: sortItems(state.items, order) }));
