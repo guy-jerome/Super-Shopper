@@ -41,6 +41,7 @@ import { useColors, spacing, type Colors } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
 import { STORAGE_TEMPLATES } from "../../constants/templates";
 import { OnboardingModal } from "../../components/OnboardingModal";
+import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
 import { SkeletonRow } from "../../components/SkeletonRow";
 
 const today = new Date().toISOString().split("T")[0];
@@ -85,6 +86,7 @@ export default function HomeStorageScreen() {
   const [itemDialog, setItemDialog] = useState(false);
   const [itemName, setItemName] = useState("");
   const [targetLocationId, setTargetLocationId] = useState("");
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   const [snackbar, setSnackbar] = useState("");
   const [search, setSearch] = useState("");
@@ -578,7 +580,10 @@ export default function HomeStorageScreen() {
       >
         <View style={styles.addItemOverlay}>
           <Surface style={styles.addItemSheet} elevation={4}>
-            <Text variant="titleLarge" style={styles.addItemTitle}>Add Item</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text variant="titleLarge" style={styles.addItemTitle}>Add Item</Text>
+              <IconButton icon="barcode-scan" size={22} iconColor={colors.primary} style={{ margin: 0 }} onPress={() => setShowBarcodeScanner(true)} />
+            </View>
             <FoodSearch
               value={itemName}
               onChangeText={(t) => { setItemName(t); setPendingSuggestion(null); }}
@@ -593,6 +598,16 @@ export default function HomeStorageScreen() {
           </Surface>
         </View>
       </Modal>
+
+      <BarcodeScannerModal
+        visible={showBarcodeScanner}
+        onDismiss={() => setShowBarcodeScanner(false)}
+        onResult={(suggestion) => {
+          setItemName(suggestion.name);
+          setPendingSuggestion(suggestion);
+          setShowBarcodeScanner(false);
+        }}
+      />
 
       <ItemDetailModal itemId={detailItemId} onDismiss={() => setDetailItemId(null)} />
 

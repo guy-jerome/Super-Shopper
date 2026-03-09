@@ -22,6 +22,7 @@ import { useAuthStore } from "../../stores/useAuthStore";
 import { useShoppingStore } from "../../stores/useShoppingStore";
 import { useStoreStore } from "../../stores/useStoreStore";
 import { useItemStore } from "../../stores/useItemStore";
+import { useListTemplateStore } from "../../stores/useListTemplateStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
@@ -55,6 +56,7 @@ export default function ShopScreen() {
   } = useShoppingStore();
   const { stores, fetchStores } = useStoreStore();
   const { addItem, fetchItems } = useItemStore();
+  const { templates, loadTemplates, saveTemplate, deleteTemplate } = useListTemplateStore();
 
   const [editingNotes, setEditingNotes] = useState(false);
   const [addDialog, setAddDialog] = useState(false);
@@ -79,6 +81,10 @@ export default function ShopScreen() {
   const aisleSectionOffsets = useRef<Record<string, number>>({});
   const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -86,6 +92,7 @@ export default function ShopScreen() {
     fetchHistory();
     fetchStores(user.id);
     fetchItems(user.id);
+    loadTemplates();
   }, [user?.id]);
 
   const handleRealtimeChange = useCallback(() => {
@@ -255,6 +262,25 @@ export default function ShopScreen() {
               onPress={handleExport}
             />
           )}
+          <Menu
+            visible={showTemplateMenu}
+            onDismiss={() => setShowTemplateMenu(false)}
+            anchor={{ x: 0, y: 48 }}
+          >
+            <Menu.Item
+              onPress={() => { setShowTemplateMenu(false); setSaveTemplateName(''); setShowSaveDialog(true); }}
+              title="Save as template"
+              leadingIcon="content-save-outline"
+            />
+            {templates.length > 0 && (
+              <Menu.Item
+                onPress={() => { setShowTemplateMenu(false); setShowLoadDialog(true); }}
+                title="Load a template"
+                leadingIcon="bookmark-multiple-outline"
+              />
+            )}
+          </Menu>
+          <IconButton icon="bookmark-outline" size={22} iconColor={colors.text} style={{ margin: 0 }} onPress={() => setShowTemplateMenu(true)} />
           <Menu
             visible={storeMenuVisible}
             onDismiss={() => setStoreMenuVisible(false)}
@@ -601,6 +627,60 @@ export default function ShopScreen() {
             <Button onPress={saveQty} mode="contained">
               Save
             </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={showSaveDialog} onDismiss={() => setShowSaveDialog(false)}>
+          <Dialog.Title>Save as Template</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Template name"
+              value={saveTemplateName}
+              onChangeText={setSaveTemplateName}
+              mode="outlined"
+              autoFocus
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowSaveDialog(false)}>Cancel</Button>
+            <Button
+              onPress={async () => {
+                if (!saveTemplateName.trim()) return;
+                await saveTemplate(
+                  saveTemplateName.trim(),
+                  shoppingList.map(i => ({ item_id: i.item_id, item_name: i.item_name, quantity: i.quantity }))
+                );
+                setShowSaveDialog(false);
+              }}
+              disabled={!saveTemplateName.trim()}
+            >
+              Save
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={showLoadDialog} onDismiss={() => setShowLoadDialog(false)}>
+          <Dialog.Title>Load Template</Dialog.Title>
+          <Dialog.Content>
+            {templates.map(t => (
+              <TouchableOpacity
+                key={t.id}
+                style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.surface }}
+                onPress={async () => {
+                  if (!user) return;
+                  for (const item of t.items) {
+                    await addToList(user.id, item.item_id, item.quantity);
+                  }
+                  setShowLoadDialog(false);
+                }}
+              >
+                <Text style={{ color: colors.text, fontWeight: '500' }}>{t.name}</Text>
+                <Text style={{ color: colors.textLight, fontSize: 12 }}>{t.items.length} items</Text>
+              </TouchableOpacity>
+            ))}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowLoadDialog(false)}>Close</Button>
           </Dialog.Actions>
         </Dialog>
 

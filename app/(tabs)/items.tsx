@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
+import { View, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
 import {
   Text,
   FAB,
@@ -226,14 +226,93 @@ export default function ItemsScreen() {
         ))}
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+      <FlatList
+        data={filteredItems}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View>
+            <TouchableOpacity
+              style={styles.itemRow}
+              onPress={() => setDetailItemId(item.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.itemMain}>
+                <Text variant="bodyLarge" style={styles.itemName}>
+                  {item.name}
+                </Text>
+                <View style={styles.locationBadges}>
+                  <LocationBadge
+                    icon="home-outline"
+                    active={item.hasHomeLocation}
+                    label="Home"
+                    colors={colors}
+                  />
+                  <LocationBadge
+                    icon="store-outline"
+                    active={item.hasStoreLocation}
+                    label="Store"
+                    colors={colors}
+                  />
+                </View>
+                {search.trim() ? (() => {
+                  const ctx = locationContext.get(item.id);
+                  if (!ctx || (!ctx.homeLocation && ctx.storeAisles.length === 0)) return null;
+                  return (
+                    <View style={styles.searchLocationBadges}>
+                      {ctx.homeLocation && (
+                        <View style={styles.searchBadge}>
+                          <Text style={styles.searchBadgeText}>🏠 {ctx.homeLocation}</Text>
+                        </View>
+                      )}
+                      {ctx.storeAisles.map((a, i) => (
+                        <View key={i} style={styles.searchBadge}>
+                          <Text style={styles.searchBadgeText}>🛒 {a}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })() : null}
+                {item.tags.length > 0 && (
+                  <View style={styles.tagRow}>
+                    {item.tags.map((tag) => (
+                      <View key={tag} style={styles.tag}>
+                        <Text style={styles.tagText}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+              <IconButton
+                icon="eye-outline"
+                size={22}
+                iconColor={colors.textLight}
+                onPress={() => setDetailItemId(item.id)}
+              />
+              <IconButton
+                icon={isInList(item.id) ? "cart-check" : "cart-plus"}
+                size={22}
+                iconColor={
+                  isInList(item.id) ? colors.primary : colors.textLight
+                }
+                onPress={() => handleAddToList(item)}
+              />
+              <IconButton
+                icon="delete-outline"
+                size={22}
+                iconColor={colors.error}
+                onPress={() =>
+                  setDeleteConfirm({ id: item.id, name: item.name, hasHomeLocation: item.hasHomeLocation, hasStoreLocation: item.hasStoreLocation })
+                }
+              />
+            </TouchableOpacity>
+            <Divider />
+          </View>
+        )}
+        contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
-      >
-        {filteredItems.length === 0 ? (
+        ListEmptyComponent={
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
               name="tag-multiple-outline"
@@ -253,88 +332,10 @@ export default function ItemsScreen() {
                   : "Tap + to add your first item"}
             </Text>
           </View>
-        ) : (
-          filteredItems.map((item) => (
-            <View key={item.id}>
-              <TouchableOpacity
-                style={styles.itemRow}
-                onPress={() => setDetailItemId(item.id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.itemMain}>
-                  <Text variant="bodyLarge" style={styles.itemName}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.locationBadges}>
-                    <LocationBadge
-                      icon="home-outline"
-                      active={item.hasHomeLocation}
-                      label="Home"
-                      colors={colors}
-                    />
-                    <LocationBadge
-                      icon="store-outline"
-                      active={item.hasStoreLocation}
-                      label="Store"
-                      colors={colors}
-                    />
-                  </View>
-                  {search.trim() ? (() => {
-                    const ctx = locationContext.get(item.id);
-                    if (!ctx || (!ctx.homeLocation && ctx.storeAisles.length === 0)) return null;
-                    return (
-                      <View style={styles.searchLocationBadges}>
-                        {ctx.homeLocation && (
-                          <View style={styles.searchBadge}>
-                            <Text style={styles.searchBadgeText}>🏠 {ctx.homeLocation}</Text>
-                          </View>
-                        )}
-                        {ctx.storeAisles.map((a, i) => (
-                          <View key={i} style={styles.searchBadge}>
-                            <Text style={styles.searchBadgeText}>🛒 {a}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    );
-                  })() : null}
-                  {item.tags.length > 0 && (
-                    <View style={styles.tagRow}>
-                      {item.tags.map((tag) => (
-                        <View key={tag} style={styles.tag}>
-                          <Text style={styles.tagText}>{tag}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-                <IconButton
-                  icon="eye-outline"
-                  size={22}
-                  iconColor={colors.textLight}
-                  onPress={() => setDetailItemId(item.id)}
-                />
-                <IconButton
-                  icon={isInList(item.id) ? "cart-check" : "cart-plus"}
-                  size={22}
-                  iconColor={
-                    isInList(item.id) ? colors.primary : colors.textLight
-                  }
-                  onPress={() => handleAddToList(item)}
-                />
-                <IconButton
-                  icon="delete-outline"
-                  size={22}
-                  iconColor={colors.error}
-                  onPress={() =>
-                    setDeleteConfirm({ id: item.id, name: item.name, hasHomeLocation: item.hasHomeLocation, hasStoreLocation: item.hasStoreLocation })
-                  }
-                />
-              </TouchableOpacity>
-              <Divider />
-            </View>
-          ))
-        )}
-      </ScrollView>
+        }
+        keyboardShouldPersistTaps="handled"
+        style={styles.list}
+      />
 
       <FAB
         icon="plus"
@@ -519,8 +520,8 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     flexWrap: "wrap",
   },
   filterChip: { backgroundColor: colors.surface },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 100 },
+  list: { flex: 1 },
+  listContent: { paddingBottom: 100 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyState: {
     alignItems: "center",

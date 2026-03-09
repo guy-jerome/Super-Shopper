@@ -29,6 +29,7 @@ import { useStoreStore } from "../../stores/useStoreStore";
 import { useItemStore } from "../../stores/useItemStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
+import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
 import { DragHandle } from "../../components/DraggableList";
 import { useColors, spacing, type Colors } from "../../constants/theme";
 
@@ -78,6 +79,7 @@ export default function StoresScreen() {
   const [editPositionTag, setEditPositionTag] = useState("");
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [renameDialog, setRenameDialog] = useState<{ id: string; name: string; type: 'store' | 'aisle'; side?: string | null } | null>(null);
   const [renameName, setRenameName] = useState("");
   const [renameSide, setRenameSide] = useState("");
@@ -421,13 +423,18 @@ export default function StoresScreen() {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
               >
-                <FoodSearch
-                  value={itemName}
-                  onChangeText={(t) => setItemName(t)}
-                  onSelect={(name) => setItemName(name)}
-                  localSuggestions={localSuggestions}
-                  autoFocus
-                />
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View style={{ flex: 1 }}>
+                    <FoodSearch
+                      value={itemName}
+                      onChangeText={(t) => setItemName(t)}
+                      onSelect={(name) => setItemName(name)}
+                      localSuggestions={localSuggestions}
+                      autoFocus
+                    />
+                  </View>
+                  <IconButton icon="barcode-scan" size={22} iconColor={colors.primary} style={{ margin: 0 }} onPress={() => setShowBarcodeScanner(true)} />
+                </View>
                 <TextInput
                   label="Position tag (optional)"
                   value={itemPositionTag}
@@ -459,6 +466,15 @@ export default function StoresScreen() {
         <ItemDetailModal
           itemId={detailItemId}
           onDismiss={() => setDetailItemId(null)}
+        />
+
+        <BarcodeScannerModal
+          visible={showBarcodeScanner}
+          onDismiss={() => setShowBarcodeScanner(false)}
+          onResult={(suggestion) => {
+            setItemName(suggestion.name);
+            setShowBarcodeScanner(false);
+          }}
         />
       </View>
     );
