@@ -96,10 +96,10 @@ Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS v
 **Files:** New `stores/useShareStore.ts`, `app/(tabs)/settings.tsx`, `app/(tabs)/shop.tsx`
 
 ### ~~L2 — Recurring / template shopping lists~~ ✅ Done
-Bookmark icon in Shop header opens save/load menu. Templates stored in AsyncStorage via `useListTemplateStore`. Save current list as a named template; load it back to bulk-add items on future trips.
+Bookmark icon in Shop header opens save/load menu. Templates stored in AsyncStorage via `useListTemplateStore`. Save current list as a named template; load it back to bulk-add items on future trips. ⚠️ No delete-template UI yet (store method exists, not surfaced).
 
 ### ~~L3 — Barcode scanner integration in add-item flows~~ ✅ Done
-Barcode icon added to the Add Item sheet in both Home Storage and Stores tabs. On scan, looks up OpenFoodFacts and pre-fills item name. Reuses existing `BarcodeScannerModal`.
+Barcode icon added to the Add Item sheet in both Home Storage and Stores tabs. On scan, looks up OpenFoodFacts and pre-fills item name. Reuses existing `BarcodeScannerModal`. Camera permission request + error state handled gracefully.
 
 ### L4 — Smart inventory depletion ("running low" alerts)
 **Problem:** No proactive notifications — user only knows they need something when they physically check.
@@ -115,7 +115,7 @@ Share icon in Shop header (visible when list is non-empty) opens the system shar
 **Files:** `constants/templates.ts`, `stores/useTemplateStore.ts`, `app/(tabs)/stores.tsx`, `app/(tabs)/home-storage.tsx`
 
 ### ~~L7 — No pagination / virtual list for large item catalogs~~ ✅ Done
-Items tab now uses `FlatList` instead of `ScrollView+map`, providing native virtualization for large catalogs without changing the fetch logic.
+Items tab now uses `FlatList` instead of `ScrollView+map`. All features preserved: search badges, tag chips, skeleton loading, pull-to-refresh, empty state, cart toggle.
 
 ---
 
