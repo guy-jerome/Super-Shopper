@@ -39,7 +39,8 @@
       "Bash(npx expo:*)",
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(python3:*)"
     ]
   }
 }
