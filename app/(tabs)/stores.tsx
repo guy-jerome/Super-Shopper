@@ -27,6 +27,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useStoreStore } from "../../stores/useStoreStore";
 import { useItemStore } from "../../stores/useItemStore";
+import { useStoreTemplateStore } from "../../stores/useStoreTemplateStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
@@ -88,6 +89,14 @@ export default function StoresScreen() {
   const [pendingTemplateIdx, setPendingTemplateIdx] = useState<number | null>(null);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
 
+  // User-created store templates
+  const { templates: userTemplates, loadTemplates, saveTemplate, deleteTemplate } = useStoreTemplateStore();
+  const [saveTemplateDialog, setSaveTemplateDialog] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
+  const [userTemplateDialog, setUserTemplateDialog] = useState(false);
+  const [userTemplateStoreName, setUserTemplateStoreName] = useState("");
+  const [pendingUserTemplateId, setPendingUserTemplateId] = useState<string | null>(null);
+
   // Suggestions from the global items list
   const localSuggestions =
     itemName.trim().length > 0
@@ -100,6 +109,7 @@ export default function StoresScreen() {
     if (!user) return;
     fetchStores(user.id);
     fetchItems(user.id);
+    loadTemplates();
   }, [user?.id]);
 
   const openStore = async (storeId: string) => {
@@ -204,6 +214,33 @@ export default function StoresScreen() {
     setRenameSide(side ?? '');
   };
 
+  const handleSaveAsTemplate = async () => {
+    if (!activeStore || !saveTemplateName.trim()) return;
+    const aisles = activeStore.aisles.map((a: any) => ({ name: a.name, side: a.side ?? null }));
+    await saveTemplate(saveTemplateName.trim(), aisles);
+    setSaveTemplateName("");
+    setSaveTemplateDialog(false);
+  };
+
+  const handleApplyUserTemplate = async () => {
+    if (!user || !userTemplateStoreName.trim() || !pendingUserTemplateId) return;
+    const template = userTemplates.find(t => t.id === pendingUserTemplateId);
+    if (!template) return;
+    setApplyingTemplate(true);
+    setPendingUserTemplateId(null);
+    setUserTemplateDialog(false);
+    await addStore(user.id, userTemplateStoreName.trim());
+    const { stores: updated } = useStoreStore.getState();
+    const created = updated.find((s) => s.name === userTemplateStoreName.trim());
+    if (created) {
+      for (const aisle of template.aisles) {
+        await addAisle(created.id, aisle.name);
+      }
+    }
+    setUserTemplateStoreName("");
+    setApplyingTemplate(false);
+  };
+
   const toggleAisle = (id: string) =>
     setExpandedAisles((prev) => {
       const next = new Set(prev);
@@ -241,6 +278,13 @@ export default function StoresScreen() {
               iconColor={colors.textLight}
               onPress={() => openRename(activeStore.id, activeStore.name, 'store')}
             />
+            {activeStore.aisles.length > 0 && (
+              <IconButton
+                icon="content-save-outline"
+                iconColor={colors.textLight}
+                onPress={() => { setSaveTemplateName(activeStore.name); setSaveTemplateDialog(true); }}
+              />
+            )}
             <IconButton
               icon="plus-circle-outline"
               iconColor={colors.primary}
@@ -384,6 +428,27 @@ export default function StoresScreen() {
               <Button onPress={handleAddAisle} disabled={!aisleName.trim()}>
                 Add
               </Button>
+            </Dialog.Actions>
+          </Dialog>
+
+          <Dialog visible={saveTemplateDialog} onDismiss={() => { setSaveTemplateDialog(false); setSaveTemplateName(""); }}>
+            <Dialog.Title>Save as Template</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodySmall" style={{ color: colors.textLight, marginBottom: spacing.md }}>
+                Saves the {activeStore?.aisles.length} aisle{activeStore?.aisles.length !== 1 ? 's' : ''} from "{activeStore?.name}" as a reusable layout.
+              </Text>
+              <TextInput
+                label="Template name"
+                value={saveTemplateName}
+                onChangeText={setSaveTemplateName}
+                mode="outlined"
+                autoFocus
+                onSubmitEditing={handleSaveAsTemplate}
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => { setSaveTemplateDialog(false); setSaveTemplateName(""); }}>Cancel</Button>
+              <Button onPress={handleSaveAsTemplate} disabled={!saveTemplateName.trim()}>Save</Button>
             </Dialog.Actions>
           </Dialog>
 
@@ -640,6 +705,87 @@ export default function StoresScreen() {
         </View>
       </Modal>
 
+      {/* User-created template picker modal */}
+      <Modal
+        visible={userTemplateDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUserTemplateDialog(false)}
+      >
+        <View style={styles.templateOverlay}>
+          <Surface style={styles.templateSheet} elevation={4}>
+            {pendingUserTemplateId === null ? (
+              <>
+                <Text variant="titleLarge" style={styles.templateTitle}>My Templates</Text>
+                <Text variant="bodySmall" style={styles.templateSubtitle}>
+                  Saved aisle layouts from your stores
+                </Text>
+                <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: spacing.md }}>
+                  {userTemplates.map((tmpl) => (
+                    <TouchableOpacity
+                      key={tmpl.id}
+                      style={[styles.templateCard, { borderColor: colors.surface }]}
+                      onPress={() => setPendingUserTemplateId(tmpl.id)}
+                      onLongPress={() =>
+                        setConfirmDialog({
+                          action: () => deleteTemplate(tmpl.id),
+                          message: `Delete template "${tmpl.name}"?`,
+                        })
+                      }
+                      activeOpacity={0.7}
+                    >
+                      <MaterialCommunityIcons name="bookmark-outline" size={32} color={colors.primary} />
+                      <View style={styles.templateCardText}>
+                        <Text variant="titleMedium" style={{ color: colors.text, fontWeight: "600" }}>{tmpl.name}</Text>
+                        <Text variant="bodySmall" style={{ color: colors.textLight }}>{tmpl.aisles.length} aisle{tmpl.aisles.length !== 1 ? 's' : ''}</Text>
+                        <View style={styles.templateChips}>
+                          {tmpl.aisles.slice(0, 4).map((a) => (
+                            <Chip key={a.name} compact style={styles.templateChip} textStyle={{ fontSize: 10 }}>{a.name}</Chip>
+                          ))}
+                          {tmpl.aisles.length > 4 && (
+                            <Chip compact style={styles.templateChip} textStyle={{ fontSize: 10 }}>+{tmpl.aisles.length - 4} more</Chip>
+                          )}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <Text variant="bodySmall" style={[styles.templateSubtitle, { marginTop: spacing.sm, fontStyle: 'italic' }]}>
+                  Long-press a template to delete it
+                </Text>
+                <Button onPress={() => setUserTemplateDialog(false)} style={{ marginTop: spacing.sm }}>Cancel</Button>
+              </>
+            ) : (
+              <>
+                <Text variant="titleLarge" style={styles.templateTitle}>
+                  Name Your Store
+                </Text>
+                <Text variant="bodySmall" style={[styles.templateSubtitle, { marginBottom: spacing.md }]}>
+                  {(() => {
+                    const t = userTemplates.find(t => t.id === pendingUserTemplateId);
+                    return t ? `"${t.name}" template · ${t.aisles.length} aisle${t.aisles.length !== 1 ? 's' : ''}` : '';
+                  })()}
+                </Text>
+                <TextInput
+                  label="Store name (e.g. Walmart, Costco)"
+                  value={userTemplateStoreName}
+                  onChangeText={setUserTemplateStoreName}
+                  mode="outlined"
+                  autoFocus
+                  onSubmitEditing={handleApplyUserTemplate}
+                />
+                <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: spacing.md, gap: spacing.sm }}>
+                  <Button onPress={() => { setPendingUserTemplateId(null); setUserTemplateStoreName(""); }}>Back</Button>
+                  <Button mode="contained" onPress={handleApplyUserTemplate} disabled={!userTemplateStoreName.trim()}>
+                    Create Store
+                  </Button>
+                </View>
+              </>
+            )}
+          </Surface>
+        </View>
+      </Modal>
+
       <Portal>
         <Dialog visible={!!renameDialog} onDismiss={() => { setRenameDialog(null); setRenameName(""); }}>
           <Dialog.Title>Rename {renameDialog?.type === 'store' ? 'Store' : 'Aisle'}</Dialog.Title>
@@ -702,6 +848,16 @@ export default function StoresScreen() {
             >
               Use a template instead
             </Button>
+            {userTemplates.length > 0 && (
+              <Button
+                mode="text"
+                icon="bookmark-outline"
+                onPress={() => { setStoreDialog(false); setUserTemplateDialog(true); }}
+                style={{ marginTop: spacing.xs }}
+              >
+                From my templates
+              </Button>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button
