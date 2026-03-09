@@ -95,15 +95,11 @@ Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS v
 - Shop tab shows shared list items merged (or toggled)
 **Files:** New `stores/useShareStore.ts`, `app/(tabs)/settings.tsx`, `app/(tabs)/shop.tsx`
 
-### L2 — Recurring / template shopping lists
-**Problem:** Users shop the same items weekly but must re-add everything each trip.
-**Fix:** "Save as template" button in shop tab. "Start from template" when creating a new shopping day. Stored as a JSON list locally or in a new `list_templates` table.
-**Files:** New `stores/useListTemplateStore.ts`, `app/(tabs)/shop.tsx`
+### ~~L2 — Recurring / template shopping lists~~ ✅ Done
+Bookmark icon in Shop header opens save/load menu. Templates stored in AsyncStorage via `useListTemplateStore`. Save current list as a named template; load it back to bulk-add items on future trips.
 
-### L3 — Barcode scanner integration in add-item flows
-**Problem:** `BarcodeScannerModal` component exists but is only connected to the Items tab standalone add flow, not to home-storage or store add flows.
-**Fix:** Add a barcode icon button to all add-item modals. On scan, look up the barcode in OpenFoodFacts and pre-fill name/brand/quantity.
-**Files:** `app/(tabs)/home-storage.tsx`, `app/(tabs)/stores.tsx`, `components/BarcodeScannerModal.tsx`
+### ~~L3 — Barcode scanner integration in add-item flows~~ ✅ Done
+Barcode icon added to the Add Item sheet in both Home Storage and Stores tabs. On scan, looks up OpenFoodFacts and pre-fills item name. Reuses existing `BarcodeScannerModal`.
 
 ### L4 — Smart inventory depletion ("running low" alerts)
 **Problem:** No proactive notifications — user only knows they need something when they physically check.
@@ -118,10 +114,8 @@ Share icon in Shop header (visible when list is non-empty) opens the system shar
 **Fix:** "Save as Template" option when viewing a store or after setting up home storage. Saves to AsyncStorage (client-only is fine).
 **Files:** `constants/templates.ts`, `stores/useTemplateStore.ts`, `app/(tabs)/stores.tsx`, `app/(tabs)/home-storage.tsx`
 
-### L7 — No pagination / virtual list for large item catalogs
-**Problem:** All items fetched on load. With 200+ items the UI will lag.
-**Fix:** Paginate `fetchItems` with Supabase `.range()` or use a FlashList (virtualized) instead of ScrollView + map.
-**Files:** `stores/useItemStore.ts`, `app/(tabs)/items.tsx`
+### ~~L7 — No pagination / virtual list for large item catalogs~~ ✅ Done
+Items tab now uses `FlatList` instead of `ScrollView+map`, providing native virtualization for large catalogs without changing the fetch logic.
 
 ---
 
