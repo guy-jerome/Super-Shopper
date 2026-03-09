@@ -265,13 +265,13 @@ export default function ItemsScreen() {
                 </View>
                 <IconButton
                   icon="eye-outline"
-                  size={20}
+                  size={22}
                   iconColor={colors.textLight}
                   onPress={() => setDetailItemId(item.id)}
                 />
                 <IconButton
                   icon={isInList(item.id) ? "cart-check" : "cart-plus"}
-                  size={20}
+                  size={22}
                   iconColor={
                     isInList(item.id) ? colors.primary : colors.textLight
                   }
@@ -279,7 +279,7 @@ export default function ItemsScreen() {
                 />
                 <IconButton
                   icon="delete-outline"
-                  size={20}
+                  size={22}
                   iconColor={colors.error}
                   onPress={() =>
                     setDeleteConfirm({ id: item.id, name: item.name, hasHomeLocation: item.hasHomeLocation, hasStoreLocation: item.hasStoreLocation })

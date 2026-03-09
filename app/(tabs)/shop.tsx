@@ -39,7 +39,9 @@ export default function ShopScreen() {
     notes,
     currentStore,
     isLoading,
+    history,
     fetchShoppingList,
+    fetchHistory,
     toggleChecked,
     updateNotes,
     updateQuantity,
@@ -69,12 +71,15 @@ export default function ShopScreen() {
   const [qtyValue, setQtyValue] = useState(1);
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [openHistoryDate, setOpenHistoryDate] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const aisleSectionOffsets = useRef<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
     fetchShoppingList(user.id, today);
+    fetchHistory();
     fetchStores(user.id);
     fetchItems(user.id);
   }, [user?.id]);
@@ -137,6 +142,8 @@ export default function ShopScreen() {
     Haptics.impactAsync(checked ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     toggleChecked(id, checked);
   };
+
+  const formatDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   const total = shoppingList.length;
   const checkedCount = shoppingList.filter((i) => i.checked).length;
@@ -329,7 +336,7 @@ export default function ShopScreen() {
           <View style={styles.notesHeader}>
             <MaterialCommunityIcons
               name="note-text-outline"
-              size={18}
+              size={22}
               color={colors.textLight}
             />
             <Text variant="labelLarge" style={styles.notesLabel}>
@@ -337,7 +344,7 @@ export default function ShopScreen() {
             </Text>
             <IconButton
               icon={editingNotes ? "check" : "pencil-outline"}
-              size={18}
+              size={22}
               onPress={editingNotes ? saveNotes : () => setEditingNotes(true)}
             />
           </View>
@@ -462,6 +469,28 @@ export default function ShopScreen() {
             Clear {checkedCount} completed item{checkedCount !== 1 ? "s" : ""}
           </Button>
         )}
+
+        {Object.keys(history).length > 0 && (
+          <View style={styles.historySection}>
+            <TouchableOpacity style={styles.historyHeader} onPress={() => setHistoryOpen(o => !o)}>
+              <Text variant="titleSmall" style={{ color: colors.textLight }}>Past 7 days</Text>
+              <IconButton icon={historyOpen ? 'chevron-up' : 'chevron-down'} size={22} iconColor={colors.textLight} style={{ margin: 0 }} />
+            </TouchableOpacity>
+            {historyOpen && Object.keys(history).sort((a, b) => b.localeCompare(a)).map(date => (
+              <View key={date}>
+                <TouchableOpacity style={styles.historyDateRow} onPress={() => setOpenHistoryDate(openHistoryDate === date ? null : date)}>
+                  <Text style={{ color: colors.text }}>{formatDate(date)}</Text>
+                  <Text style={{ color: colors.textLight, fontSize: 12 }}>{history[date].length} items</Text>
+                </TouchableOpacity>
+                {openHistoryDate === date && history[date].map(item => (
+                  <Text key={item.id} style={[styles.historyItem, item.checked && styles.historyItemChecked]}>
+                    {item.checked ? '✓ ' : '• '}{item.item_name}
+                  </Text>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <FAB
@@ -524,7 +553,7 @@ export default function ShopScreen() {
               <IconButton
                 icon="minus"
                 mode="contained-tonal"
-                size={20}
+                size={22}
                 onPress={() => setQtyValue((q) => Math.max(1, q - 1))}
               />
               <Text variant="titleLarge" style={styles.qtyValue}>
@@ -533,7 +562,7 @@ export default function ShopScreen() {
               <IconButton
                 icon="plus"
                 mode="contained-tonal"
-                size={20}
+                size={22}
                 onPress={() => setQtyValue((q) => q + 1)}
               />
             </View>
@@ -612,7 +641,7 @@ function ShoppingItem({
       </View>
       <IconButton
         icon="eye-outline"
-        size={18}
+        size={22}
         iconColor={colors.textLight}
         onPress={onOpenDetail}
       />

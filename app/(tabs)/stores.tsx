@@ -529,7 +529,7 @@ export default function StoresScreen() {
                 />
                 <IconButton
                   icon="delete-outline"
-                  size={20}
+                  size={22}
                   iconColor={colors.error}
                   onPress={() =>
                     setConfirmDialog({
@@ -766,19 +766,19 @@ function AnimatedAisleItem({
       </View>
       <IconButton
         icon="eye-outline"
-        size={18}
+        size={22}
         iconColor={colors.textLight}
         onPress={() => onOpenDetail(loc.items.id)}
       />
       <IconButton
         icon="pencil-outline"
-        size={18}
+        size={22}
         iconColor={colors.textLight}
         onPress={() => onEditItem(loc.id, loc.position_tag ?? null)}
       />
       <IconButton
         icon="delete-outline"
-        size={18}
+        size={22}
         iconColor={colors.textLight}
         onPress={() => onRemoveItem(loc.id)}
       />
@@ -855,7 +855,7 @@ function AisleSection({
         >
           <MaterialCommunityIcons
             name={isExpanded ? "chevron-up" : "chevron-down"}
-            size={20}
+            size={22}
             color={colors.textLight}
           />
           <View style={sectionStyles.titleText}>
@@ -874,7 +874,7 @@ function AisleSection({
         </TouchableOpacity>
         <IconButton
           icon="pencil-outline"
-          size={20}
+          size={22}
           iconColor={colors.textLight}
           onPress={() => onRenameAisle(aisle.id, aisle.name)}
         />

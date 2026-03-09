@@ -36,9 +36,11 @@ import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { DragHandle } from "../../components/DraggableList";
 import { SwipeableRow } from "../../components/SwipeableRow";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColors, spacing, type Colors } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
 import { STORAGE_TEMPLATES } from "../../constants/templates";
+import { OnboardingModal } from "../../components/OnboardingModal";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -97,6 +99,7 @@ export default function HomeStorageScreen() {
   const [renameDialog, setRenameDialog] = useState<{ id: string; name: string } | null>(null);
   const [renameName, setRenameName] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Template applying state
   const [applyingTemplate, setApplyingTemplate] = useState(false);
@@ -114,6 +117,19 @@ export default function HomeStorageScreen() {
     fetchShoppingList(user.id, today);
     fetchItems(user.id);
   }, [user?.id]);
+
+  useEffect(() => {
+    AsyncStorage.getItem("super-shopper:onboarding-done").then((value) => {
+      if (value == null) {
+        setShowOnboarding(true);
+      }
+    });
+  }, []);
+
+  const handleOnboardingDone = () => {
+    setShowOnboarding(false);
+    AsyncStorage.setItem("super-shopper:onboarding-done", "true");
+  };
 
   const isInList = (itemId: string) => shoppingList.some((s) => s.item_id === itemId);
 
@@ -491,9 +507,9 @@ export default function HomeStorageScreen() {
           <Dialog.Content>
             <Text variant="bodyMedium" style={{ marginBottom: spacing.md, color: colors.text }}>{qtyTarget?.name}</Text>
             <View style={styles.qtyStepper}>
-              <IconButton icon="minus" mode="contained-tonal" size={20} onPress={() => setQty((q) => Math.max(1, q - 1))} />
+              <IconButton icon="minus" mode="contained-tonal" size={22} onPress={() => setQty((q) => Math.max(1, q - 1))} />
               <Text variant="titleLarge" style={styles.qtyValue}>{qty}</Text>
-              <IconButton icon="plus" mode="contained-tonal" size={20} onPress={() => setQty((q) => q + 1)} />
+              <IconButton icon="plus" mode="contained-tonal" size={22} onPress={() => setQty((q) => q + 1)} />
             </View>
           </Dialog.Content>
           <Dialog.Actions>
@@ -578,6 +594,8 @@ export default function HomeStorageScreen() {
       </Modal>
 
       <ItemDetailModal itemId={detailItemId} onDismiss={() => setDetailItemId(null)} />
+
+      <OnboardingModal visible={showOnboarding} onDone={handleOnboardingDone} />
     </View>
   );
 }
@@ -691,8 +709,8 @@ function AnimatedItemRow({
             ) : null}
           </View>
         </TouchableOpacity>
-        <IconButton icon="eye-outline" size={18} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
-        <IconButton icon="delete-outline" size={18} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
+        <IconButton icon="eye-outline" size={22} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
+        <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
       </Animated.View>
     </SwipeableRow>
   );
@@ -795,11 +813,11 @@ function SubsectionSection({
             </Text>
           </View>
         </TouchableOpacity>
-        <IconButton icon="pencil-outline" size={18} iconColor={colors.textLight} onPress={() => onRenameLocation(subsection.id, subsection.name)} />
-        <IconButton icon="plus-circle-outline" size={18} iconColor={colors.primary} onPress={() => onAddItem(subsection.id)} />
+        <IconButton icon="pencil-outline" size={22} iconColor={colors.textLight} onPress={() => onRenameLocation(subsection.id, subsection.name)} />
+        <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={() => onAddItem(subsection.id)} />
         <IconButton
           icon="delete-outline"
-          size={18}
+          size={22}
           iconColor={colors.error}
           onPress={() => onDeleteLocation(subsection.id, subsection.name)}
         />
@@ -906,7 +924,7 @@ function LocationSection({
         >
           <MaterialCommunityIcons
             name={expanded ? "chevron-up" : "chevron-down"}
-            size={20}
+            size={22}
             color={colors.textLight}
           />
           <View style={sectionStyles.titleText}>
@@ -918,9 +936,9 @@ function LocationSection({
             </Text>
           </View>
         </TouchableOpacity>
-        <IconButton icon="pencil-outline" size={20} iconColor={colors.textLight} onPress={() => onRenameLocation(location.id, location.name)} />
-        <IconButton icon="cart-arrow-down" size={20} iconColor={colors.primary} onPress={() => onAddAllToList(location)} />
-        <IconButton icon="folder-plus-outline" size={20} iconColor={colors.textLight} onPress={onAddSubsection} />
+        <IconButton icon="pencil-outline" size={22} iconColor={colors.textLight} onPress={() => onRenameLocation(location.id, location.name)} />
+        <IconButton icon="cart-arrow-down" size={22} iconColor={colors.primary} onPress={() => onAddAllToList(location)} />
+        <IconButton icon="folder-plus-outline" size={22} iconColor={colors.textLight} onPress={onAddSubsection} />
         <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={() => onAddItem(location.id)} />
         <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onDeleteLocation(location.id, location.name)} />
       </Animated.View>

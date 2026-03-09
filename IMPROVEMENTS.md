@@ -54,10 +54,8 @@ Trash icon in header opens confirmation dialog before permanently deleting the i
 
 ## 🟡 Medium Impact, Moderate Work
 
-### M1 — Onboarding flow for new users
-**Problem:** New users land on an empty home-storage screen with no guidance.
-**Fix:** First-launch modal (stored in AsyncStorage) that walks through: add a location → apply a template → add items → go shop. 3–4 step walkthrough.
-**Files:** New `components/OnboardingModal.tsx`, `app/(tabs)/home-storage.tsx`
+### ~~M1 — Onboarding flow for new users~~ ✅ Done
+`components/OnboardingModal.tsx` created — 3-step full-screen modal with animated dot indicators, Skip and "Get started!" buttons. Shown once on first launch (AsyncStorage key `super-shopper:onboarding-done`). Wired into `home-storage.tsx`.
 
 ### M2 — Global search across all tabs
 **Problem:** Each tab has its own isolated search. No way to find "Milk" across home-storage + store + items at once.
@@ -78,23 +76,17 @@ Delete dialog shows "Also removes it from: home storage and store aisles." based
 ### ~~M6 — "System theme" option in settings~~ ✅ Done
 Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS via `useColorScheme()`. `themeMode` persisted to AsyncStorage.
 
-### M7 — Shopping list history (past dates)
-**Problem:** No way to see what was bought last week.
-**Fix:** Add a "History" section in the Shop tab — a date picker or "past 7 days" accordion that loads prior `shopping_list` rows.
-**Files:** `app/(tabs)/shop.tsx`, `stores/useShoppingStore.ts`
+### ~~M7 — Shopping list history (past dates)~~ ✅ Done
+"Past 7 days" collapsible section at the bottom of the Shop tab. Each date row expands to show items (with strikethrough for checked). `fetchHistory` added to `useShoppingStore`.
 
-### M8 — Activate offline sync
-**Problem:** `hooks/useOfflineSync.ts` and `lib/sync.ts` are fully written but never wired in. The app has zero offline support.
-**Fix:** Activate `useOfflineSync()` in `_layout.tsx` (already imported but check if called), wire mutation queue for key actions.
-**Files:** `app/_layout.tsx`, `hooks/useOfflineSync.ts`
+### ~~M8 — Activate offline sync~~ ✅ Done
+`useOfflineSync()` is already called in `app/_layout.tsx`. The offline banner and sync queue (`lib/sync.ts`, `lib/storage.ts`) are fully wired up — no code changes needed.
 
 ### ~~M9 — Item count badge on Shop tab~~ ✅ Done
 `tabBarBadge` on Shop tab shows unchecked item count. Updates reactively. Works on native (web doesn't render tab badges).
 
-### M10 — Aisle "side" field — expose in UI
-**Problem:** The `aisles` table has a `side` column (e.g., "Left", "Right", "Far wall") that shows in the aisle header but is never editable.
-**Fix:** Add a "Side/Section" optional input when creating or editing an aisle.
-**Files:** `app/(tabs)/stores.tsx`, `stores/useStoreStore.ts`
+### ~~M10 — Aisle "side" field — expose in UI~~ ✅ Done
+"Side / Section (optional)" text input added to the Rename Aisle dialog. `updateAisle` in `useStoreStore` now accepts an optional `side` parameter and persists it to DB.
 
 ---
 
@@ -123,10 +115,8 @@ Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS v
 **Fix:** Items can have a "low stock" threshold. A badge or banner on Home Storage shows items marked low. Optional push notification via Expo Notifications.
 **Files:** New `low_stock` field in DB, `stores/useStorageStore.ts`, `hooks/useNotifications.ts`
 
-### L5 — Export shopping list
-**Problem:** No way to share the list with someone who doesn't have the app (texting a family member, etc.).
-**Fix:** "Share" button in shop tab that generates a plain text or image of the current list and opens the system share sheet via `expo-sharing`.
-**Files:** `app/(tabs)/shop.tsx`
+### ~~L5 — Export shopping list~~ ✅ Done
+Share icon in Shop header (visible when list is non-empty) opens the system share sheet with a plain-text shopping list via React Native `Share` API.
 
 ### L6 — User-created templates
 **Problem:** Templates are hard-coded. Power users can't save their custom store layout as a reusable template.
@@ -142,14 +132,14 @@ Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS v
 
 ## 🔵 Polish & Accessibility
 
-### P1 — Haptic feedback on key actions
-Add subtle haptics (check/uncheck, delete, reorder) using `expo-haptics`.
+### ~~P1 — Haptic feedback on key actions~~ ✅ Done
+`expo-haptics` installed. `Haptics.impactAsync(Light)` fires on item toggle in home-storage and shop tab.
 
 ### ~~P2 — Swipe-to-delete in home-storage item rows~~ ✅ Done
-`AnimatedItemRow` wrapped in `SwipeableRow` — swipe left reveals red delete action. Explicit delete button removed from rows.
+`AnimatedItemRow` wrapped in `SwipeableRow` — swipe left reveals red delete action. Delete button also kept for web usability.
 
-### P3 — Larger tap targets on icon buttons
-Several `IconButton` rows have 3–4 buttons with size=18–20. On mobile these are very tight. Increase to size=22 with proper padding.
+### ~~P3 — Larger tap targets on icon buttons~~ ✅ Done
+All `size={18}` and `size={20}` `IconButton` instances across the 4 tab screens updated to `size={22}`.
 
 ### P4 — Loading skeleton instead of spinner
 Replace `ActivityIndicator` on initial loads with placeholder skeleton rows for a smoother perceived load time.
@@ -157,10 +147,8 @@ Replace `ActivityIndicator` on initial loads with placeholder skeleton rows for 
 ### ~~P5 — App version in Settings~~ ✅ Done
 "Version 1.0.0" displayed below Sign Out button via `Constants.expoConfig?.version`.
 
-### P6 — Empty state improvements
-Several empty states are generic. Add context-specific tips:
-- Home Storage empty → "Start by applying a template — it'll create Fridge, Pantry, and Freezer automatically"
-- Shop empty → "Add items from Home Storage by tapping the checkbox next to any item"
+### ~~P6 — Empty state improvements~~ ✅ Done
+Home Storage and Shop empty states updated with context-specific tips referencing templates and the Home tab workflow.
 
 ---
 

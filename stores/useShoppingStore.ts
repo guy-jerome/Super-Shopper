@@ -45,9 +45,11 @@ interface ShoppingStore {
   currentStore: StoreProfile | null;
   mode: ShopMode;
   isLoading: boolean;
+  history: Record<string, ShoppingListItemWithName[]>;
   setMode: (mode: ShopMode) => void;
   setCurrentStore: (store: StoreProfile | null) => void;
   fetchShoppingList: (userId: string, date: string) => Promise<void>;
+  fetchHistory: () => Promise<void>;
   addToList: (userId: string, itemId: string, quantity: number) => Promise<void>;
   removeFromList: (id: string) => Promise<void>;
   toggleChecked: (id: string, checked: boolean) => Promise<void>;
@@ -64,6 +66,7 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
   currentStore: null,
   mode: 'shop',
   isLoading: false,
+  history: {},
 
   setMode: (mode) => set({ mode }),
 
@@ -102,6 +105,34 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
       set({ notes: notesResult.data?.content ?? '' });
     }
     set({ isLoading: false });
+  },
+
+  fetchHistory: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const today = new Date().toISOString().split('T')[0];
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('shopping_list')
+      .select(`*, items(name, brand, quantity)`)
+      .eq('user_id', user.id)
+      .gte('shopping_date', sevenDaysAgo)
+      .lt('shopping_date', today)
+      .order('shopping_date', { ascending: false });
+    if (error || !data) return;
+    const grouped: Record<string, ShoppingListItemWithName[]> = {};
+    for (const row of data) {
+      const date = row.shopping_date;
+      if (!grouped[date]) grouped[date] = [];
+      grouped[date].push({
+        ...row,
+        item_name: (row.items as any)?.name ?? '',
+        item_brand: (row.items as any)?.brand ?? null,
+        item_quantity: (row.items as any)?.quantity ?? null,
+        store_locations: [],
+      });
+    }
+    set({ history: grouped });
   },
 
   addToList: async (userId, itemId, quantity) => {
