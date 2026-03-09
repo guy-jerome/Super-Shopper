@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Modal, View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
-import { useColors, spacing, type Colors } from "@/constants/theme";
+import { useColors, spacing, type Colors } from "../constants/theme";
 
 type Step = {
   title: string;
