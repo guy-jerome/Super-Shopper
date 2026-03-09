@@ -109,10 +109,8 @@ Barcode icon added to the Add Item sheet in both Home Storage and Stores tabs. O
 ### ~~L5 — Export shopping list~~ ✅ Done
 Share icon in Shop header (visible when list is non-empty) opens the system share sheet with a plain-text shopping list via React Native `Share` API.
 
-### L6 — User-created templates
-**Problem:** Templates are hard-coded. Power users can't save their custom store layout as a reusable template.
-**Fix:** "Save as Template" option when viewing a store or after setting up home storage. Saves to AsyncStorage (client-only is fine).
-**Files:** `constants/templates.ts`, `stores/useTemplateStore.ts`, `app/(tabs)/stores.tsx`, `app/(tabs)/home-storage.tsx`
+### ~~L6 — User-created store layout templates~~ ✅ Done
+Save icon on active store header (when aisles exist) saves the layout as a named template. "From my templates" button in the Add Store dialog applies a saved layout. Long-press a template card to delete it. AsyncStorage via `useStoreTemplateStore`.
 
 ### ~~L7 — No pagination / virtual list for large item catalogs~~ ✅ Done
 Items tab now uses `FlatList` instead of `ScrollView+map`. All features preserved: search badges, tag chips, skeleton loading, pull-to-refresh, empty state, cart toggle.
