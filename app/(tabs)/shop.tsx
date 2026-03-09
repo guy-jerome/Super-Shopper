@@ -265,7 +265,9 @@ export default function ShopScreen() {
           <Menu
             visible={showTemplateMenu}
             onDismiss={() => setShowTemplateMenu(false)}
-            anchor={{ x: 0, y: 48 }}
+            anchor={
+              <IconButton icon="bookmark-outline" size={22} iconColor={colors.text} style={{ margin: 0 }} onPress={() => setShowTemplateMenu(true)} />
+            }
           >
             <Menu.Item
               onPress={() => { setShowTemplateMenu(false); setSaveTemplateName(''); setShowSaveDialog(true); }}
@@ -280,7 +282,6 @@ export default function ShopScreen() {
               />
             )}
           </Menu>
-          <IconButton icon="bookmark-outline" size={22} iconColor={colors.text} style={{ margin: 0 }} onPress={() => setShowTemplateMenu(true)} />
           <Menu
             visible={storeMenuVisible}
             onDismiss={() => setStoreMenuVisible(false)}
