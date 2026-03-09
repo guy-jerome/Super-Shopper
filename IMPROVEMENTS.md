@@ -96,15 +96,13 @@ Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS v
 **Files:** New `stores/useShareStore.ts`, `app/(tabs)/settings.tsx`, `app/(tabs)/shop.tsx`
 
 ### ~~L2 — Recurring / template shopping lists~~ ✅ Done
-Bookmark icon in Shop header opens save/load menu. Templates stored in AsyncStorage via `useListTemplateStore`. Save current list as a named template; load it back to bulk-add items on future trips. ⚠️ No delete-template UI yet (store method exists, not surfaced).
+Bookmark icon in Shop header opens save/load menu. Templates stored in AsyncStorage via `useListTemplateStore`. Save current list as a named template; load it back to bulk-add items on future trips. Delete icon on each row in the Load Template dialog.
 
 ### ~~L3 — Barcode scanner integration in add-item flows~~ ✅ Done
 Barcode icon added to the Add Item sheet in both Home Storage and Stores tabs. On scan, looks up OpenFoodFacts and pre-fills item name. Reuses existing `BarcodeScannerModal`. Camera permission request + error state handled gracefully.
 
-### L4 — Smart inventory depletion ("running low" alerts)
-**Problem:** No proactive notifications — user only knows they need something when they physically check.
-**Fix:** Items can have a "low stock" threshold. A badge or banner on Home Storage shows items marked low. Optional push notification via Expo Notifications.
-**Files:** New `low_stock` field in DB, `stores/useStorageStore.ts`, `hooks/useNotifications.ts`
+### ~~L4 — Smart inventory depletion ("running low" alerts)~~ ✅ Done
+Bell icon on each home-storage item row toggles a "running low" flag (AsyncStorage via `useLowStockStore`, no DB needed). Flagged items show an amber LOW chip inline. Amber banner below search bar shows total count. Home tab badge shows count reactively.
 
 ### ~~L5 — Export shopping list~~ ✅ Done
 Share icon in Shop header (visible when list is non-empty) opens the system share sheet with a plain-text shopping list via React Native `Share` API.
