@@ -41,6 +41,7 @@ import { useColors, spacing, type Colors } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
 import { STORAGE_TEMPLATES } from "../../constants/templates";
 import { OnboardingModal } from "../../components/OnboardingModal";
+import { SkeletonRow } from "../../components/SkeletonRow";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -287,8 +288,8 @@ export default function HomeStorageScreen() {
 
   if (isLoading && locations.length === 0) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={{ flex: 1 }}>
+        {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
       </View>
     );
   }

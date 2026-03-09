@@ -15,6 +15,7 @@ import {
   Dialog,
   Portal,
   FAB,
+  Snackbar,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/useAuthStore";
@@ -27,6 +28,7 @@ import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { SwipeableRow } from "../../components/SwipeableRow";
 import { useColors, spacing, type Colors } from "../../constants/theme";
 import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
+import { SkeletonRow } from "../../components/SkeletonRow";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -75,6 +77,8 @@ export default function ShopScreen() {
   const [openHistoryDate, setOpenHistoryDate] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const aisleSectionOffsets = useRef<Record<string, number>>({});
+  const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -96,6 +100,17 @@ export default function ShopScreen() {
   }, [user?.id]);
 
   useRealtimeSubscription('shopping_list', user?.id ?? '', handleRealtimeChange);
+
+  const showUndo = (message: string, action: () => void, undo: () => void) => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoSnackbar({ message, onUndo: undo });
+    undoTimerRef.current = setTimeout(() => { action(); setUndoSnackbar(null); }, 5000);
+  };
+
+  const dismissUndo = () => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoSnackbar(null);
+  };
 
   useEffect(() => {
     setNotesValue(notes);
@@ -218,8 +233,8 @@ export default function ShopScreen() {
 
   if (isLoading && shoppingList.length === 0) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={{ flex: 1 }}>
+        {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
       </View>
     );
   }
@@ -423,7 +438,14 @@ export default function ShopScreen() {
               {group.items.map((item) => (
                 <SwipeableRow
                   key={item.id}
-                  onDelete={() => removeFromList(item.id)}
+                  onDelete={() => {
+                    const saved = item;
+                    showUndo(
+                      `${saved.item_name} removed`,
+                      () => removeFromList(saved.id),
+                      () => { if (user) addToList(user.id, saved.item_id, saved.quantity); },
+                    );
+                  }}
                 >
                   <ShoppingItem
                     item={item}
@@ -462,7 +484,14 @@ export default function ShopScreen() {
         {checkedCount > 0 && (
           <Button
             mode="outlined"
-            onPress={clearCheckedItems}
+            onPress={() => {
+              const checkedItems = shoppingList.filter((i) => i.checked);
+              showUndo(
+                `${checkedItems.length} completed item${checkedItems.length !== 1 ? 's' : ''} cleared`,
+                () => clearCheckedItems(),
+                () => { if (user) checkedItems.forEach((it) => addToList(user.id, it.item_id, it.quantity)); },
+              );
+            }}
             style={styles.clearButton}
             textColor={colors.error}
           >
@@ -574,6 +603,16 @@ export default function ShopScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
+
+        <Snackbar
+          visible={!!undoSnackbar}
+          onDismiss={dismissUndo}
+          duration={5000}
+          action={{ label: 'Undo', onPress: () => { undoSnackbar?.onUndo(); dismissUndo(); } }}
+          style={{ backgroundColor: colors.surface }}
+        >
+          <Text style={{ color: colors.text }}>{undoSnackbar?.message}</Text>
+        </Snackbar>
       </Portal>
 
       <ItemDetailModal

@@ -183,7 +183,7 @@ export default function SettingsScreen() {
           <Dialog.Title>Delete Account</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{ color: colors.text }}>
-              This will permanently delete your account and all your data. This cannot be undone.
+              This will permanently delete all your shopping lists, locations, and items. You will be signed out. This cannot be undone.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>

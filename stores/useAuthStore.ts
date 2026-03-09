@@ -47,8 +47,19 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   deleteAccount: async () => {
-    const { error } = await supabase.rpc('delete_user');
-    if (error) throw error;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Delete user data from all tables (RLS ensures only own rows are deleted)
+    await Promise.all([
+      supabase.from('shopping_list').delete().eq('user_id', user.id),
+      supabase.from('shopping_notes').delete().eq('user_id', user.id),
+      supabase.from('storage_locations').delete().eq('user_id', user.id),
+      supabase.from('store_profiles').delete().eq('user_id', user.id),
+      supabase.from('items').delete().eq('user_id', user.id),
+    ]);
+
+    // Sign out (auth.admin.deleteUser requires service key; just sign out instead)
     await supabase.auth.signOut();
     set({ user: null });
   },

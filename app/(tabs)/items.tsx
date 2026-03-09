@@ -23,11 +23,14 @@ import {
   type ItemWithLocations,
   type FilterMode,
 } from "../../stores/useItemStore";
+import { useStorageStore } from "../../stores/useStorageStore";
+import { useStoreStore } from "../../stores/useStoreStore";
 import { useShoppingStore } from "../../stores/useShoppingStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { useColors, spacing, type Colors } from "../../constants/theme";
+import { SkeletonRow } from "../../components/SkeletonRow";
 
 export default function ItemsScreen() {
   const colors = useColors();
@@ -63,6 +66,9 @@ export default function ItemsScreen() {
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const { locations } = useStorageStore();
+  const { activeStore } = useStoreStore();
+
   const { shoppingList, addToList, fetchShoppingList } = useShoppingStore();
   const today = new Date().toISOString().split("T")[0];
 
@@ -90,6 +96,26 @@ export default function ItemsScreen() {
       (filterMode === "no-store" && !item.hasStoreLocation);
     return matchesSearch && matchesFilter;
   });
+
+  const locationContext = useMemo(() => {
+    const map = new Map<string, { homeLocation?: string; storeAisles: string[] }>();
+    const allLocs = locations.flatMap((l) => [l, ...(l.subsections ?? [])]);
+    for (const loc of allLocs) {
+      for (const item of loc.items ?? []) {
+        map.set(item.id, { homeLocation: loc.name, storeAisles: map.get(item.id)?.storeAisles ?? [] });
+      }
+    }
+    if (activeStore) {
+      for (const aisle of activeStore.aisles ?? []) {
+        for (const loc of aisle.item_store_locations ?? []) {
+          const id = loc.item_id;
+          const existing = map.get(id) ?? { storeAisles: [] };
+          map.set(id, { ...existing, storeAisles: [...existing.storeAisles, `${activeStore.name} › ${aisle.name}`] });
+        }
+      }
+    }
+    return map;
+  }, [locations, activeStore]);
 
   const handleAddItem = async () => {
     if (!user || !newItemName.trim()) return;
@@ -126,8 +152,8 @@ export default function ItemsScreen() {
 
   if (isLoading && items.length === 0) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={{ flex: 1 }}>
+        {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
       </View>
     );
   }
@@ -253,6 +279,24 @@ export default function ItemsScreen() {
                       colors={colors}
                     />
                   </View>
+                  {search.trim() ? (() => {
+                    const ctx = locationContext.get(item.id);
+                    if (!ctx || (!ctx.homeLocation && ctx.storeAisles.length === 0)) return null;
+                    return (
+                      <View style={styles.searchLocationBadges}>
+                        {ctx.homeLocation && (
+                          <View style={styles.searchBadge}>
+                            <Text style={styles.searchBadgeText}>🏠 {ctx.homeLocation}</Text>
+                          </View>
+                        )}
+                        {ctx.storeAisles.map((a, i) => (
+                          <View key={i} style={styles.searchBadge}>
+                            <Text style={styles.searchBadgeText}>🛒 {a}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    );
+                  })() : null}
                   {item.tags.length > 0 && (
                     <View style={styles.tagRow}>
                       {item.tags.map((tag) => (
@@ -505,6 +549,9 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   itemMain: { flex: 1 },
   itemName: { color: colors.text, fontWeight: "500", marginBottom: 4 },
   locationBadges: { flexDirection: "row", gap: spacing.xs, marginBottom: 4 },
+  searchLocationBadges: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 2, paddingLeft: 4 },
+  searchBadge: { backgroundColor: colors.surface, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  searchBadgeText: { fontSize: 11, color: colors.textLight },
   tagRow: {
     flexDirection: "row",
     flexWrap: "wrap",
