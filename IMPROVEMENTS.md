@@ -12,9 +12,8 @@ Code is complete. Run this in Supabase SQL editor to activate:
 ALTER TABLE items ADD COLUMN IF NOT EXISTS order_index INTEGER NOT NULL DEFAULT 0;
 ```
 
-### B2 — Delete account silently fails
-`useAuthStore.deleteAccount` calls `supabase.rpc('delete_user')` but the RPC doesn't exist in Supabase.
-**Fix:** Create the `delete_user` SQL function in Supabase, or switch to direct row deletion with cascades.
+### ~~B2 — Delete account silently fails~~ ✅ Done
+Replaced broken `supabase.rpc('delete_user')` with direct `Promise.all` deletes across user data tables then `signOut`.
 
 ### ~~B3 — Duplicate items possible via Items tab~~ ✅ Done
 `useItemStore.addItem` now runs same `ilike` dedup before insert — returns existing item if found.
@@ -57,10 +56,8 @@ Trash icon in header opens confirmation dialog before permanently deleting the i
 ### ~~M1 — Onboarding flow for new users~~ ✅ Done
 `components/OnboardingModal.tsx` created — 3-step full-screen modal with animated dot indicators, Skip and "Get started!" buttons. Shown once on first launch (AsyncStorage key `super-shopper:onboarding-done`). Wired into `home-storage.tsx`.
 
-### M2 — Global search across all tabs
-**Problem:** Each tab has its own isolated search. No way to find "Milk" across home-storage + store + items at once.
-**Fix:** Search bar at the top of the Items tab already covers items. Extend results to show which location and which store aisle the item lives in.
-**Files:** `app/(tabs)/items.tsx`, `stores/useItemStore.ts`
+### ~~M2 — Global search across all tabs~~ ✅ Done
+Items tab search shows location context badges (🏠 home location, 🛒 store aisle) under each result when searching.
 
 ### ~~M3 — Tag autocomplete / suggestions~~ ✅ Done
 Typing in the tag field shows matching previously-used tags as tappable chips. Derived from `getAllTags()` in `useItemStore`.
@@ -68,10 +65,8 @@ Typing in the tag field shows matching previously-used tags as tappable chips. D
 ### ~~M4 — Item usage details in delete confirmation~~ ✅ Done
 Delete dialog shows "Also removes it from: home storage and store aisles." based on item's location flags.
 
-### M5 — Undo for destructive actions
-**Problem:** Delete location, delete item, clear checked — all irreversible with no undo.
-**Fix:** Snackbar with an "Undo" button that re-inserts the deleted row within a 5-second window. Pattern: buffer the delete, show snackbar, execute only if not cancelled.
-**Files:** `home-storage.tsx`, `app/(tabs)/items.tsx`, `app/(tabs)/shop.tsx`
+### ~~M5 — Undo for destructive actions~~ ✅ Done
+Snackbar with "Undo" button on item removal and clear-checked in Shop tab. 5-second deferred execution.
 
 ### ~~M6 — "System theme" option in settings~~ ✅ Done
 Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS via `useColorScheme()`. `themeMode` persisted to AsyncStorage.
@@ -141,8 +136,8 @@ Share icon in Shop header (visible when list is non-empty) opens the system shar
 ### ~~P3 — Larger tap targets on icon buttons~~ ✅ Done
 All `size={18}` and `size={20}` `IconButton` instances across the 4 tab screens updated to `size={22}`.
 
-### P4 — Loading skeleton instead of spinner
-Replace `ActivityIndicator` on initial loads with placeholder skeleton rows for a smoother perceived load time.
+### ~~P4 — Loading skeleton instead of spinner~~ ✅ Done
+`components/SkeletonRow.tsx` with pulsing animation replaces `ActivityIndicator` on initial load in home-storage, items, and shop.
 
 ### ~~P5 — App version in Settings~~ ✅ Done
 "Version 1.0.0" displayed below Sign Out button via `Constants.expoConfig?.version`.
