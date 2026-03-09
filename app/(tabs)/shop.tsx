@@ -664,20 +664,22 @@ export default function ShopScreen() {
           <Dialog.Title>Load Template</Dialog.Title>
           <Dialog.Content>
             {templates.map(t => (
-              <TouchableOpacity
-                key={t.id}
-                style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.surface }}
-                onPress={async () => {
-                  if (!user) return;
-                  for (const item of t.items) {
-                    await addToList(user.id, item.item_id, item.quantity);
-                  }
-                  setShowLoadDialog(false);
-                }}
-              >
-                <Text style={{ color: colors.text, fontWeight: '500' }}>{t.name}</Text>
-                <Text style={{ color: colors.textLight, fontSize: 12 }}>{t.items.length} items</Text>
-              </TouchableOpacity>
+              <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.surface }}>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 12 }}
+                  onPress={async () => {
+                    if (!user) return;
+                    for (const item of t.items) {
+                      await addToList(user.id, item.item_id, item.quantity);
+                    }
+                    setShowLoadDialog(false);
+                  }}
+                >
+                  <Text style={{ color: colors.text, fontWeight: '500' }}>{t.name}</Text>
+                  <Text style={{ color: colors.textLight, fontSize: 12 }}>{t.items.length} item{t.items.length !== 1 ? 's' : ''}</Text>
+                </TouchableOpacity>
+                <IconButton icon="delete-outline" size={20} iconColor={colors.error} onPress={() => deleteTemplate(t.id)} />
+              </View>
             ))}
           </Dialog.Content>
           <Dialog.Actions>

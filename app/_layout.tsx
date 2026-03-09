@@ -7,6 +7,7 @@ import { theme, darkTheme } from '../constants/theme';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useItemStore } from '../stores/useItemStore';
+import { useLowStockStore } from '../stores/useLowStockStore';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
 export default function RootLayout() {
@@ -15,6 +16,7 @@ export default function RootLayout() {
   const systemScheme = useColorScheme();
   const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && systemScheme === 'dark');
   const { loadSortOrder } = useItemStore();
+  const { loadLowStock } = useLowStockStore();
   const { status } = useOfflineSync();
   const router = useRouter();
   const segments = useSegments();
@@ -23,6 +25,7 @@ export default function RootLayout() {
     initialize();
     loadTheme();
     loadSortOrder();
+    loadLowStock();
   }, []);
 
   useEffect(() => {

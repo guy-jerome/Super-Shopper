@@ -31,6 +31,7 @@ import { useAuthStore } from "../../stores/useAuthStore";
 import { useStorageStore } from "../../stores/useStorageStore";
 import { useShoppingStore } from "../../stores/useShoppingStore";
 import { useItemStore } from "../../stores/useItemStore";
+import { useLowStockStore } from "../../stores/useLowStockStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { DragHandle } from "../../components/DraggableList";
@@ -66,6 +67,7 @@ export default function HomeStorageScreen() {
   const { shoppingList, fetchShoppingList, addToList, removeFromList } =
     useShoppingStore();
   const { items: globalItems, fetchItems } = useItemStore();
+  const { lowStockIds, toggleLowStock, isLowStock } = useLowStockStore();
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());
@@ -315,6 +317,15 @@ export default function HomeStorageScreen() {
         inputStyle={styles.searchbarInput}
       />
 
+      {lowStockIds.size > 0 && (
+        <View style={styles.lowStockBanner}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#F57C00" />
+          <Text style={styles.lowStockBannerText}>
+            {lowStockIds.size} item{lowStockIds.size !== 1 ? "s" : ""} running low
+          </Text>
+        </View>
+      )}
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -368,6 +379,8 @@ export default function HomeStorageScreen() {
                 onToggle={() => toggleSection(location.id)}
                 onToggleSub={toggleSubsection}
                 isInList={isInList}
+                isLowStock={isLowStock}
+                onToggleLowStock={toggleLowStock}
                 onToggleItem={toggleItem}
                 onOpenQtyDialog={openQtyDialog}
                 onAddItem={openAddItem}
@@ -628,6 +641,8 @@ type LocationSectionProps = {
   onToggle: () => void;
   onToggleSub: (id: string) => void;
   isInList: (itemId: string) => boolean;
+  isLowStock: (itemId: string) => boolean;
+  onToggleLowStock: (itemId: string) => void;
   onToggleItem: (itemId: string, itemName: string) => void;
   onOpenQtyDialog: (itemId: string, itemName: string) => void;
   onAddItem: (locationId: string) => void;
@@ -652,6 +667,8 @@ function AnimatedItemRow({
   totalItems,
   locationId,
   isInList,
+  isLowStock,
+  onToggleLowStock,
   onToggleItem,
   onOpenQtyDialog,
   onUnlinkItem,
@@ -665,6 +682,8 @@ function AnimatedItemRow({
   totalItems: number;
   locationId: string;
   isInList: (id: string) => boolean;
+  isLowStock: (id: string) => boolean;
+  onToggleLowStock: (id: string) => void;
   onToggleItem: (id: string, name: string) => void;
   onOpenQtyDialog: (id: string, name: string) => void;
   onUnlinkItem: (id: string) => void;
@@ -676,6 +695,7 @@ function AnimatedItemRow({
   const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
   const rowAnim = useRef(new Animated.Value(0)).current;
   const checked = isInList(item.id);
+  const lowStock = isLowStock(item.id);
 
   const handleActiveChange = (active: boolean) => {
     Animated.timing(rowAnim, {
@@ -715,9 +735,16 @@ function AnimatedItemRow({
             color={colors.primary}
           />
           <View style={sectionStyles.itemNameWrap}>
-            <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
-              {item.name}
-            </Text>
+            <View style={sectionStyles.itemNameRow}>
+              <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
+                {item.name}
+              </Text>
+              {lowStock && (
+                <View style={sectionStyles.lowChip}>
+                  <Text style={sectionStyles.lowChipText}>LOW</Text>
+                </View>
+              )}
+            </View>
             {(item.brand || item.quantity) ? (
               <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
                 {[item.brand, item.quantity].filter(Boolean).join(" · ")}
@@ -725,6 +752,12 @@ function AnimatedItemRow({
             ) : null}
           </View>
         </TouchableOpacity>
+        <IconButton
+          icon={lowStock ? "alert-circle" : "alert-circle-outline"}
+          size={22}
+          iconColor={lowStock ? "#F57C00" : colors.textLight}
+          onPress={() => onToggleLowStock(item.id)}
+        />
         <IconButton icon="eye-outline" size={22} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
         <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
       </Animated.View>
@@ -743,6 +776,8 @@ function SubsectionSection({
   search,
   onToggle,
   isInList,
+  isLowStock,
+  onToggleLowStock,
   onToggleItem,
   onOpenQtyDialog,
   onAddItem,
@@ -762,6 +797,8 @@ function SubsectionSection({
   search: string;
   onToggle: () => void;
   isInList: (id: string) => boolean;
+  isLowStock: (id: string) => boolean;
+  onToggleLowStock: (id: string) => void;
   onToggleItem: (id: string, name: string) => void;
   onOpenQtyDialog: (id: string, name: string) => void;
   onAddItem: (locId: string) => void;
@@ -854,6 +891,8 @@ function SubsectionSection({
                 totalItems={filteredItems.length}
                 locationId={subsection.id}
                 isInList={isInList}
+                isLowStock={isLowStock}
+                onToggleLowStock={onToggleLowStock}
                 onToggleItem={onToggleItem}
                 onOpenQtyDialog={onOpenQtyDialog}
                 onUnlinkItem={onUnlinkItem}
@@ -882,6 +921,8 @@ function LocationSection({
   onToggle,
   onToggleSub,
   isInList,
+  isLowStock,
+  onToggleLowStock,
   onToggleItem,
   onOpenQtyDialog,
   onAddItem,
@@ -970,6 +1011,8 @@ function LocationSection({
               totalItems={filteredItems.length}
               locationId={location.id}
               isInList={isInList}
+              isLowStock={isLowStock}
+              onToggleLowStock={onToggleLowStock}
               onToggleItem={onToggleItem}
               onOpenQtyDialog={onOpenQtyDialog}
               onUnlinkItem={onUnlinkItem}
@@ -995,6 +1038,8 @@ function LocationSection({
                 search={search}
                 onToggle={() => onToggleSub(sub.id)}
                 isInList={isInList}
+                isLowStock={isLowStock}
+                onToggleLowStock={onToggleLowStock}
                 onToggleItem={onToggleItem}
                 onOpenQtyDialog={onOpenQtyDialog}
                 onAddItem={onAddItem}
@@ -1053,6 +1098,8 @@ function createStyles(colors: Colors) {
     searchbar: { margin: spacing.sm, elevation: 0, backgroundColor: colors.surface },
     searchbarInput: { fontSize: 14 },
     snackbar: { marginBottom: 80 },
+    lowStockBanner: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: "#FFF3E0", paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+    lowStockBannerText: { color: "#E65100", fontSize: 13, fontWeight: "500" as const },
     addItemOverlay: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.5)",
@@ -1141,9 +1188,12 @@ function createSectionStyles(colors: Colors) {
     },
     itemTouchable: { flex: 1, flexDirection: "row", alignItems: "center" },
     itemNameWrap: { flex: 1, marginLeft: spacing.xs },
+    itemNameRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, flexWrap: "wrap" },
     itemName: { color: colors.text },
     itemMeta: { color: colors.textLight, marginTop: 1 },
     itemChecked: { textDecorationLine: "line-through", color: colors.textLight },
+    lowChip: { backgroundColor: "#FFF3E0", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+    lowChipText: { color: "#E65100", fontSize: 10, fontWeight: "700" as const },
     emptyItems: {
       color: colors.textLight,
       fontStyle: "italic",

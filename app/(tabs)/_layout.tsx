@@ -2,11 +2,14 @@ import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColors } from '../../constants/theme';
 import { useShoppingStore } from '../../stores/useShoppingStore';
+import { useLowStockStore } from '../../stores/useLowStockStore';
 
 export default function TabLayout() {
   const colors = useColors();
   const { shoppingList } = useShoppingStore();
   const uncheckedCount = shoppingList.filter((i) => !i.checked).length;
+  const { lowStockIds } = useLowStockStore();
+  const lowStockCount = lowStockIds.size;
 
   return (
     <Tabs
@@ -29,6 +32,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" color={color} size={size} />
           ),
+          tabBarBadge: lowStockCount > 0 ? lowStockCount : undefined,
         }}
       />
       <Tabs.Screen
