@@ -55,20 +55,20 @@ const autumnColors = {
 };
 
 const winterColors = {
-  primary: '#547792',     // steel blue
-  primaryDark: '#213448', // deep navy
-  primaryLight: '#94B4C1',// muted teal
-  error: '#C0524A',
+  primary: '#94B4C1',     // icy blue — pops on dark bg
+  primaryDark: '#547792', // steel blue
+  primaryLight: '#1E3A50',// dark teal (chip backgrounds)
+  error: '#D4706A',       // slightly brighter for dark bg
   warning: '#D4874A',
-  background: '#EAE0CF',  // warm off-white
-  surface: '#F5F0E8',
-  butter: '#EAE0CF',      // cream notepad
-  butterDark: '#D4C8B5',
-  text: '#213448',        // deep navy
-  textLight: '#547792',
-  dustyRose: '#94B4C1',
-  lavender: '#94B4C1',
-  softShadow: '#D0C8BC',
+  background: '#213448',  // deep midnight navy
+  surface: '#2C4560',     // slightly lighter navy card
+  butter: '#1E3A50',      // dark teal notepad
+  butterDark: '#2A4A62',  // ruled lines
+  text: '#EAE0CF',        // warm off-white
+  textLight: '#94B4C1',   // muted icy blue
+  dustyRose: '#3D5570',
+  lavender: '#3D5570',
+  softShadow: '#1A2E42',  // very dark navy
 };
 
 export const seasonPalettes: Record<Season, typeof autumnColors> = {
