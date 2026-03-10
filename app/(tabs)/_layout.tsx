@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColors } from '../../constants/theme';
 import { useShoppingStore } from '../../stores/useShoppingStore';
@@ -28,6 +29,7 @@ export default function TabLayout() {
           borderTopWidth: 1,
           paddingTop: 4,
         },
+        headerShown: false,
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
         headerShadowVisible: false,
@@ -37,8 +39,11 @@ export default function TabLayout() {
         name="home-storage"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home-heart" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              <MaterialCommunityIcons name="home-heart" color={color} size={size} />
+              {focused && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.primary, marginTop: 2 }} />}
+            </View>
           ),
           tabBarBadge: lowStockCount > 0 ? lowStockCount : undefined,
           tabBarBadgeStyle: badgeStyle,
@@ -48,8 +53,11 @@ export default function TabLayout() {
         name="items"
         options={{
           title: 'Items',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="notebook-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              <MaterialCommunityIcons name="notebook-outline" color={color} size={size} />
+              {focused && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.primary, marginTop: 2 }} />}
+            </View>
           ),
         }}
       />
@@ -57,8 +65,11 @@ export default function TabLayout() {
         name="stores"
         options={{
           title: 'Stores',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="storefront-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              <MaterialCommunityIcons name="storefront-outline" color={color} size={size} />
+              {focused && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.primary, marginTop: 2 }} />}
+            </View>
           ),
         }}
       />
@@ -66,8 +77,11 @@ export default function TabLayout() {
         name="shop"
         options={{
           title: 'Shop',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="note-text-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              <MaterialCommunityIcons name="note-text-outline" color={color} size={size} />
+              {focused && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.primary, marginTop: 2 }} />}
+            </View>
           ),
           tabBarBadge: uncheckedCount > 0 ? uncheckedCount : undefined,
           tabBarBadgeStyle: badgeStyle,
@@ -77,8 +91,11 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              <MaterialCommunityIcons name="cog-outline" color={color} size={size} />
+              {focused && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.primary, marginTop: 2 }} />}
+            </View>
           ),
         }}
       />
