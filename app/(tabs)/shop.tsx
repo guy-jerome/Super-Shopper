@@ -35,7 +35,7 @@ import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { SwipeableRow } from "../../components/SwipeableRow";
-import { useColors, spacing, radius, type Colors } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, getCardStyle } from "../../constants/theme";
 import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
 import { SkeletonRow } from "../../components/SkeletonRow";
 
@@ -862,45 +862,50 @@ function ShoppingItem({
   };
 
   return (
-    <View style={[styles.itemRow, { opacity: item.checked ? 0.65 : 1 }]}>
-      <Animated.View style={checkAnimStyle}>
-        <Checkbox
-          status={item.checked ? "checked" : "unchecked"}
-          onPress={handleCheckPress}
-          color={colors.primary}
-        />
-      </Animated.View>
-      <View style={styles.itemInfo}>
-        <View style={styles.itemNameWrap}>
-          <Text
-            variant="bodyLarge"
-            style={[styles.itemName, item.checked && styles.itemChecked]}
-          >
-            {item.item_name}
-          </Text>
-          {!!meta && (
-            <Text variant="bodySmall" style={styles.itemMeta} numberOfLines={1}>
-              {meta}
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity onPress={onEditQty} style={styles.qtyBadge}>
-          <Text variant="bodySmall" style={styles.qtyBadgeText}>
-            × {item.quantity}
-          </Text>
-          <MaterialCommunityIcons
-            name="pencil-outline"
-            size={11}
+    <View style={[styles.itemCard, getCardStyle(colors) as any, { opacity: item.checked ? 0.65 : 1 }]}>
+      {/* Left stripe */}
+      <View style={[styles.itemStripe, { backgroundColor: colors.stripe }]} />
+      {/* Existing row content */}
+      <View style={styles.itemRowInner}>
+        <Animated.View style={checkAnimStyle}>
+          <Checkbox
+            status={item.checked ? "checked" : "unchecked"}
+            onPress={handleCheckPress}
             color={colors.primary}
           />
-        </TouchableOpacity>
+        </Animated.View>
+        <View style={styles.itemInfo}>
+          <View style={styles.itemNameWrap}>
+            <Text
+              variant="bodyLarge"
+              style={[styles.itemName, item.checked && styles.itemChecked]}
+            >
+              {item.item_name}
+            </Text>
+            {!!meta && (
+              <Text variant="bodySmall" style={styles.itemMeta} numberOfLines={1}>
+                {meta}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={onEditQty} style={styles.qtyBadge}>
+            <Text variant="bodySmall" style={styles.qtyBadgeText}>
+              × {item.quantity}
+            </Text>
+            <MaterialCommunityIcons
+              name="pencil-outline"
+              size={11}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+        <IconButton
+          icon="eye-outline"
+          size={22}
+          iconColor={colors.textLight}
+          onPress={onOpenDetail}
+        />
       </View>
-      <IconButton
-        icon="eye-outline"
-        size={22}
-        iconColor={colors.textLight}
-        onPress={onOpenDetail}
-      />
     </View>
   );
 }
@@ -1092,6 +1097,22 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     backgroundColor: "transparent",
     borderBottomWidth: 1,
     borderBottomColor: colors.butterDark,
+  },
+  itemCard: {
+    flexDirection: "row",
+    marginHorizontal: spacing.sm,
+    marginVertical: 2,
+    overflow: "hidden",
+  },
+  itemStripe: {
+    width: 5,
+  },
+  itemRowInner: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: spacing.md,
+    minHeight: 52,
   },
   itemInfo: {
     flex: 1,

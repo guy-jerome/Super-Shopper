@@ -170,6 +170,33 @@ export const colors = autumnColors;
 export const theme = seasonThemes.autumn;
 export const darkTheme = seasonThemes.winter;
 
+// Returns seasonal card container style (web boxShadow + borderRadius + bg)
+export function getCardStyle(colors: Colors): Record<string, unknown> {
+  const base = {
+    backgroundColor: colors.cardBg,
+    borderRadius: colors.cardBg === '#FEFAE8' ? 4 :   // autumn sticky note
+                  colors.cardBg === '#FEFEFE' ? 12 :   // spring
+                  colors.cardBg === '#FAFDF5' ? 8 :    // summer
+                  10,                                   // winter
+  };
+  if (typeof document === 'undefined') return base;
+  // Web only: box shadow + border
+  const isAutumn = colors.cardBg === '#FEFAE8';
+  const isSpring = colors.cardBg === '#FEFEFE';
+  const isSummer = colors.cardBg === '#FAFDF5';
+  return {
+    ...base,
+    boxShadow: isAutumn
+      ? '2px 3px 8px rgba(80,40,10,0.18)'
+      : isSpring
+      ? '0 1px 4px rgba(100,160,120,0.15)'
+      : isSummer
+      ? '0 2px 6px rgba(180,100,80,0.12)'
+      : '0 1px 4px rgba(20,40,80,0.25)',
+    border: isAutumn ? 'none' : `1px solid ${colors.cardBorder}`,
+  };
+}
+
 // ─── Paper texture (web-only, graceful no-op on native) ───────────────────────
 // Returns a subtle linen/paper texture for backgrounds (web-only, no-op on native)
 export function getTextureStyle(backgroundColor: string): Record<string, unknown> {
