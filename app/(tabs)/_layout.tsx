@@ -11,14 +11,22 @@ export default function TabLayout() {
   const { lowStockIds } = useLowStockStore();
   const lowStockCount = lowStockIds.size;
 
+  const badgeStyle = {
+    backgroundColor: colors.primary,
+    color: '#fff',
+    fontSize: 10,
+  };
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textLight,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.surface,
+          backgroundColor: colors.background,
+          borderTopColor: colors.softShadow,
+          borderTopWidth: 1,
+          paddingTop: 4,
         },
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
@@ -30,9 +38,10 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" color={color} size={size} />
+            <MaterialCommunityIcons name="home-heart" color={color} size={size} />
           ),
           tabBarBadge: lowStockCount > 0 ? lowStockCount : undefined,
+          tabBarBadgeStyle: badgeStyle,
         }}
       />
       <Tabs.Screen
@@ -40,7 +49,7 @@ export default function TabLayout() {
         options={{
           title: 'Items',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="tag-multiple" color={color} size={size} />
+            <MaterialCommunityIcons name="notebook-outline" color={color} size={size} />
           ),
         }}
       />
@@ -49,7 +58,7 @@ export default function TabLayout() {
         options={{
           title: 'Stores',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="store" color={color} size={size} />
+            <MaterialCommunityIcons name="storefront-outline" color={color} size={size} />
           ),
         }}
       />
@@ -58,9 +67,10 @@ export default function TabLayout() {
         options={{
           title: 'Shop',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cart" color={color} size={size} />
+            <MaterialCommunityIcons name="note-text-outline" color={color} size={size} />
           ),
           tabBarBadge: uncheckedCount > 0 ? uncheckedCount : undefined,
+          tabBarBadgeStyle: badgeStyle,
         }}
       />
       <Tabs.Screen
@@ -68,7 +78,7 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog" color={color} size={size} />
+            <MaterialCommunityIcons name="cog-outline" color={color} size={size} />
           ),
         }}
       />
