@@ -565,6 +565,7 @@ export default function ShopScreen() {
                     }
                     onOpenDetail={() => setDetailItemId(item.item_id)}
                     colors={colors}
+                    styles={styles}
                   />
                   <Divider style={styles.itemDivider} />
                 </SwipeableRow>
@@ -585,6 +586,7 @@ export default function ShopScreen() {
                 }
                 onOpenDetail={() => setDetailItemId(item.item_id)}
                 colors={colors}
+                styles={styles}
               />
               <Divider style={styles.itemDivider} />
             </SwipeableRow>
@@ -829,6 +831,7 @@ function ShoppingItem({
   onEditQty,
   onOpenDetail,
   colors,
+  styles,
 }: {
   item: {
     id: string;
@@ -843,8 +846,8 @@ function ShoppingItem({
   onEditQty: () => void;
   onOpenDetail: () => void;
   colors: Colors;
+  styles: ReturnType<typeof createStyles>;
 }) {
-  const styles = useMemo(() => createStyles(colors), [colors]);
   const meta = [item.item_brand, item.item_quantity].filter(Boolean).join(' · ');
   const checkScale = useSharedValue(1);
   const checkAnimStyle = useAnimatedStyle(() => ({

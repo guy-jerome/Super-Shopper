@@ -156,36 +156,37 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
   },
 
   removeFromList: async (id) => {
-    const { error } = await supabase.from('shopping_list').delete().eq('id', id);
-    if (!error) {
-      set((state) => ({ shoppingList: state.shoppingList.filter((i) => i.id !== id) }));
-    }
+    // Optimistic: remove immediately for instant UI response
+    set((state) => ({ shoppingList: state.shoppingList.filter((i) => i.id !== id) }));
+    await supabase.from('shopping_list').delete().eq('id', id);
   },
 
   toggleChecked: async (id, checked) => {
+    // Optimistic: update immediately for instant UI response
+    set((state) => ({
+      shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, checked } : i)),
+    }));
     const { error } = await supabase
       .from('shopping_list')
       .update({ checked, updated_at: new Date().toISOString() })
       .eq('id', id);
-
-    if (!error) {
+    // Revert on error
+    if (error) {
       set((state) => ({
-        shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, checked } : i)),
+        shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, checked: !checked } : i)),
       }));
     }
   },
 
   updateQuantity: async (id, quantity) => {
-    const { error } = await supabase
+    // Optimistic: update immediately
+    set((state) => ({
+      shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, quantity } : i)),
+    }));
+    await supabase
       .from('shopping_list')
       .update({ quantity, updated_at: new Date().toISOString() })
       .eq('id', id);
-
-    if (!error) {
-      set((state) => ({
-        shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, quantity } : i)),
-      }));
-    }
   },
 
   updateNotes: async (userId, date, notes) => {
@@ -198,22 +199,23 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
 
   markAllChecked: async (ids, checked) => {
     if (ids.length === 0) return;
+    // Optimistic: update immediately
+    set((state) => ({
+      shoppingList: state.shoppingList.map((i) => ids.includes(i.id) ? { ...i, checked } : i),
+    }));
     await supabase
       .from('shopping_list')
       .update({ checked, updated_at: new Date().toISOString() })
       .in('id', ids);
-    set((state) => ({
-      shoppingList: state.shoppingList.map((i) => ids.includes(i.id) ? { ...i, checked } : i),
-    }));
   },
 
   clearCheckedItems: async () => {
     const { shoppingList } = get();
     const checkedIds = shoppingList.filter((i) => i.checked).map((i) => i.id);
     if (checkedIds.length === 0) return;
-
-    await supabase.from('shopping_list').delete().in('id', checkedIds);
+    // Optimistic: clear immediately for instant UI response
     set((state) => ({ shoppingList: state.shoppingList.filter((i) => !i.checked) }));
+    await supabase.from('shopping_list').delete().in('id', checkedIds);
   },
 
   updateAisleItemOrder: (aisleId, positions) => {
