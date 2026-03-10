@@ -40,7 +40,14 @@
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
       "Bash(node:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebFetch(domain:orangeslices.ai)",
+      "Read(//c/Users/aaron/AppData/Local/Temp/claude//**)",
+      "Bash(rm:*)",
+      "Bash(npm test:*)",
+      "Bash(git add:*)",
+      "Bash(npx supabase:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_f730e3a61a748ff7c74cc810407664f083710121 npx supabase:*)"
     ]
   }
 }
