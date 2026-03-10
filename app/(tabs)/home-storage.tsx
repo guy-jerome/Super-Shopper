@@ -25,6 +25,7 @@ import {
   Snackbar,
   Searchbar,
   Chip,
+  Menu,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/useAuthStore";
@@ -851,6 +852,11 @@ function SubsectionSection({
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons
+            name="folder-outline"
+            size={14}
+            color={colors.primary}
+          />
+          <MaterialCommunityIcons
             name={isExpanded ? "chevron-up" : "chevron-down"}
             size={16}
             color={colors.textLight}
@@ -939,6 +945,7 @@ function LocationSection({
   colors,
 }: LocationSectionProps) {
   const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
+  const [menuVisible, setMenuVisible] = useState(false);
   const checkedCount = location.items.filter((i) => isInList(i.id)).length +
     location.subsections.flatMap((s) => s.items).filter((i) => isInList(i.id)).length;
   const totalItems = location.items.length +
@@ -994,9 +1001,34 @@ function LocationSection({
             </Text>
           </View>
         </TouchableOpacity>
-        <IconButton icon="pencil-outline" size={22} iconColor={colors.textLight} onPress={() => onRenameLocation(location.id, location.name)} />
-        <IconButton icon="cart-arrow-down" size={22} iconColor={colors.primary} onPress={() => onAddAllToList(location)} />
-        <IconButton icon="folder-plus-outline" size={22} iconColor={colors.textLight} onPress={onAddSubsection} />
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <IconButton
+              icon="dots-horizontal"
+              size={22}
+              iconColor={colors.textLight}
+              onPress={() => setMenuVisible(true)}
+            />
+          }
+        >
+          <Menu.Item
+            leadingIcon="pencil-outline"
+            onPress={() => { setMenuVisible(false); onRenameLocation(location.id, location.name); }}
+            title="Rename"
+          />
+          <Menu.Item
+            leadingIcon="cart-arrow-down"
+            onPress={() => { setMenuVisible(false); onAddAllToList(location); }}
+            title="Add all to list"
+          />
+          <Menu.Item
+            leadingIcon="folder-plus-outline"
+            onPress={() => { setMenuVisible(false); onAddSubsection(); }}
+            title="Add sub-section"
+          />
+        </Menu>
         <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={() => onAddItem(location.id)} />
         <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onDeleteLocation(location.id, location.name)} />
       </Animated.View>
@@ -1159,20 +1191,24 @@ function createSectionStyles(colors: Colors) {
       marginTop: spacing.sm,
       borderRadius: radius.md,
       overflow: "hidden",
-      borderLeftWidth: 3,
+      borderLeftWidth: 6,
       borderLeftColor: colors.primary,
+      shadowColor: '#4A3728',
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
     },
     header: {
       flexDirection: "row",
       alignItems: "center",
       paddingLeft: spacing.xs,
       paddingRight: spacing.xs,
-      paddingVertical: spacing.xs,
+      paddingVertical: spacing.sm,
       backgroundColor: colors.surface,
     },
     titleArea: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.sm },
     titleText: { flex: 1 },
-    name: { color: colors.text, fontWeight: "700" },
+    name: { color: colors.text, fontWeight: "700", fontSize: 16 },
     itemCount: { color: colors.textLight },
     itemsContainer: { backgroundColor: colors.surface },
     itemRow: {
@@ -1227,15 +1263,15 @@ function createSectionStyles(colors: Colors) {
     subsectionHeader: {
       flexDirection: "row",
       alignItems: "center",
-      paddingLeft: spacing.xs,
+      paddingLeft: spacing.lg,
       paddingRight: spacing.xs,
       paddingVertical: 2,
-      backgroundColor: colors.surface + "cc",
+      backgroundColor: colors.softShadow,
     },
     subsectionLine: {
       width: 2,
       alignSelf: "stretch",
     },
-    subsectionName: { color: colors.text, fontWeight: "500", fontSize: 14 },
+    subsectionName: { color: colors.primary, fontWeight: "600", fontSize: 13 },
   });
 }

@@ -272,9 +272,14 @@ export default function ShopScreen() {
       {/* Header */}
       <Surface style={styles.headerSurface} elevation={1}>
         <View style={styles.headerRow}>
-          <Text variant="headlineMedium" style={styles.headerTitle}>
-            Shop
-          </Text>
+          <View>
+            <Text variant="headlineMedium" style={styles.headerTitle}>
+              Shop
+            </Text>
+            <Text style={styles.headerDate}>
+              {new Date(today + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </Text>
+          </View>
           {shoppingList.length > 0 && (
             <IconButton
               icon="share-variant-outline"
@@ -489,15 +494,16 @@ export default function ShopScreen() {
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
               name="cart-outline"
-              size={64}
-              color={colors.textLight}
+              size={72}
+              color={colors.primaryLight}
             />
             <Text variant="titleLarge" style={styles.emptyTitle}>
-              List is empty
+              Your list is clear!
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              Go to the Home tab and tap items you need to buy — they'll appear here organised by store aisle.
+              Head to the Home tab and tap items you're running low on — they'll appear here organised by aisle.
             </Text>
+            <Text style={styles.emptyDecorative}>Happy shopping ✨</Text>
           </View>
         ) : aisleGroups ? (
           aisleGroups.map((group) => (
@@ -892,6 +898,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     marginBottom: spacing.sm,
   },
   headerTitle: { color: colors.text, fontWeight: "bold" },
+  headerDate: { color: colors.textLight, fontSize: 13 },
   progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   progressBar: { flex: 1, height: 6, borderRadius: 3 },
   progressText: { color: colors.textLight, minWidth: 90, textAlign: "right" },
@@ -924,6 +931,9 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   panelContent: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.primaryLight,
+    marginLeft: spacing.md,
   },
   panelDivider: { backgroundColor: colors.softShadow },
   notesInput: { minHeight: 60 },
@@ -945,6 +955,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     marginBottom: spacing.sm,
   },
   emptySubtitle: { color: colors.textLight, textAlign: "center" },
+  emptyDecorative: { color: colors.textLight, fontStyle: 'italic', fontSize: 12, marginTop: spacing.sm },
   // Item rows: transparent so butter-yellow notepad shows through; ruled line at bottom
   itemRow: {
     flexDirection: "row",

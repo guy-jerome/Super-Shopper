@@ -246,12 +246,14 @@ export default function ItemsScreen() {
                     icon="home-outline"
                     active={item.hasHomeLocation}
                     label="Home"
+                    type="home"
                     colors={colors}
                   />
                   <LocationBadge
                     icon="store-outline"
                     active={item.hasStoreLocation}
                     label="Store"
+                    type="store"
                     colors={colors}
                   />
                 </View>
@@ -444,28 +446,32 @@ function LocationBadge({
   icon,
   active,
   label,
+  type,
   colors,
 }: {
   icon: string;
   active: boolean;
   label: string;
+  type: "home" | "store";
   colors: Colors;
 }) {
   const styles = useMemo(() => createLocBadgeStyles(colors), [colors]);
+  const activeStyle = type === "home" ? styles.activeHome : styles.activeStore;
+  const activeLabelStyle = type === "home" ? styles.labelHome : styles.labelStore;
   return (
     <View
       style={[
         styles.badge,
-        active ? styles.active : styles.inactive,
+        active ? activeStyle : styles.inactive,
       ]}
     >
       <MaterialCommunityIcons
         name={icon as any}
         size={12}
-        color={active ? colors.primary : colors.textLight}
+        color={active ? (type === "home" ? colors.primaryDark : colors.text) : colors.textLight}
       />
       <Text
-        style={[styles.label, !active && styles.inactiveLabel]}
+        style={[styles.label, active ? activeLabelStyle : styles.inactiveLabel]}
       >
         {label}
       </Text>
@@ -478,14 +484,17 @@ function createLocBadgeStyles(colors: Colors) { return StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    borderWidth: 0,
   },
-  active: { borderColor: colors.primary, backgroundColor: colors.surface },
-  inactive: { borderColor: colors.textLight, opacity: 0.45 },
-  label: { fontSize: 11, color: colors.primary },
+  activeHome: { backgroundColor: colors.primaryLight },
+  activeStore: { backgroundColor: colors.lavender },
+  inactive: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.textLight, opacity: 0.45 },
+  label: { fontSize: 12 },
+  labelHome: { color: colors.primaryDark },
+  labelStore: { color: colors.text },
   inactiveLabel: { color: colors.textLight },
 }); }
 
@@ -509,9 +518,10 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     margin: spacing.sm,
     elevation: 0,
     backgroundColor: colors.surface,
-    borderRadius: 24,
-    borderWidth: 1,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
     borderColor: colors.softShadow,
+    minHeight: 44,
   },
   searchbarInput: { fontSize: 14 },
   filterRow: {
@@ -558,16 +568,16 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     marginHorizontal: spacing.md,
-    marginBottom: spacing.sm,
+    marginVertical: spacing.xs,
     padding: spacing.md,
     paddingLeft: spacing.md,
     borderLeftWidth: 3,
-    borderLeftColor: colors.primaryLight,
+    borderLeftColor: colors.primary,
     shadowColor: '#4A3728',
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    elevation: 3,
   },
   itemMain: { flex: 1 },
   itemName: { color: colors.text, fontWeight: "600", marginBottom: 4 },
