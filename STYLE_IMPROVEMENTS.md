@@ -4,7 +4,7 @@
 
 ---
 
-## 🎨 S0 — Establish Unified Color Palette *(do this first — everything else depends on it)*
+## ~~🎨 S0 — Establish Unified Color Palette~~ ✅ Done
 
 Replace the current generic green palette in `constants/theme.ts` with a cohesive cozy system.
 
@@ -39,7 +39,7 @@ Replace the current generic green palette in `constants/theme.ts` with a cohesiv
 
 ---
 
-## 📓 S1 — Shop Tab: Yellow Legal Pad
+## ~~📓 S1 — Shop Tab: Yellow Legal Pad~~ ✅ Done
 
 The most distinctive change. The shopping list should feel like writing on a yellow notepad.
 
@@ -57,7 +57,7 @@ The most distinctive change. The shopping list should feel like writing on a yel
 
 ---
 
-## 🌿 S2 — Home Storage Tab: Plant Shelf / Pantry
+## ~~🌿 S2 — Home Storage Tab: Plant Shelf / Pantry~~ ✅ Done
 
 The home inventory should feel like a cozy organized pantry with house-plant energy.
 
@@ -74,7 +74,7 @@ The home inventory should feel like a cozy organized pantry with house-plant ene
 
 ---
 
-## 🗂️ S3 — Items Tab: Recipe Card Catalog
+## ~~🗂️ S3 — Items Tab: Recipe Card Catalog~~ ✅ Done
 
 The global item catalog should feel like a box of recipe index cards.
 
@@ -90,7 +90,7 @@ The global item catalog should feel like a box of recipe index cards.
 
 ---
 
-## 🛍️ S4 — Stores Tab: Farmer's Market
+## ~~🛍️ S4 — Stores Tab: Farmer's Market~~ ✅ Done
 
 Store profiles should feel like little market stall cards.
 
@@ -105,7 +105,7 @@ Store profiles should feel like little market stall cards.
 
 ---
 
-## ⚙️ S5 — Settings Tab: Cozy Personal Space
+## ~~⚙️ S5 — Settings Tab: Cozy Personal Space~~ ✅ Done
 
 Settings should feel warm and personal, like a journal's first page.
 
@@ -120,7 +120,7 @@ Settings should feel warm and personal, like a journal's first page.
 
 ---
 
-## 🏷️ S6 — Tab Bar: Warm & Whimsical
+## ~~🏷️ S6 — Tab Bar: Warm & Whimsical~~ ✅ Done
 
 The tab bar currently looks generic. Make it feel like part of the cozy app.
 
@@ -140,7 +140,7 @@ The tab bar currently looks generic. Make it feel like part of the cozy app.
 
 ---
 
-## 🌐 S7 — Global Shape Language
+## ~~🌐 S7 — Global Shape Language~~ ✅ Done
 
 Soft, rounded, approachable everywhere.
 
