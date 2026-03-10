@@ -32,7 +32,9 @@ import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
 import { DragHandle } from "../../components/DraggableList";
-import { useColors, spacing, type Colors } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors } from "../../constants/theme";
+
+const AISLE_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA'];
 
 type Screen = "list" | "detail";
 
@@ -261,7 +263,7 @@ export default function StoresScreen() {
   if (screen === "detail" && activeStore) {
     return (
       <View style={styles.container}>
-        <Surface style={styles.headerSurface} elevation={1}>
+        <Surface style={styles.headerSurface} elevation={0}>
           <View style={styles.headerRow}>
             <IconButton icon="arrow-left" onPress={() => setScreen("list")} />
             <View style={styles.headerText}>
@@ -303,9 +305,9 @@ export default function StoresScreen() {
           {activeStore.aisles.length === 0 ? (
             <View style={styles.emptyState}>
               <MaterialCommunityIcons
-                name="store-outline"
+                name="sprout-outline"
                 size={64}
-                color={colors.textLight}
+                color={colors.primary}
               />
               <Text variant="titleLarge" style={styles.emptyTitle}>
                 No aisles yet
@@ -548,11 +550,11 @@ export default function StoresScreen() {
   // ── Store list view ────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Surface style={styles.headerSurface} elevation={1}>
-        <Text variant="headlineMedium" style={styles.headerTitle}>
+      <Surface style={styles.headerSurface} elevation={0}>
+        <Text variant="headlineMedium" style={styles.listHeaderTitle}>
           Stores
         </Text>
-        <Text variant="bodySmall" style={styles.headerSubtitle}>
+        <Text variant="bodySmall" style={styles.listHeaderSubtitle}>
           Manage your store layouts
         </Text>
       </Surface>
@@ -567,9 +569,9 @@ export default function StoresScreen() {
         {stores.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
-              name="store-outline"
+              name="sprout"
               size={64}
-              color={colors.textLight}
+              color={colors.primary}
             />
             <Text variant="titleLarge" style={styles.emptyTitle}>
               No stores yet
@@ -588,7 +590,8 @@ export default function StoresScreen() {
           </View>
         ) : (
           stores.map((store) => (
-            <View key={store.id}>
+            <View key={store.id} style={storeListStyles.card}>
+              <View style={storeListStyles.awningBar} />
               <TouchableOpacity
                 style={storeListStyles.row}
                 onPress={() => openStore(store.id)}
@@ -620,14 +623,13 @@ export default function StoresScreen() {
                   }
                 />
               </TouchableOpacity>
-              <Divider />
             </View>
           ))
         )}
       </ScrollView>
 
       <FAB
-        icon="plus"
+        icon="storefront-outline"
         label="Add Store"
         style={styles.fab}
         onPress={() => setStoreDialog(true)}
@@ -1001,6 +1003,7 @@ function AisleSection({
     }).start();
   };
 
+  const aisleAccentColor = AISLE_COLORS[aisleIdx % AISLE_COLORS.length];
   const headerBg = headerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [colors.surface, colors.primary + "28"],
@@ -1009,7 +1012,7 @@ function AisleSection({
   return (
     <View>
       <Animated.View
-        style={[sectionStyles.header, { backgroundColor: headerBg }]}
+        style={[sectionStyles.header, { backgroundColor: headerBg, borderLeftColor: aisleAccentColor, borderLeftWidth: 4 }]}
       >
         <DragHandle
           canMoveUp={aisleIdx > 0}
@@ -1101,10 +1104,20 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     paddingBottom: spacing.md,
     backgroundColor: colors.background,
   },
-  headerRow: { flexDirection: "row", alignItems: "center" },
-  headerText: { flex: 1 },
-  headerTitle: { color: colors.text, fontWeight: "bold" },
-  headerSubtitle: { color: colors.textLight, marginTop: 2 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primaryDark,
+    borderBottomLeftRadius: radius.md,
+    borderBottomRightRadius: radius.md,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  headerText: { flex: 1, paddingHorizontal: spacing.sm },
+  headerTitle: { color: colors.surface, fontWeight: "700" },
+  headerSubtitle: { color: colors.primaryLight, marginTop: 2 },
+  listHeaderTitle: { color: colors.text, fontWeight: "700" },
+  listHeaderSubtitle: { color: colors.textLight, marginTop: 2 },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 100 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -1140,7 +1153,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     width: "100%",
     maxWidth: 520,
     maxHeight: "85%",
-    borderRadius: 16,
+    borderRadius: radius.md,
     padding: spacing.lg,
     backgroundColor: colors.background,
   },
@@ -1151,7 +1164,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     alignItems: "flex-start",
     gap: spacing.md,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
     marginBottom: spacing.sm,
   },
@@ -1161,6 +1174,21 @@ function createStyles(colors: Colors) { return StyleSheet.create({
 }); }
 
 function createStoreListStyles(colors: Colors) { return StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    marginHorizontal: spacing.sm,
+    marginTop: spacing.sm,
+    overflow: 'hidden',
+    shadowColor: '#4A3728',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  awningBar: {
+    height: 4,
+    backgroundColor: colors.primary,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -1168,7 +1196,7 @@ function createStoreListStyles(colors: Colors) { return StyleSheet.create({
     paddingHorizontal: spacing.md,
     gap: spacing.md,
   },
-  name: { flex: 1, color: colors.text },
+  name: { flex: 1, color: colors.text, fontWeight: '700' },
 }); }
 
 function createSectionStyles(colors: Colors) { return StyleSheet.create({
@@ -1198,7 +1226,7 @@ function createSectionStyles(colors: Colors) { return StyleSheet.create({
     paddingRight: spacing.xs,
     minHeight: 48,
     borderBottomWidth: 1,
-    borderBottomColor: colors.surface,
+    borderBottomColor: colors.softShadow,
   },
   itemInfo: { flex: 1 },
   itemName: { color: colors.text },

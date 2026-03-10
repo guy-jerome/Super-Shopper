@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore, type ThemeMode } from '../../stores/useSettingsStore';
 import { useShareStore } from '../../stores/useShareStore';
-import { useColors, spacing, type Colors } from '../../constants/theme';
+import { useColors, spacing, radius, type Colors } from '../../constants/theme';
 
 export default function SettingsScreen() {
   const { user, signOut, updatePassword, deleteAccount } = useAuthStore();
@@ -108,22 +108,28 @@ export default function SettingsScreen() {
         <List.Item
           title="Account"
           description="Change password or delete account"
+          titleStyle={styles.listItemTitle}
+          descriptionStyle={styles.listItemDescription}
           left={(p) => <List.Icon {...p} icon="account-circle-outline" color={colors.primary} />}
           right={(p) => <List.Icon {...p} icon="chevron-right" />}
           onPress={() => setAccountDialog(true)}
         />
-        <Divider />
+        <Divider style={styles.divider} />
         <List.Item
           title="Shared Lists"
           description={myShares.length > 0 ? `Shared with ${myShares.length} person${myShares.length !== 1 ? 's' : ''}` : 'Share your list with family'}
+          titleStyle={styles.listItemTitle}
+          descriptionStyle={styles.listItemDescription}
           left={(p) => <List.Icon {...p} icon="account-group-outline" color={colors.primary} />}
           right={(p) => <List.Icon {...p} icon="chevron-right" />}
           onPress={() => setShareDialog(true)}
         />
-        <Divider />
+        <Divider style={styles.divider} />
         <List.Item
           title="Theme"
           description={themeMode === 'system' ? 'System default' : themeMode === 'dark' ? 'Dark' : 'Light'}
+          titleStyle={styles.listItemTitle}
+          descriptionStyle={styles.listItemDescription}
           left={(p) => <List.Icon {...p} icon="palette-outline" color={colors.primary} />}
           right={() => (
             <View style={styles.themeSegment}>
@@ -133,7 +139,7 @@ export default function SettingsScreen() {
                   mode={themeMode === m ? 'contained' : 'outlined'}
                   compact
                   onPress={() => setThemeMode(m, systemScheme === 'dark')}
-                  style={styles.themeBtn}
+                  style={[styles.themeBtn, themeMode === m ? styles.themeBtnActive : styles.themeBtnInactive]}
                   labelStyle={styles.themeBtnLabel}
                 >
                   {m === 'system' ? 'Auto' : m === 'dark' ? 'Dark' : 'Light'}
@@ -142,7 +148,6 @@ export default function SettingsScreen() {
             </View>
           )}
         />
-        <Divider />
       </View>
 
       <View style={styles.signOutSection}>
@@ -297,32 +302,60 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     alignItems: 'center',
     margin: spacing.md,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     gap: spacing.md,
     backgroundColor: colors.surface,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+    shadowColor: '#4A3728',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   avatar: { backgroundColor: colors.primary },
   accountInfo: { flex: 1 },
   email: { color: colors.text },
   accountLabel: { color: colors.textLight, marginTop: 2 },
-  section: { marginTop: spacing.sm },
+  section: {
+    marginTop: spacing.sm,
+    marginHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    shadowColor: '#4A3728',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  divider: { backgroundColor: colors.softShadow },
+  listItemTitle: { color: colors.text },
+  listItemDescription: { color: colors.textLight },
   signOutSection: { marginTop: 'auto', padding: spacing.md },
   signOutButton: { borderColor: colors.error },
   dialogEmail: { color: colors.textLight, marginBottom: spacing.md },
   sectionLabel: { color: colors.text, marginBottom: spacing.sm },
-  input: { marginBottom: spacing.sm },
+  input: { marginBottom: spacing.sm, borderColor: colors.softShadow },
   errorText: { color: colors.error, fontSize: 13, marginTop: spacing.xs },
   dialogActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dialogRightActions: { flexDirection: 'row', gap: spacing.xs },
-  versionText: { color: colors.textLight, fontSize: 12, textAlign: 'center', paddingBottom: spacing.md },
+  versionText: {
+    color: colors.textLight,
+    fontSize: 12,
+    textAlign: 'center',
+    paddingBottom: spacing.md,
+    fontStyle: 'italic',
+    letterSpacing: 0.5,
+  },
   themeSegment: { flexDirection: 'row', gap: 4, alignItems: 'center' },
   themeBtn: { minWidth: 0 },
+  themeBtnActive: { backgroundColor: colors.primary },
+  themeBtnInactive: { backgroundColor: colors.surface, borderColor: colors.softShadow },
   themeBtnLabel: { fontSize: 11 },
   shareRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.surface,
+    borderBottomColor: colors.softShadow,
   },
 }); }

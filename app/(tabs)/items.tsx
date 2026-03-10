@@ -9,7 +9,6 @@ import {
   Button,
   ActivityIndicator,
   IconButton,
-  Divider,
   Surface,
   Chip,
   Searchbar,
@@ -29,8 +28,10 @@ import { useShoppingStore } from "../../stores/useShoppingStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
-import { useColors, spacing, type Colors } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors } from "../../constants/theme";
 import { SkeletonRow } from "../../components/SkeletonRow";
+
+const TAG_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA', '#B8E8E0'];
 
 export default function ItemsScreen() {
   const colors = useColors();
@@ -152,7 +153,7 @@ export default function ItemsScreen() {
 
   if (isLoading && items.length === 0) {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
       </View>
     );
@@ -218,7 +219,8 @@ export default function ItemsScreen() {
             key={f.key}
             selected={filterMode === f.key}
             onPress={() => setFilterMode(f.key)}
-            style={styles.filterChip}
+            style={filterMode === f.key ? styles.filterChipActive : styles.filterChip}
+            textStyle={{ color: filterMode === f.key ? '#fff' : colors.text }}
             compact
           >
             {f.label}
@@ -230,8 +232,7 @@ export default function ItemsScreen() {
         data={filteredItems}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View>
-            <TouchableOpacity
+          <TouchableOpacity
               style={styles.itemRow}
               onPress={() => setDetailItemId(item.id)}
               activeOpacity={0.7}
@@ -260,13 +261,13 @@ export default function ItemsScreen() {
                   return (
                     <View style={styles.searchLocationBadges}>
                       {ctx.homeLocation && (
-                        <View style={styles.searchBadge}>
-                          <Text style={styles.searchBadgeText}>🏠 {ctx.homeLocation}</Text>
+                        <View style={[styles.searchBadge, styles.searchBadgeHome]}>
+                          <Text style={[styles.searchBadgeText, styles.searchBadgeHomeText]}>🏠 {ctx.homeLocation}</Text>
                         </View>
                       )}
                       {ctx.storeAisles.map((a, i) => (
-                        <View key={i} style={styles.searchBadge}>
-                          <Text style={styles.searchBadgeText}>🛒 {a}</Text>
+                        <View key={i} style={[styles.searchBadge, styles.searchBadgeStore]}>
+                          <Text style={[styles.searchBadgeText, styles.searchBadgeStoreText]}>🛒 {a}</Text>
                         </View>
                       ))}
                     </View>
@@ -274,8 +275,8 @@ export default function ItemsScreen() {
                 })() : null}
                 {item.tags.length > 0 && (
                   <View style={styles.tagRow}>
-                    {item.tags.map((tag) => (
-                      <View key={tag} style={styles.tag}>
+                    {item.tags.map((tag, tagIndex) => (
+                      <View key={tag} style={[styles.tag, { backgroundColor: TAG_COLORS[tagIndex % TAG_COLORS.length] }]}>
                         <Text style={styles.tagText}>{tag}</Text>
                       </View>
                     ))}
@@ -305,8 +306,6 @@ export default function ItemsScreen() {
                 }
               />
             </TouchableOpacity>
-            <Divider />
-          </View>
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -317,7 +316,7 @@ export default function ItemsScreen() {
             <MaterialCommunityIcons
               name="tag-multiple-outline"
               size={64}
-              color={colors.textLight}
+              color={colors.primary}
             />
             <Text variant="titleLarge" style={styles.emptyTitle}>
               {search || filterMode !== "all"
@@ -510,6 +509,9 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     margin: spacing.sm,
     elevation: 0,
     backgroundColor: colors.surface,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.softShadow,
   },
   searchbarInput: { fontSize: 14 },
   filterRow: {
@@ -519,9 +521,18 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     paddingBottom: spacing.sm,
     flexWrap: "wrap",
   },
-  filterChip: { backgroundColor: colors.surface },
+  filterChip: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.softShadow,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
   list: { flex: 1 },
-  listContent: { paddingBottom: 100 },
+  listContent: { paddingBottom: 100, paddingTop: spacing.xs },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyState: {
     alignItems: "center",
@@ -544,14 +555,29 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
     paddingLeft: spacing.md,
-    paddingVertical: spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primaryLight,
+    shadowColor: '#4A3728',
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   itemMain: { flex: 1 },
-  itemName: { color: colors.text, fontWeight: "500", marginBottom: 4 },
+  itemName: { color: colors.text, fontWeight: "600", marginBottom: 4 },
   locationBadges: { flexDirection: "row", gap: spacing.xs, marginBottom: 4 },
-  searchLocationBadges: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 2, paddingLeft: 4 },
-  searchBadge: { backgroundColor: colors.surface, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  searchLocationBadges: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 2 },
+  searchBadge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  searchBadgeHome: { backgroundColor: colors.primaryLight },
+  searchBadgeHomeText: { color: colors.primaryDark },
+  searchBadgeStore: { backgroundColor: colors.butter },
+  searchBadgeStoreText: { color: colors.text },
   searchBadgeText: { fontSize: 11, color: colors.textLight },
   tagRow: {
     flexDirection: "row",
@@ -560,12 +586,9 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     marginTop: 2,
   },
   tag: {
-    backgroundColor: colors.surface,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.primary + "44",
+    borderRadius: radius.pill,
   },
-  tagText: { fontSize: 11, color: colors.primary },
+  tagText: { fontSize: 11, color: colors.text },
 }); }
