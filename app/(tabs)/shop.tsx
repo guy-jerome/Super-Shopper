@@ -1,5 +1,12 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Share } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  type SharedValue,
+} from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import {
@@ -11,7 +18,6 @@ import {
   Divider,
   Surface,
   TextInput,
-  ProgressBar,
   Menu,
   Dialog,
   Portal,
@@ -190,7 +196,17 @@ export default function ShopScreen() {
 
   const total = shoppingList.length;
   const checkedCount = shoppingList.filter((i) => i.checked).length;
-  const progress = total > 0 ? checkedCount / total : 0;
+
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevChecked = useRef(0);
+
+  useEffect(() => {
+    if (total > 0 && checkedCount === total && prevChecked.current !== total) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+    }
+    prevChecked.current = checkedCount;
+  }, [checkedCount, total]);
 
   const handleExport = async () => {
     if (shoppingList.length === 0) return;
@@ -342,18 +358,7 @@ export default function ShopScreen() {
           </Menu>
         </View>
 
-        {total > 0 && (
-          <View style={styles.progressRow}>
-            <ProgressBar
-              progress={progress}
-              color={colors.primary}
-              style={styles.progressBar}
-            />
-            <Text variant="bodySmall" style={styles.progressText}>
-              {checkedCount}/{total} collected
-            </Text>
-          </View>
-        )}
+        <ShoppingProgress checked={checkedCount} total={total} colors={colors} />
       </Surface>
 
       {/* Aisle quick-jump bar */}
@@ -659,6 +664,8 @@ export default function ShopScreen() {
         )}
       </ScrollView>
 
+      <ConfettiBurst visible={showConfetti} />
+
       <FAB
         icon="pencil-plus"
         label="Add Item"
@@ -839,13 +846,27 @@ function ShoppingItem({
 }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const meta = [item.item_brand, item.item_quantity].filter(Boolean).join(' · ');
+  const checkScale = useSharedValue(1);
+  const checkAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: checkScale.value }],
+  }));
+
+  const handleCheckPress = () => {
+    checkScale.value = withSpring(1.2, { damping: 6, stiffness: 300 }, () => {
+      checkScale.value = withSpring(1, { damping: 8, stiffness: 200 });
+    });
+    onToggle();
+  };
+
   return (
-    <View style={styles.itemRow}>
-      <Checkbox
-        status={item.checked ? "checked" : "unchecked"}
-        onPress={onToggle}
-        color={colors.primary}
-      />
+    <View style={[styles.itemRow, { opacity: item.checked ? 0.65 : 1 }]}>
+      <Animated.View style={checkAnimStyle}>
+        <Checkbox
+          status={item.checked ? "checked" : "unchecked"}
+          onPress={handleCheckPress}
+          color={colors.primary}
+        />
+      </Animated.View>
       <View style={styles.itemInfo}>
         <View style={styles.itemNameWrap}>
           <Text
@@ -881,6 +902,112 @@ function ShoppingItem({
   );
 }
 
+// ─── Shopping Progress Bar (W2) ───────────────────────────────────────────────
+
+function ShoppingProgress({ checked, total, colors }: { checked: number; total: number; colors: Colors }) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(total > 0 ? checked / total : 0, { duration: 500 });
+  }, [checked, total]);
+
+  const barStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%` as any,
+  }));
+
+  if (total === 0) return null;
+
+  return (
+    <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+        <Text style={{ fontSize: 12, color: colors.textLight, fontWeight: '600' }}>
+          {checked === total ? '✓ All done!' : `${checked} of ${total} items`}
+        </Text>
+        <Text style={{ fontSize: 12, color: colors.textLight }}>
+          {total > 0 ? Math.round((checked / total) * 100) : 0}%
+        </Text>
+      </View>
+      <View style={{ height: 6, backgroundColor: colors.softShadow, borderRadius: 3, overflow: 'hidden' }}>
+        <Animated.View style={[{
+          height: 6,
+          backgroundColor: colors.primary,
+          borderRadius: 3,
+        }, barStyle]} />
+      </View>
+    </View>
+  );
+}
+
+// ─── Confetti Burst (W2) ──────────────────────────────────────────────────────
+
+const CONFETTI_COLORS = ['#DA8359', '#A3CCDA', '#84B179', '#F5D2D2', '#BDE3C3', '#ECDCCC', '#94B4C1'];
+
+function ConfettiParticle({ anim, angle, distance, color, size }: {
+  anim: SharedValue<number>;
+  angle: number;
+  distance: number;
+  color: string;
+  size: number;
+}) {
+  const style = useAnimatedStyle(() => {
+    const p = anim.value;
+    const tx = Math.cos(angle) * distance * p;
+    const ty = Math.sin(angle) * distance * p - 60 * p * p; // arc upward
+    return {
+      transform: [{ translateX: tx }, { translateY: ty }],
+      opacity: p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3,
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[{
+        position: 'absolute',
+        top: '45%' as any,
+        left: '50%' as any,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+      }, style]}
+    />
+  );
+}
+
+function ConfettiBurst({ visible }: { visible: boolean }) {
+  const anim = useSharedValue(0);
+
+  useEffect(() => {
+    if (visible) {
+      anim.value = 0;
+      anim.value = withTiming(1, { duration: 1200 });
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999, pointerEvents: 'none' } as any}>
+      {Array.from({ length: 20 }).map((_, i) => {
+        const angle = (i / 20) * Math.PI * 2;
+        const distance = 60 + (i % 5) * 25;
+        const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+        const size = 6 + (i % 4) * 2;
+        return (
+          <ConfettiParticle
+            key={i}
+            anim={anim}
+            angle={angle}
+            distance={distance}
+            color={color}
+            size={size}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
 function createStyles(colors: Colors) { return StyleSheet.create({
   // Overall container: butter yellow notepad
   container: { flex: 1, backgroundColor: colors.butter },
@@ -899,9 +1026,6 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   },
   headerTitle: { color: colors.text, fontWeight: "bold" },
   headerDate: { color: colors.textLight, fontSize: 13 },
-  progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  progressBar: { flex: 1, height: 6, borderRadius: 3 },
-  progressText: { color: colors.textLight, minWidth: 90, textAlign: "right" },
   // ScrollView area is the notepad itself
   scroll: { flex: 1, backgroundColor: colors.butter },
   scrollContent: { paddingBottom: 100 },
