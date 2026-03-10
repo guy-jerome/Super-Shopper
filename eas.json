@@ -1,0 +1,29 @@
+{
+  "cli": {
+    "version": ">= 16.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://orxiasrejunkmswgkrro.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9yeGlhc3JlanVua21zd2drcnJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzIyNTYsImV4cCI6MjA4ODMwODI1Nn0.53sugETcZdGIZz_DcJyjtDm-2xSiXD0MK6ctaFYKYXw"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

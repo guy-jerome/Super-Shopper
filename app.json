@@ -18,8 +18,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#4CAF50"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.supershopper.app"
     },
@@ -28,9 +29,12 @@
       "output": "server",
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      "expo-secure-store"
-    ]
+    "plugins": ["expo-router", "expo-secure-store"],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "841674d7-b6cd-477c-98bb-c6a0d331c1a2"
+      }
+    }
   }
 }
