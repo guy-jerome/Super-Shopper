@@ -40,8 +40,10 @@ describe('useShoppingStore — aisle grouping', () => {
     created_at: '',
     updated_at: '',
     item_name: `Item ${id}`,
+    item_brand: null,
+    item_quantity: null,
     store_locations: aisleStoreId
-      ? [{ aisle_id: aisleId, aisles: { id: aisleId, name: 'Dairy', order_index: 0, store_id: aisleStoreId } }]
+      ? [{ aisle_id: aisleId, position_index: 0, aisles: { id: aisleId, name: 'Dairy', order_index: 0, store_id: aisleStoreId } }]
       : [],
   });
 
@@ -88,7 +90,7 @@ describe('useShoppingStore — toggleChecked', () => {
     const item = {
       id: 'sl-1', user_id: 'u1', item_id: 'i1', quantity: 1,
       checked: false, shopping_date: '2026-01-01', created_at: '', updated_at: '',
-      item_name: 'Milk', store_locations: [],
+      item_name: 'Milk', item_brand: null, item_quantity: null, store_locations: [],
     };
     useShoppingStore.setState({ shoppingList: [item] });
 
@@ -108,8 +110,8 @@ describe('useShoppingStore — clearCheckedItems', () => {
   it('removes all checked items from state', async () => {
     useShoppingStore.setState({
       shoppingList: [
-        { id: '1', checked: true, item_name: 'A', store_locations: [], user_id: 'u', item_id: 'i1', quantity: 1, shopping_date: '', created_at: '', updated_at: '' },
-        { id: '2', checked: false, item_name: 'B', store_locations: [], user_id: 'u', item_id: 'i2', quantity: 1, shopping_date: '', created_at: '', updated_at: '' },
+        { id: '1', checked: true, item_name: 'A', item_brand: null, item_quantity: null, store_locations: [], user_id: 'u', item_id: 'i1', quantity: 1, shopping_date: '', created_at: '', updated_at: '' },
+        { id: '2', checked: false, item_name: 'B', item_brand: null, item_quantity: null, store_locations: [], user_id: 'u', item_id: 'i2', quantity: 1, shopping_date: '', created_at: '', updated_at: '' },
       ],
     });
 

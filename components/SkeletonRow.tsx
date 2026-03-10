@@ -26,7 +26,7 @@ export function SkeletonBox({ width = "100%", height = 20, borderRadius = 6, sty
 
   return (
     <Animated.View
-      style={[{ width, height, borderRadius, backgroundColor: colors.border, opacity }, style]}
+      style={[{ width, height, borderRadius, backgroundColor: colors.surface, opacity }, style]}
     />
   );
 }

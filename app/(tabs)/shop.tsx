@@ -891,4 +891,21 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     gap: spacing.lg,
   },
   qtyValue: { minWidth: 40, textAlign: "center", color: colors.text },
+  historySection: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+  historyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.xs,
+  },
+  historyDateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
+  },
+  historyItem: { color: colors.text, paddingVertical: 4, paddingLeft: spacing.sm },
+  historyItemChecked: { color: colors.textLight, textDecorationLine: "line-through" },
 }); }
