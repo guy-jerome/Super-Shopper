@@ -1,4 +1,4 @@
-import { MD3LightTheme } from 'react-native-paper';
+import { MD3LightTheme, configureFonts } from 'react-native-paper';
 import { useSettingsStore, type Season } from '../stores/useSettingsStore';
 
 // ─── Season palettes ──────────────────────────────────────────────────────────
@@ -102,10 +102,16 @@ export const radius = {
   pill: 24,
 };
 
+// ─── Font config ──────────────────────────────────────────────────────────────
+export const fontConfig = {
+  fontFamily: 'Nunito_400Regular',
+};
+
 // ─── React Native Paper MD3 themes (one per season) ──────────────────────────
 function makePaperTheme(c: Colors) {
   return {
     ...MD3LightTheme,
+    fonts: configureFonts({ config: { fontFamily: 'Nunito_400Regular' } }),
     colors: {
       ...MD3LightTheme.colors,
       primary: c.primary,
@@ -131,3 +137,16 @@ export const seasonThemes: Record<Season, ReturnType<typeof makePaperTheme>> = {
 export const colors = autumnColors;
 export const theme = seasonThemes.autumn;
 export const darkTheme = seasonThemes.winter;
+
+// ─── Paper texture (web-only, graceful no-op on native) ───────────────────────
+// Returns a subtle linen/paper texture for backgrounds (web-only, no-op on native)
+export function getTextureStyle(backgroundColor: string): Record<string, unknown> {
+  if (typeof document === 'undefined') return { backgroundColor };
+  // Tiny repeating SVG noise pattern at 3% opacity — zero runtime cost
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(#n)' opacity='0.035'/></svg>`;
+  const encoded = encodeURIComponent(svg);
+  return {
+    backgroundColor,
+    backgroundImage: `url("data:image/svg+xml,${encoded}")`,
+  };
+}

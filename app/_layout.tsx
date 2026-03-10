@@ -3,6 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, Text } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
+import * as SplashScreen from 'expo-splash-screen';
 import { seasonThemes } from '../constants/theme';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -10,7 +12,10 @@ import { useItemStore } from '../stores/useItemStore';
 import { useLowStockStore } from '../stores/useLowStockStore';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold });
   const { user, isLoading, initialize } = useAuthStore();
   const { season, loadSeason } = useSettingsStore();
   const { loadSortOrder } = useItemStore();
@@ -27,6 +32,10 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  useEffect(() => {
     if (isLoading) return;
     const inAuthGroup = segments[0] === 'auth';
     if (!user && !inAuthGroup) {
@@ -35,6 +44,8 @@ export default function RootLayout() {
       router.replace('/(tabs)/home-storage');
     }
   }, [user, isLoading, segments]);
+
+  if (!fontsLoaded) return null;
 
   return (
     <GestureHandlerRootView style={styles.root}>
