@@ -50,7 +50,7 @@ interface ShoppingStore {
   setCurrentStore: (store: StoreProfile | null) => void;
   fetchShoppingList: (userId: string, date: string) => Promise<void>;
   fetchHistory: () => Promise<void>;
-  addToList: (userId: string, itemId: string, quantity: number) => Promise<void>;
+  addToList: (userId: string, itemId: string, quantity: number, optimisticName?: string) => Promise<void>;
   removeFromList: (id: string) => Promise<void>;
   toggleChecked: (id: string, checked: boolean) => Promise<void>;
   updateQuantity: (id: string, quantity: number) => Promise<void>;
@@ -135,8 +135,29 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     set({ history: grouped });
   },
 
-  addToList: async (userId, itemId, quantity) => {
+  addToList: async (userId, itemId, quantity, optimisticName?) => {
     const date = new Date().toISOString().split('T')[0];
+
+    // Optimistic: add a placeholder entry immediately so isInList() returns true instantly
+    const tempId = `optimistic-${itemId}`;
+    if (optimisticName) {
+      const optimistic: ShoppingListItemWithName = {
+        id: tempId,
+        user_id: userId,
+        item_id: itemId,
+        quantity,
+        checked: false,
+        shopping_date: date,
+        item_name: optimisticName,
+        item_brand: null,
+        item_quantity: null,
+        store_locations: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      set((state) => ({ shoppingList: [...state.shoppingList, optimistic] }));
+    }
+
     const { data, error } = await supabase
       .from('shopping_list')
       .insert({ user_id: userId, item_id: itemId, quantity, shopping_date: date })
@@ -146,12 +167,20 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     if (!error && data) {
       const withName: ShoppingListItemWithName = {
         ...(data as any),
-        item_name: (data as any).items?.name ?? '',
+        item_name: (data as any).items?.name ?? optimisticName ?? '',
         item_brand: (data as any).items?.brand ?? null,
         item_quantity: (data as any).items?.quantity ?? null,
         store_locations: (data as any).items?.item_store_locations ?? [],
       };
-      set((state) => ({ shoppingList: [...state.shoppingList, withName] }));
+      // Replace optimistic entry (or append if no optimistic was added)
+      set((state) => ({
+        shoppingList: optimisticName
+          ? state.shoppingList.map((i) => i.id === tempId ? withName : i)
+          : [...state.shoppingList, withName],
+      }));
+    } else if (error && optimisticName) {
+      // Revert optimistic entry on error
+      set((state) => ({ shoppingList: state.shoppingList.filter((i) => i.id !== tempId) }));
     }
   },
 

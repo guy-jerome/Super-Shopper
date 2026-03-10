@@ -153,7 +153,7 @@ export default function HomeStorageScreen() {
       await removeFromList(existing.id);
       setSnackbar(`${name} removed from list`);
     } else {
-      await addToList(user.id, itemId, 1);
+      await addToList(user.id, itemId, 1, name);
       setSnackbar(`${name} added to list`);
     }
   };
