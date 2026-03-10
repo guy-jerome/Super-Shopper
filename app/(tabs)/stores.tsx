@@ -598,11 +598,11 @@ export default function StoresScreen() {
                 onLongPress={() => openRename(store.id, store.name, 'store')}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons
-                  name="store"
-                  size={28}
-                  color={colors.primary}
-                />
+                <View style={storeListStyles.storeAvatar}>
+                  <Text style={storeListStyles.storeAvatarText}>
+                    {store.name.slice(0, 2).toUpperCase()}
+                  </Text>
+                </View>
                 <Text variant="titleMedium" style={storeListStyles.name}>
                   {store.name}
                 </Text>
@@ -1186,8 +1186,23 @@ function createStoreListStyles(colors: Colors) { return StyleSheet.create({
     elevation: 2,
   },
   awningBar: {
-    height: 4,
+    height: 10,
     backgroundColor: colors.primary,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
+  },
+  storeAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  storeAvatarText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
   row: {
     flexDirection: "row",
