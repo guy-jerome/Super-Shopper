@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore, type Season } from '../../stores/useSettingsStore';
 import { useShareStore } from '../../stores/useShareStore';
 import { useColors, spacing, radius, seasonPalettes, type Colors } from '../../constants/theme';
+import { PageHeader } from '../../components/PageHeader';
 
 const SEASONS: { id: Season; label: string; icon: string; swatches: string[] }[] = [
   { id: 'spring', label: 'Spring', icon: 'flower-tulip-outline', swatches: ['#F5D2D2', '#F8F7BA', '#BDE3C3', '#A3CCDA'] },
@@ -20,6 +21,7 @@ export default function SettingsScreen() {
   const { season, setSeason } = useSettingsStore();
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
   const { myShares, loadShares, shareWithEmail, removeShare } = useShareStore();
 
@@ -97,9 +99,12 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <Surface style={styles.headerSurface} elevation={1}>
-        <Text variant="headlineMedium" style={styles.headerTitle}>Settings</Text>
-      </Surface>
+      <PageHeader title="Settings" colors={colors} />
+      {Platform.OS === 'web' && (
+        <View style={styles.seasonDecor} pointerEvents="none">
+          <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />
+        </View>
+      )}
 
       {/* Account card */}
       <Surface style={styles.accountCard} elevation={1}>
@@ -311,13 +316,13 @@ export default function SettingsScreen() {
 
 function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  headerSurface: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.background,
+  seasonDecor: {
+    position: 'absolute' as const,
+    right: -20,
+    bottom: 60,
+    opacity: 0.06,
+    pointerEvents: 'none' as const,
   },
-  headerTitle: { color: colors.text, fontWeight: 'bold' },
   accountCard: {
     flexDirection: 'row',
     alignItems: 'center',

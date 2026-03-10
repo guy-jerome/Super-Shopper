@@ -8,6 +8,7 @@ import {
   Easing,
   RefreshControl,
   Modal,
+  Platform,
 } from "react-native";
 import {
   Text,
@@ -33,6 +34,9 @@ import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
 import { DragHandle } from "../../components/DraggableList";
 import { useColors, spacing, radius, type Colors } from "../../constants/theme";
+import { EmptyState } from "../../components/EmptyState";
+import { PageHeader } from "../../components/PageHeader";
+import { useSettingsStore } from "../../stores/useSettingsStore";
 
 const AISLE_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA'];
 
@@ -43,6 +47,8 @@ export default function StoresScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const storeListStyles = useMemo(() => createStoreListStyles(colors), [colors]);
   const { user } = useAuthStore();
+  const { season } = useSettingsStore();
+  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
   const {
     stores,
     activeStore,
@@ -550,14 +556,12 @@ export default function StoresScreen() {
   // ── Store list view ────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Surface style={styles.headerSurface} elevation={0}>
-        <Text variant="headlineMedium" style={styles.listHeaderTitle}>
-          Stores
-        </Text>
-        <Text variant="bodySmall" style={styles.listHeaderSubtitle}>
-          Manage your store layouts
-        </Text>
-      </Surface>
+      <PageHeader title="Stores" subtitle="Manage your store layouts" colors={colors} />
+      {Platform.OS === 'web' && (
+        <View style={styles.seasonDecor} pointerEvents="none">
+          <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />
+        </View>
+      )}
 
       <ScrollView
         style={styles.scroll}
@@ -567,18 +571,12 @@ export default function StoresScreen() {
         }
       >
         {stores.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="sprout"
-              size={64}
-              color={colors.primary}
-            />
-            <Text variant="titleLarge" style={styles.emptyTitle}>
-              No stores yet
-            </Text>
-            <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              Tap + to add stores like Walmart or Costco
-            </Text>
+          <EmptyState
+            icon="storefront-outline"
+            title="No stores yet"
+            subtitle="Add your grocery stores to organize shopping by aisle."
+            colors={colors}
+          >
             <Button
               mode="contained"
               icon="lightning-bolt"
@@ -587,7 +585,7 @@ export default function StoresScreen() {
             >
               Use a Template
             </Button>
-          </View>
+          </EmptyState>
         ) : (
           stores.map((store) => (
             <View key={store.id} style={storeListStyles.card}>
@@ -1098,6 +1096,13 @@ function AisleSection({
 
 function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  seasonDecor: {
+    position: 'absolute' as const,
+    right: -20,
+    bottom: 60,
+    opacity: 0.06,
+    pointerEvents: 'none' as const,
+  },
   headerSurface: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,

@@ -9,6 +9,7 @@ import {
   Easing,
   Modal,
   RefreshControl,
+  Platform,
 } from "react-native";
 import {
   Text,
@@ -45,6 +46,9 @@ import { STORAGE_TEMPLATES } from "../../constants/templates";
 import { OnboardingModal } from "../../components/OnboardingModal";
 import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
 import { SkeletonRow } from "../../components/SkeletonRow";
+import { EmptyState } from "../../components/EmptyState";
+import { PageHeader } from "../../components/PageHeader";
+import { useSettingsStore } from "../../stores/useSettingsStore";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -69,6 +73,8 @@ export default function HomeStorageScreen() {
     useShoppingStore();
   const { items: globalItems, fetchItems } = useItemStore();
   const { lowStockIds, toggleLowStock, isLowStock } = useLowStockStore();
+  const { season } = useSettingsStore();
+  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());
@@ -301,14 +307,12 @@ export default function HomeStorageScreen() {
 
   return (
     <View style={styles.container}>
-      <Surface style={styles.headerSurface} elevation={1}>
-        <Text variant="headlineMedium" style={styles.headerTitle}>
-          Home Storage
-        </Text>
-        <Text variant="bodySmall" style={styles.headerSubtitle}>
-          Check items you need to buy
-        </Text>
-      </Surface>
+      <PageHeader title="Home Storage" subtitle="Check items you need to buy" colors={colors} />
+      {Platform.OS === 'web' && (
+        <View style={styles.seasonDecor} pointerEvents="none">
+          <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />
+        </View>
+      )}
 
       <Searchbar
         placeholder="Search items..."
@@ -335,12 +339,12 @@ export default function HomeStorageScreen() {
         }
       >
         {locations.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="home-outline" size={64} color={colors.primary} />
-            <Text variant="titleLarge" style={styles.emptyTitle}>No locations yet</Text>
-            <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              Use a template to instantly create Fridge, Pantry, and Freezer — or tap + to add your own locations.
-            </Text>
+          <EmptyState
+            icon="fridge-outline"
+            title="No locations yet"
+            subtitle="Add your kitchen zones — Fridge, Pantry, Freezer — to start tracking what you need."
+            colors={colors}
+          >
             <Button
               mode="contained"
               icon="lightning-bolt"
@@ -357,7 +361,7 @@ export default function HomeStorageScreen() {
             >
               Add Custom Location
             </Button>
-          </View>
+          </EmptyState>
         ) : (
           locations.map((location, locIdx) => {
             const allItems = [
@@ -1102,14 +1106,13 @@ function LocationSection({
 function createStyles(colors: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    headerSurface: {
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
-      backgroundColor: colors.background,
+    seasonDecor: {
+      position: 'absolute' as const,
+      right: -20,
+      bottom: 60,
+      opacity: 0.06,
+      pointerEvents: 'none' as const,
     },
-    headerTitle: { color: colors.text, fontWeight: "bold" },
-    headerSubtitle: { color: colors.textLight, marginTop: 2 },
     scroll: { flex: 1 },
     scrollContent: { paddingBottom: 100 },
     centered: { flex: 1, alignItems: "center", justifyContent: "center" },

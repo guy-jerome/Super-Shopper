@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { View, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
+import { View, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Platform } from "react-native";
 import {
   Text,
   FAB,
@@ -30,6 +30,9 @@ import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { useColors, spacing, radius, type Colors } from "../../constants/theme";
 import { SkeletonRow } from "../../components/SkeletonRow";
+import { EmptyState } from "../../components/EmptyState";
+import { PageHeader } from "../../components/PageHeader";
+import { useSettingsStore } from "../../stores/useSettingsStore";
 
 const TAG_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA', '#B8E8E0'];
 
@@ -66,6 +69,8 @@ export default function ItemsScreen() {
     hasStoreLocation: boolean;
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const { season } = useSettingsStore();
+  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
   const { locations } = useStorageStore();
   const { activeStore } = useStoreStore();
@@ -161,11 +166,11 @@ export default function ItemsScreen() {
 
   return (
     <View style={styles.container}>
-      <Surface style={styles.headerSurface} elevation={1}>
-        <View style={styles.headerRow}>
-          <Text variant="headlineMedium" style={styles.headerTitle}>
-            Items
-          </Text>
+      <PageHeader
+        title="Items"
+        subtitle={`${items.length} item${items.length !== 1 ? 's' : ''} total`}
+        colors={colors}
+        right={
           <Menu
             visible={sortMenuVisible}
             onDismiss={() => setSortMenuVisible(false)}
@@ -192,11 +197,13 @@ export default function ItemsScreen() {
               />
             ))}
           </Menu>
+        }
+      />
+      {Platform.OS === 'web' && (
+        <View style={styles.seasonDecor} pointerEvents="none">
+          <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />
         </View>
-        <Text variant="bodySmall" style={styles.headerSubtitle}>
-          {items.length} item{items.length !== 1 ? "s" : ""} total
-        </Text>
-      </Surface>
+      )}
 
       <Searchbar
         placeholder="Search items..."
@@ -314,25 +321,18 @@ export default function ItemsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="tag-multiple-outline"
-              size={64}
-              color={colors.primary}
-            />
-            <Text variant="titleLarge" style={styles.emptyTitle}>
-              {search || filterMode !== "all"
-                ? "No matching items"
-                : "No items yet"}
-            </Text>
-            <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              {filterMode === "no-home"
+          <EmptyState
+            icon="tag-multiple-outline"
+            title={search || filterMode !== "all" ? "No matching items" : "No items yet"}
+            subtitle={
+              filterMode === "no-home"
                 ? "All items have a home storage location"
                 : filterMode === "no-store"
                   ? "All items have a store location"
-                  : "Tap + to add your first item"}
-            </Text>
-          </View>
+                  : "Your item catalog is empty. Add items to start building your inventory."
+            }
+            colors={colors}
+          />
         }
         keyboardShouldPersistTaps="handled"
         style={styles.list}
@@ -500,20 +500,13 @@ function createLocBadgeStyles(colors: Colors) { return StyleSheet.create({
 
 function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  headerSurface: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.background,
+  seasonDecor: {
+    position: 'absolute' as const,
+    right: -20,
+    bottom: 60,
+    opacity: 0.06,
+    pointerEvents: 'none' as const,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 2,
-  },
-  headerTitle: { color: colors.text, fontWeight: "bold" },
-  headerSubtitle: { color: colors.textLight },
   searchbar: {
     margin: spacing.sm,
     elevation: 0,
