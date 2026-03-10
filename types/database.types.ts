@@ -115,6 +115,16 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['shared_lists']['Insert']>;
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          id: string;
+          email: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Relationships: [];
+      };
     };
   };
 }

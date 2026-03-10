@@ -8,6 +8,7 @@ export type ItemStoreLocation = Database['public']['Tables']['item_store_locatio
 export type ShoppingListItem = Database['public']['Tables']['shopping_list']['Row'];
 export type ShoppingNote = Database['public']['Tables']['shopping_notes']['Row'];
 export type SharedList = Database['public']['Tables']['shared_lists']['Row'];
+export type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export type StorageLocationWithItems = StorageLocation & {
   items: Item[];

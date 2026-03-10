@@ -84,13 +84,8 @@ Light/Auto/Dark segmented buttons replace the binary switch. "Auto" follows OS v
 
 ## 🟢 Larger Features / New Capabilities
 
-### L1 — Shared Lists (family/household sharing)
-**Problem:** The `shared_lists` table already exists in the DB schema, but the feature is dead UI in settings.
-**Fix:**
-- Add a `profiles` table (or use email lookup) to find another user
-- Settings → Shared Lists → "Share with email" flow
-- Shop tab shows shared list items merged (or toggled)
-**Files:** New `stores/useShareStore.ts`, `app/(tabs)/settings.tsx`, `app/(tabs)/shop.tsx`
+### ~~L1 — Shared Lists (family/household sharing)~~ ✅ Done
+Created `profiles` table in Supabase with auto-populate trigger. `stores/useShareStore.ts` handles share CRUD and fetching shared shopping lists. Settings → "Shared Lists" dialog lets you share by email and remove shares. Shop tab shows a card per sharing user with their today's items (read-only, checked state visible).
 
 ### ~~L2 — Recurring / template shopping lists~~ ✅ Done
 Bookmark icon in Shop header opens save/load menu. Templates stored in AsyncStorage via `useListTemplateStore`. Save current list as a named template; load it back to bulk-add items on future trips. Delete icon on each row in the Load Template dialog.

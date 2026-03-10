@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet, useColorScheme } from 'react-native';
-import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar } from 'react-native-paper';
+import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar, IconButton, ActivityIndicator } from 'react-native-paper';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore, type ThemeMode } from '../../stores/useSettingsStore';
+import { useShareStore } from '../../stores/useShareStore';
 import { useColors, spacing, type Colors } from '../../constants/theme';
 
 export default function SettingsScreen() {
@@ -13,13 +14,41 @@ export default function SettingsScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  const { myShares, loadShares, shareWithEmail, removeShare } = useShareStore();
+
   const [accountDialog, setAccountDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [shareDialog, setShareDialog] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [shareEmail, setShareEmail] = useState('');
+  const [shareError, setShareError] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
   const [snackbar, setSnackbar] = useState('');
+
+  useEffect(() => { loadShares(); }, []);
+
+  const handleShare = async () => {
+    setShareError('');
+    if (!shareEmail.trim()) return;
+    setIsSharing(true);
+    try {
+      await shareWithEmail(shareEmail);
+      setShareEmail('');
+      setSnackbar('List shared successfully');
+    } catch (e: any) {
+      setShareError(e.message ?? 'Failed to share');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleRemoveShare = async (shareId: string, email: string) => {
+    await removeShare(shareId);
+    setSnackbar(`Removed share with ${email}`);
+  };
 
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? '??';
 
@@ -86,9 +115,10 @@ export default function SettingsScreen() {
         <Divider />
         <List.Item
           title="Shared Lists"
-          description="Share your list with family"
+          description={myShares.length > 0 ? `Shared with ${myShares.length} person${myShares.length !== 1 ? 's' : ''}` : 'Share your list with family'}
           left={(p) => <List.Icon {...p} icon="account-group-outline" color={colors.primary} />}
           right={(p) => <List.Icon {...p} icon="chevron-right" />}
+          onPress={() => setShareDialog(true)}
         />
         <Divider />
         <List.Item
@@ -178,6 +208,53 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
+        {/* Shared Lists dialog */}
+        <Dialog visible={shareDialog} onDismiss={() => { setShareDialog(false); setShareEmail(''); setShareError(''); }}>
+          <Dialog.Title>Shared Lists</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodySmall" style={styles.dialogEmail}>Share today's shopping list with another Super Shopper user.</Text>
+            <TextInput
+              label="Their email address"
+              value={shareEmail}
+              onChangeText={(t) => { setShareEmail(t); setShareError(''); }}
+              mode="outlined"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.input}
+              onSubmitEditing={handleShare}
+            />
+            {!!shareError && <Text style={styles.errorText}>{shareError}</Text>}
+            <Button
+              mode="contained"
+              onPress={handleShare}
+              loading={isSharing}
+              disabled={!shareEmail.trim() || isSharing}
+              style={{ marginBottom: spacing.md }}
+            >
+              Share
+            </Button>
+            {myShares.length > 0 && (
+              <>
+                <Text variant="titleSmall" style={[styles.sectionLabel, { marginTop: spacing.sm }]}>Currently sharing with</Text>
+                {myShares.map((s) => (
+                  <View key={s.id} style={styles.shareRow}>
+                    <Text style={{ flex: 1, color: colors.text }}>{s.email}</Text>
+                    <IconButton
+                      icon="close-circle-outline"
+                      size={20}
+                      iconColor={colors.error}
+                      onPress={() => handleRemoveShare(s.id, s.email)}
+                    />
+                  </View>
+                ))}
+              </>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => { setShareDialog(false); setShareEmail(''); setShareError(''); }}>Close</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         {/* Delete account confirmation */}
         <Dialog visible={deleteDialog} onDismiss={() => setDeleteDialog(false)}>
           <Dialog.Title>Delete Account</Dialog.Title>
@@ -241,4 +318,11 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   themeSegment: { flexDirection: 'row', gap: 4, alignItems: 'center' },
   themeBtn: { minWidth: 0 },
   themeBtnLabel: { fontSize: 11 },
+  shareRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
+  },
 }); }

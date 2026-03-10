@@ -23,6 +23,7 @@ import { useShoppingStore } from "../../stores/useShoppingStore";
 import { useStoreStore } from "../../stores/useStoreStore";
 import { useItemStore } from "../../stores/useItemStore";
 import { useListTemplateStore } from "../../stores/useListTemplateStore";
+import { useShareStore } from "../../stores/useShareStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
@@ -57,6 +58,7 @@ export default function ShopScreen() {
   const { stores, fetchStores } = useStoreStore();
   const { addItem, fetchItems } = useItemStore();
   const { templates, loadTemplates, saveTemplate, deleteTemplate } = useListTemplateStore();
+  const { sharedWithMe, loadSharedItems } = useShareStore();
 
   const [editingNotes, setEditingNotes] = useState(false);
   const [addDialog, setAddDialog] = useState(false);
@@ -93,6 +95,7 @@ export default function ShopScreen() {
     fetchStores(user.id);
     fetchItems(user.id);
     loadTemplates();
+    loadSharedItems(today);
   }, [user?.id]);
 
   const handleRealtimeChange = useCallback(() => {
@@ -102,7 +105,7 @@ export default function ShopScreen() {
   const handleRefresh = useCallback(async () => {
     if (!user) return;
     setRefreshing(true);
-    await fetchShoppingList(user.id, today);
+    await Promise.all([fetchShoppingList(user.id, today), loadSharedItems(today)]);
     setRefreshing(false);
   }, [user?.id]);
 
@@ -526,6 +529,38 @@ export default function ShopScreen() {
           </Button>
         )}
 
+        {sharedWithMe.map((shared) => (
+          <View key={shared.ownerId} style={styles.sharedSection}>
+            <View style={styles.sharedHeader}>
+              <MaterialCommunityIcons name="account-heart-outline" size={16} color={colors.primary} />
+              <Text variant="titleSmall" style={styles.sharedHeaderText}>
+                {shared.ownerEmail}'s list
+              </Text>
+            </View>
+            {shared.items.length === 0 ? (
+              <Text style={styles.sharedEmpty}>No items on their list today</Text>
+            ) : (
+              shared.items.map((item) => (
+                <View key={item.id} style={styles.sharedItem}>
+                  <MaterialCommunityIcons
+                    name={item.checked ? 'check-circle-outline' : 'circle-outline'}
+                    size={20}
+                    color={item.checked ? colors.primary : colors.textLight}
+                  />
+                  <Text style={[styles.sharedItemName, item.checked && styles.sharedItemChecked]}>
+                    {item.item_name}
+                  </Text>
+                  {item.item_brand || item.item_quantity ? (
+                    <Text style={styles.sharedItemMeta}>
+                      {[item.item_brand, item.item_quantity].filter(Boolean).join(' · ')}
+                    </Text>
+                  ) : null}
+                </View>
+              ))
+            )}
+          </View>
+        ))}
+
         {Object.keys(history).length > 0 && (
           <View style={styles.historySection}>
             <TouchableOpacity style={styles.historyHeader} onPress={() => setHistoryOpen(o => !o)}>
@@ -891,6 +926,20 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     gap: spacing.lg,
   },
   qtyValue: { minWidth: 40, textAlign: "center", color: colors.text },
+  sharedSection: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+  },
+  sharedHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  sharedHeaderText: { color: colors.primary, fontWeight: '600' },
+  sharedEmpty: { color: colors.textLight, fontSize: 13, fontStyle: 'italic' },
+  sharedItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 4 },
+  sharedItemName: { flex: 1, color: colors.text },
+  sharedItemChecked: { textDecorationLine: 'line-through', color: colors.textLight },
+  sharedItemMeta: { color: colors.textLight, fontSize: 12 },
   historySection: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   historyHeader: {
     flexDirection: "row",
