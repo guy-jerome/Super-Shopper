@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, Text } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -45,7 +45,8 @@ export default function RootLayout() {
     }
   }, [user, isLoading, segments]);
 
-  if (!fontsLoaded) return null;
+  // On web fonts load in the background — don't block render
+  if (!fontsLoaded && Platform.OS !== 'web') return null;
 
   return (
     <GestureHandlerRootView style={styles.root}>

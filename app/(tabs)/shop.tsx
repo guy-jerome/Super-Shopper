@@ -1031,7 +1031,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   scrollContent: { paddingBottom: 100 },
   fab: {
     position: "absolute",
-    bottom: spacing.lg,
+    bottom: 92,
     right: spacing.md,
     backgroundColor: colors.primary,
   },

@@ -1140,7 +1140,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   emptySubtitle: { color: colors.textLight, textAlign: "center" },
   fab: {
     position: "absolute",
-    bottom: spacing.lg,
+    bottom: 92,
     right: spacing.md,
     backgroundColor: colors.primary,
   },

@@ -1127,7 +1127,7 @@ function createStyles(colors: Colors) {
     emptyAction: { marginTop: spacing.sm, minWidth: 220 },
     fab: {
       position: "absolute",
-      bottom: spacing.lg,
+      bottom: 92,
       right: spacing.md,
       backgroundColor: colors.primary,
     },
