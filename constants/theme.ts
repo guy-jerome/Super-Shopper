@@ -4,71 +4,103 @@ import { useSettingsStore, type Season } from '../stores/useSettingsStore';
 // ─── Season palettes ──────────────────────────────────────────────────────────
 
 const springColors = {
-  primary: '#A3CCDA',     // sky blue
-  primaryDark: '#7AAFBF', // deeper sky
-  primaryLight: '#BDE3C3',// soft mint
+  // Core
+  primary: '#7BBFA8',      // warmer sage-teal (was sky blue)
+  primaryDark: '#5A9E8A',  // deeper sage
+  primaryLight: '#B8E0D2', // soft mint
   error: '#D47070',
   warning: '#D4A050',
-  background: '#F8F7BA',  // soft warm yellow
-  surface: '#FEFEF5',
-  butter: '#F8F7BA',
-  butterDark: '#EDEAA0',
-  text: '#3D3050',        // soft purple-dark
-  textLight: '#8A7090',
+  background: '#F5F8EE',   // softer sage-white (was too yellow)
+  surface: '#FDFEF9',
+  butter: '#EEF7E8',
+  butterDark: '#D8EDCC',
+  text: '#2A3828',         // deep garden green (was purple-dark)
+  textLight: '#6A8870',
   dustyRose: '#F5D2D2',
   lavender: '#BDE3C3',
-  softShadow: '#E8D8D8',
+  softShadow: '#D4E8CC',
+  // ── New decorative keys ──
+  accent: '#E8A0A0',       // soft poppy red
+  accentLight: '#FBE8E8',  // blush wash
+  cardBg: '#FEFEFE',       // crisp white cards
+  cardBorder: '#D4E8CC',   // pale sage border
+  divider: '#C8DFC0',      // sage vine
+  stripe: '#84CCAA',       // garden mint left stripe
 };
 
 const summerColors = {
-  primary: '#84B179',     // leafy sage
-  primaryDark: '#5E8B54', // deep garden
-  primaryLight: '#C7EABB',// pale mint
+  // Core
+  primary: '#6BA85C',      // richer garden green (was too yellow-green)
+  primaryDark: '#4A7A3C',  // deep garden
+  primaryLight: '#B8E0A0', // pale garden
   error: '#C05454',
   warning: '#C87941',
-  background: '#E8F5BD',  // fresh lime-yellow
-  surface: '#F4FADF',
-  butter: '#E8F5BD',
-  butterDark: '#C7EABB',
-  text: '#2D4A28',        // deep forest green
-  textLight: '#5A7A55',
-  dustyRose: '#A2CB8B',
-  lavender: '#C7EABB',
-  softShadow: '#C7EABB',
+  background: '#EFF8E8',   // garden fresh (was too lime)
+  surface: '#F6FBF0',
+  butter: '#E4F5D4',
+  butterDark: '#C0E0A8',
+  text: '#2A4020',         // deep forest
+  textLight: '#507040',
+  dustyRose: '#D4527A',    // raspberry (repurposed — more on-theme)
+  lavender: '#B8E0A0',
+  softShadow: '#C0E0A8',
+  // ── New decorative keys ──
+  accent: '#D4527A',       // raspberry pop
+  accentLight: '#FBE8EF',  // blush wash
+  cardBg: '#FAFDF5',       // near-white with green breath
+  cardBorder: '#B8D9A0',   // light garden border
+  divider: '#8BC47A',      // garden green divider
+  stripe: '#D4527A',       // raspberry left stripe
 };
 
 const autumnColors = {
-  primary: '#DA8359',     // warm amber-orange
-  primaryDark: '#C06A40', // burnt sienna
-  primaryLight: '#ECDCCC',// warm beige
+  // Core (unchanged — already strong)
+  primary: '#DA8359',      // warm amber-orange
+  primaryDark: '#C06A40',  // burnt sienna
+  primaryLight: '#ECDCCC', // warm beige
   error: '#C0524A',
   warning: '#DA8359',
-  background: '#FCFAEE',  // warm cream
+  background: '#FCFAEE',   // warm cream
   surface: '#FFFEF9',
-  butter: '#ECDCCC',      // warm beige notepad
+  butter: '#ECDCCC',       // warm beige notepad
   butterDark: '#D4C0A5',
-  text: '#3D2B1F',        // warm dark brown
+  text: '#3D2B1F',         // warm dark brown
   textLight: '#8C6E5A',
   dustyRose: '#ECDCCC',
-  lavender: '#A5B68D',    // muted sage
+  lavender: '#A5B68D',     // muted sage
   softShadow: '#E0CDB8',
+  // ── New decorative keys ──
+  accent: '#B84A3C',       // apple red
+  accentLight: '#F5E8E6',  // apple blush
+  cardBg: '#FEFAE8',       // warm sticky-note cream
+  cardBorder: '#D4B896',   // kraft paper edge
+  divider: '#C8A87A',      // warm tan divider
+  stripe: '#DA8359',       // amber left stripe (reuses primary)
 };
 
 const winterColors = {
-  primary: '#94B4C1',     // icy blue — pops on dark bg
-  primaryDark: '#547792', // steel blue
-  primaryLight: '#1E3A50',// dark teal (chip backgrounds)
-  error: '#D4706A',       // slightly brighter for dark bg
+  // Core
+  primary: '#94B4C1',      // icy blue — pops on dark bg
+  primaryDark: '#547792',  // steel blue
+  primaryLight: '#1E3A50', // dark teal (chip backgrounds)
+  error: '#D4706A',        // slightly brighter for dark bg
   warning: '#D4874A',
-  background: '#213448',  // deep midnight navy
-  surface: '#2C4560',     // slightly lighter navy card
-  butter: '#1E3A50',      // dark teal notepad
-  butterDark: '#2A4A62',  // ruled lines
-  text: '#EAE0CF',        // warm off-white
-  textLight: '#94B4C1',   // muted icy blue
+  background: '#213448',   // deep midnight navy
+  surface: '#2C4560',      // slightly lighter navy card
+  butter: '#1E3A50',       // dark teal notepad
+  butterDark: '#2A4A62',   // ruled lines
+  text: '#EAE0CF',         // warm off-white
+  textLight: '#94B4C1',    // muted icy blue
   dustyRose: '#3D5570',
   lavender: '#3D5570',
-  softShadow: '#1A2E42',  // very dark navy
+  softShadow: '#1A2E42',   // very dark navy
+  // ── New decorative keys ──
+  accent: '#E8954A',       // firelight orange — secret weapon on dark
+  accentLight: '#4A3020',  // dark amber tint (for badges on dark bg)
+  cardBg: '#2C4560',       // reuse surface — dark blue card
+  cardBorder: '#3D5878',   // slightly lighter navy border
+  divider: '#547792',      // steel blue divider
+  stripe: '#E8954A',       // firelight orange left stripe
 };
 
 export const seasonPalettes: Record<Season, typeof autumnColors> = {
@@ -115,7 +147,7 @@ function makePaperTheme(c: Colors) {
     colors: {
       ...MD3LightTheme.colors,
       primary: c.primary,
-      secondary: c.dustyRose,
+      secondary: c.accent,        // accent replaces dustyRose as Paper secondary
       error: c.error,
       background: c.background,
       surface: c.surface,
