@@ -811,7 +811,7 @@ export default function ShopScreen() {
           onDismiss={dismissUndo}
           duration={5000}
           action={{ label: 'Undo', onPress: () => { undoSnackbar?.onUndo(); dismissUndo(); } }}
-          style={{ backgroundColor: colors.surface }}
+          style={{ backgroundColor: colors.surface, bottom: 92 }}
         >
           <Text style={{ color: colors.text }}>{undoSnackbar?.message}</Text>
         </Snackbar>

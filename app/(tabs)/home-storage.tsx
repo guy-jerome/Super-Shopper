@@ -1133,7 +1133,7 @@ function createStyles(colors: Colors) {
     },
     searchbar: { margin: spacing.sm, elevation: 0, backgroundColor: colors.surface, borderRadius: radius.pill },
     searchbarInput: { fontSize: 14 },
-    snackbar: { marginBottom: 80 },
+    snackbar: { marginBottom: 92 },
     lowStockBanner: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: '#FDE8C8', paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
     lowStockBannerText: { color: colors.warning, fontSize: 13, fontWeight: "500" as const },
     addItemOverlay: {

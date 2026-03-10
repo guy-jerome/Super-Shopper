@@ -47,7 +47,8 @@
       "Bash(npm test:*)",
       "Bash(git add:*)",
       "Bash(npx supabase:*)",
-      "Bash(SUPABASE_ACCESS_TOKEN=sbp_f730e3a61a748ff7c74cc810407664f083710121 npx supabase:*)"
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_f730e3a61a748ff7c74cc810407664f083710121 npx supabase:*)",
+      "Bash(grep:*)"
     ]
   }
 }

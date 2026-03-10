@@ -307,7 +307,7 @@ export default function SettingsScreen() {
         Version {Constants.expoConfig?.version ?? '—'}
       </Text>
 
-      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={3000}>
+      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={3000} style={{ bottom: 92 }}>
         {snackbar}
       </Snackbar>
     </View>
