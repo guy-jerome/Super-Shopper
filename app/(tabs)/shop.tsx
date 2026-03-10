@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Share } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import {
   Text,
@@ -60,7 +61,12 @@ export default function ShopScreen() {
   const { templates, loadTemplates, saveTemplate, deleteTemplate } = useListTemplateStore();
   const { sharedWithMe, loadSharedItems } = useShareStore();
 
+  const [notesCollapsed, setNotesCollapsed] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
+  const [couponsCollapsed, setCouponsCollapsed] = useState(false);
+  const [couponsValue, setCouponsValue] = useState('');
+  const [savedCoupons, setSavedCoupons] = useState('');
+  const [editingCoupons, setEditingCoupons] = useState(false);
   const [addDialog, setAddDialog] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [pendingSuggestion, setPendingSuggestion] =
@@ -126,10 +132,22 @@ export default function ShopScreen() {
     setNotesValue(notes);
   }, [notes]);
 
+  useEffect(() => {
+    AsyncStorage.getItem(`super-shopper:coupons:${today}`).then((val) => {
+      if (val) { setCouponsValue(val); setSavedCoupons(val); }
+    });
+  }, []);
+
   const saveNotes = async () => {
     if (!user) return;
     await updateNotes(user.id, today, notesValue);
     setEditingNotes(false);
+  };
+
+  const saveCoupons = async () => {
+    await AsyncStorage.setItem(`super-shopper:coupons:${today}`, couponsValue);
+    setSavedCoupons(couponsValue);
+    setEditingCoupons(false);
   };
 
   const openQtyEdit = (id: string, name: string, current: number) => {
@@ -368,6 +386,95 @@ export default function ShopScreen() {
         </ScrollView>
       )}
 
+      {/* Sticky Notes + Coupons panels */}
+      <View style={styles.stickyPanels}>
+        {/* Notes panel */}
+        <View style={styles.panelHeader}>
+          <MaterialCommunityIcons name="note-text-outline" size={18} color={colors.textLight} />
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setNotesCollapsed((c) => !c)}>
+            <Text variant="labelLarge" style={styles.panelLabel}>Notes</Text>
+          </TouchableOpacity>
+          <IconButton
+            icon={editingNotes ? "check" : "pencil-outline"}
+            size={18}
+            style={styles.panelEditBtn}
+            onPress={editingNotes ? saveNotes : () => { setNotesCollapsed(false); setEditingNotes(true); }}
+          />
+          <TouchableOpacity onPress={() => setNotesCollapsed((c) => !c)} style={styles.chevronBtn}>
+            <MaterialCommunityIcons
+              name={notesCollapsed ? "chevron-down" : "chevron-up"}
+              size={20}
+              color={colors.textLight}
+            />
+          </TouchableOpacity>
+        </View>
+        {!notesCollapsed && (
+          <View style={styles.panelContent}>
+            {editingNotes ? (
+              <TextInput
+                value={notesValue}
+                onChangeText={setNotesValue}
+                multiline
+                mode="outlined"
+                placeholder="Add shopping notes..."
+                style={styles.notesInput}
+                autoFocus
+              />
+            ) : (
+              <TouchableOpacity onPress={() => setEditingNotes(true)}>
+                <Text style={[styles.notesText, !notes && styles.notesPlaceholder]}>
+                  {notes || "Tap to add notes..."}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        <Divider style={styles.panelDivider} />
+
+        {/* Coupons panel */}
+        <View style={styles.panelHeader}>
+          <MaterialCommunityIcons name="ticket-percent-outline" size={18} color={colors.textLight} />
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setCouponsCollapsed((c) => !c)}>
+            <Text variant="labelLarge" style={styles.panelLabel}>Coupons</Text>
+          </TouchableOpacity>
+          <IconButton
+            icon={editingCoupons ? "check" : "pencil-outline"}
+            size={18}
+            style={styles.panelEditBtn}
+            onPress={editingCoupons ? saveCoupons : () => { setCouponsCollapsed(false); setEditingCoupons(true); }}
+          />
+          <TouchableOpacity onPress={() => setCouponsCollapsed((c) => !c)} style={styles.chevronBtn}>
+            <MaterialCommunityIcons
+              name={couponsCollapsed ? "chevron-down" : "chevron-up"}
+              size={20}
+              color={colors.textLight}
+            />
+          </TouchableOpacity>
+        </View>
+        {!couponsCollapsed && (
+          <View style={styles.panelContent}>
+            {editingCoupons ? (
+              <TextInput
+                value={couponsValue}
+                onChangeText={setCouponsValue}
+                multiline
+                mode="outlined"
+                placeholder="Add coupon codes or deals..."
+                style={styles.notesInput}
+                autoFocus
+              />
+            ) : (
+              <TouchableOpacity onPress={() => setEditingCoupons(true)}>
+                <Text style={[styles.notesText, !savedCoupons && styles.notesPlaceholder]}>
+                  {savedCoupons || "Tap to add coupons..."}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -376,44 +483,6 @@ export default function ShopScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
       >
-        {/* Notes */}
-        <View style={styles.notesSection}>
-          <View style={styles.notesHeader}>
-            <MaterialCommunityIcons
-              name="note-text-outline"
-              size={22}
-              color={colors.textLight}
-            />
-            <Text variant="labelLarge" style={styles.notesLabel}>
-              Notes
-            </Text>
-            <IconButton
-              icon={editingNotes ? "check" : "pencil-outline"}
-              size={22}
-              onPress={editingNotes ? saveNotes : () => setEditingNotes(true)}
-            />
-          </View>
-          {editingNotes ? (
-            <TextInput
-              value={notesValue}
-              onChangeText={setNotesValue}
-              multiline
-              mode="outlined"
-              placeholder="Add shopping notes..."
-              style={styles.notesInput}
-              autoFocus
-            />
-          ) : (
-            <TouchableOpacity onPress={() => setEditingNotes(true)}>
-              <Text
-                style={[styles.notesText, !notes && styles.notesPlaceholder]}
-              >
-                {notes || "Tap to add notes..."}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <Divider />
 
         {/* Shopping list */}
         {shoppingList.length === 0 ? (
@@ -836,20 +905,27 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     backgroundColor: colors.primary,
   },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  // Notes section: cream/parchment background with soft bottom border
-  notesSection: {
-    padding: spacing.md,
+  // Sticky notes + coupons panels above the list
+  stickyPanels: {
     backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.softShadow,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.butterDark,
   },
-  notesHeader: {
+  panelHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
   },
-  notesLabel: { flex: 1, color: colors.textLight },
+  panelLabel: { color: colors.textLight },
+  panelEditBtn: { margin: 0 },
+  chevronBtn: { padding: 4 },
+  panelContent: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  panelDivider: { backgroundColor: colors.softShadow },
   notesInput: { minHeight: 60 },
   notesText: {
     color: colors.text,
