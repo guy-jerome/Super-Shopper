@@ -38,7 +38,7 @@ import { DragHandle } from "../../components/DraggableList";
 import { SwipeableRow } from "../../components/SwipeableRow";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useColors, spacing, type Colors } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
 import { STORAGE_TEMPLATES } from "../../constants/templates";
 import { OnboardingModal } from "../../components/OnboardingModal";
@@ -319,7 +319,7 @@ export default function HomeStorageScreen() {
 
       {lowStockIds.size > 0 && (
         <View style={styles.lowStockBanner}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#F57C00" />
+          <MaterialCommunityIcons name="alert-circle-outline" size={16} color={colors.warning} />
           <Text style={styles.lowStockBannerText}>
             {lowStockIds.size} item{lowStockIds.size !== 1 ? "s" : ""} running low
           </Text>
@@ -335,7 +335,7 @@ export default function HomeStorageScreen() {
       >
         {locations.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="home-outline" size={64} color={colors.textLight} />
+            <MaterialCommunityIcons name="home-outline" size={64} color={colors.primary} />
             <Text variant="titleLarge" style={styles.emptyTitle}>No locations yet</Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
               Use a template to instantly create Fridge, Pantry, and Freezer — or tap + to add your own locations.
@@ -433,7 +433,7 @@ export default function HomeStorageScreen() {
       </Snackbar>
 
       <FAB
-        icon="plus"
+        icon="sprout"
         label="Add Location"
         style={styles.fab}
         onPress={() => setLocationDialog(true)}
@@ -741,6 +741,7 @@ function AnimatedItemRow({
               </Text>
               {lowStock && (
                 <View style={sectionStyles.lowChip}>
+                  <MaterialCommunityIcons name="leaf" size={10} color={colors.warning} />
                   <Text style={sectionStyles.lowChipText}>LOW</Text>
                 </View>
               )}
@@ -755,7 +756,7 @@ function AnimatedItemRow({
         <IconButton
           icon={lowStock ? "alert-circle" : "alert-circle-outline"}
           size={22}
-          iconColor={lowStock ? "#F57C00" : colors.textLight}
+          iconColor={lowStock ? colors.warning : colors.textLight}
           onPress={() => onToggleLowStock(item.id)}
         />
         <IconButton icon="eye-outline" size={22} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
@@ -1095,11 +1096,11 @@ function createStyles(colors: Colors) {
       right: spacing.md,
       backgroundColor: colors.primary,
     },
-    searchbar: { margin: spacing.sm, elevation: 0, backgroundColor: colors.surface },
+    searchbar: { margin: spacing.sm, elevation: 0, backgroundColor: colors.surface, borderRadius: radius.pill },
     searchbarInput: { fontSize: 14 },
     snackbar: { marginBottom: 80 },
-    lowStockBanner: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: "#FFF3E0", paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-    lowStockBannerText: { color: "#E65100", fontSize: 13, fontWeight: "500" as const },
+    lowStockBanner: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: '#FDE8C8', paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+    lowStockBannerText: { color: colors.warning, fontSize: 13, fontWeight: "500" as const },
     addItemOverlay: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.5)",
@@ -1152,7 +1153,15 @@ function createStyles(colors: Colors) {
 
 function createSectionStyles(colors: Colors) {
   return StyleSheet.create({
-    container: { backgroundColor: colors.background },
+    container: {
+      backgroundColor: colors.surface,
+      marginHorizontal: spacing.sm,
+      marginTop: spacing.sm,
+      borderRadius: radius.md,
+      overflow: "hidden",
+      borderLeftWidth: 3,
+      borderLeftColor: colors.primary,
+    },
     header: {
       flexDirection: "row",
       alignItems: "center",
@@ -1163,9 +1172,9 @@ function createSectionStyles(colors: Colors) {
     },
     titleArea: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.sm },
     titleText: { flex: 1 },
-    name: { color: colors.text, fontWeight: "600" },
+    name: { color: colors.text, fontWeight: "700" },
     itemCount: { color: colors.textLight },
-    itemsContainer: { backgroundColor: colors.background },
+    itemsContainer: { backgroundColor: colors.surface },
     itemRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -1173,7 +1182,7 @@ function createSectionStyles(colors: Colors) {
       paddingRight: spacing.xs,
       minHeight: 48,
       borderBottomWidth: 1,
-      borderBottomColor: colors.surface,
+      borderBottomColor: colors.softShadow,
     },
     itemRowIndented: {
       paddingLeft: 0,
@@ -1192,8 +1201,16 @@ function createSectionStyles(colors: Colors) {
     itemName: { color: colors.text },
     itemMeta: { color: colors.textLight, marginTop: 1 },
     itemChecked: { textDecorationLine: "line-through", color: colors.textLight },
-    lowChip: { backgroundColor: "#FFF3E0", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-    lowChipText: { color: "#E65100", fontSize: 10, fontWeight: "700" as const },
+    lowChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      backgroundColor: '#FDE8C8',
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+    },
+    lowChipText: { color: colors.warning, fontSize: 10, fontWeight: "700" as const },
     emptyItems: {
       color: colors.textLight,
       fontStyle: "italic",
@@ -1202,7 +1219,7 @@ function createSectionStyles(colors: Colors) {
     },
     // Subsection styles
     subsectionContainer: {
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
       borderLeftWidth: 3,
       borderLeftColor: colors.primary + "30",
       marginLeft: spacing.md,
