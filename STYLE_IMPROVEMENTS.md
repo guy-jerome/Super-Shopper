@@ -154,7 +154,7 @@ Soft, rounded, approachable everywhere.
 
 ---
 
-## 🌙 S8 — Dark Mode: Cozy Evening Palette
+## ~~🌙 S8 — Dark Mode: Cozy Evening Palette~~ ✅ Done
 
 Dark mode should feel like planning your shopping list by candlelight — warm darks, not cold blue-greys.
 
