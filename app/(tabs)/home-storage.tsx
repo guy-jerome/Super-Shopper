@@ -40,7 +40,7 @@ import { DragHandle } from "../../components/DraggableList";
 import { SwipeableRow } from "../../components/SwipeableRow";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useColors, spacing, radius, type Colors } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, getCardStyle } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
 import { STORAGE_TEMPLATES } from "../../constants/templates";
 import { OnboardingModal } from "../../components/OnboardingModal";
@@ -718,55 +718,60 @@ function AnimatedItemRow({
 
   return (
     <SwipeableRow onDelete={() => onUnlinkItem(item.id)}>
-      <Animated.View style={[sectionStyles.itemRow, { backgroundColor }, indented && sectionStyles.itemRowIndented]}>
-        {indented && <View style={sectionStyles.subsectionIndent} />}
-        <DragHandle
-          canMoveUp={itemIdx > 0}
-          canMoveDown={itemIdx < totalItems - 1}
-          onMoveUp={() => onMoveItem(locationId, item.id, "up")}
-          onMoveDown={() => onMoveItem(locationId, item.id, "down")}
-          onActiveChange={handleActiveChange}
-          size="sm"
-        />
-        <TouchableOpacity
-          onPress={() => onToggleItem(item.id, item.name)}
-          onLongPress={() => onOpenQtyDialog(item.id, item.name)}
-          activeOpacity={0.7}
-          style={sectionStyles.itemTouchable}
-        >
-          <Checkbox
-            status={checked ? "checked" : "unchecked"}
-            onPress={() => onToggleItem(item.id, item.name)}
-            color={colors.primary}
+      <View style={[sectionStyles.itemCard, getCardStyle(colors) as any]}>
+        {/* Left stripe */}
+        <View style={[sectionStyles.itemStripe, { backgroundColor: colors.stripe }]} />
+        {/* Existing row content */}
+        <Animated.View style={[sectionStyles.itemRowInner, { backgroundColor }, indented && sectionStyles.itemRowIndented]}>
+          {indented && <View style={sectionStyles.subsectionIndent} />}
+          <DragHandle
+            canMoveUp={itemIdx > 0}
+            canMoveDown={itemIdx < totalItems - 1}
+            onMoveUp={() => onMoveItem(locationId, item.id, "up")}
+            onMoveDown={() => onMoveItem(locationId, item.id, "down")}
+            onActiveChange={handleActiveChange}
+            size="sm"
           />
-          <View style={sectionStyles.itemNameWrap}>
-            <View style={sectionStyles.itemNameRow}>
-              <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
-                {item.name}
-              </Text>
-              {lowStock && (
-                <View style={sectionStyles.lowChip}>
-                  <MaterialCommunityIcons name="leaf" size={10} color={colors.warning} />
-                  <Text style={sectionStyles.lowChipText}>LOW</Text>
-                </View>
-              )}
+          <TouchableOpacity
+            onPress={() => onToggleItem(item.id, item.name)}
+            onLongPress={() => onOpenQtyDialog(item.id, item.name)}
+            activeOpacity={0.7}
+            style={sectionStyles.itemTouchable}
+          >
+            <Checkbox
+              status={checked ? "checked" : "unchecked"}
+              onPress={() => onToggleItem(item.id, item.name)}
+              color={colors.primary}
+            />
+            <View style={sectionStyles.itemNameWrap}>
+              <View style={sectionStyles.itemNameRow}>
+                <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
+                  {item.name}
+                </Text>
+                {lowStock && (
+                  <View style={sectionStyles.lowChip}>
+                    <MaterialCommunityIcons name="leaf" size={10} color={colors.warning} />
+                    <Text style={sectionStyles.lowChipText}>LOW</Text>
+                  </View>
+                )}
+              </View>
+              {(item.brand || item.quantity) ? (
+                <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
+                  {[item.brand, item.quantity].filter(Boolean).join(" · ")}
+                </Text>
+              ) : null}
             </View>
-            {(item.brand || item.quantity) ? (
-              <Text variant="bodySmall" style={sectionStyles.itemMeta} numberOfLines={1}>
-                {[item.brand, item.quantity].filter(Boolean).join(" · ")}
-              </Text>
-            ) : null}
-          </View>
-        </TouchableOpacity>
-        <IconButton
-          icon={lowStock ? "alert-circle" : "alert-circle-outline"}
-          size={22}
-          iconColor={lowStock ? colors.warning : colors.textLight}
-          onPress={() => onToggleLowStock(item.id)}
-        />
-        <IconButton icon="eye-outline" size={22} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
-        <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
-      </Animated.View>
+          </TouchableOpacity>
+          <IconButton
+            icon={lowStock ? "alert-circle" : "alert-circle-outline"}
+            size={22}
+            iconColor={lowStock ? colors.warning : colors.textLight}
+            onPress={() => onToggleLowStock(item.id)}
+          />
+          <IconButton icon="eye-outline" size={22} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
+          <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
+        </Animated.View>
+      </View>
     </SwipeableRow>
   );
 }
@@ -1222,6 +1227,23 @@ function createSectionStyles(colors: Colors) {
       minHeight: 48,
       borderBottomWidth: 1,
       borderBottomColor: colors.softShadow,
+    },
+    itemCard: {
+      flexDirection: "row",
+      marginHorizontal: spacing.sm,
+      marginVertical: 2,
+      overflow: "hidden",
+    },
+    itemStripe: {
+      width: 5,
+    },
+    itemRowInner: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingLeft: spacing.xs,
+      paddingRight: spacing.xs,
+      minHeight: 48,
     },
     itemRowIndented: {
       paddingLeft: 0,
