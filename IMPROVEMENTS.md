@@ -6,11 +6,8 @@ Organized by impact vs effort. Each item is scoped to be workable as a standalon
 
 ## 🔴 Critical Bugs / Broken Features
 
-### B1 — Item reorder doesn't persist ⏳ awaiting SQL migration
-Code is complete. Run this in Supabase SQL editor to activate:
-```sql
-ALTER TABLE items ADD COLUMN IF NOT EXISTS order_index INTEGER NOT NULL DEFAULT 0;
-```
+### ~~B1 — Item reorder doesn't persist~~ ✅ Done
+Migration applied via Supabase Management API: `ALTER TABLE items ADD COLUMN IF NOT EXISTS order_index INTEGER NOT NULL DEFAULT 0;`. `useStorageStore.moveItem` persists order to DB; `fetchLocations` sorts by `order_index`.
 
 ### ~~B2 — Delete account silently fails~~ ✅ Done
 Replaced broken `supabase.rpc('delete_user')` with direct `Promise.all` deletes across user data tables then `signOut`.
