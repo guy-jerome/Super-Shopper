@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import { StyleSheet, View, useColorScheme } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, Text } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { theme, darkTheme } from '../constants/theme';
+import { seasonThemes } from '../constants/theme';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useItemStore } from '../stores/useItemStore';
@@ -12,9 +12,7 @@ import { useOfflineSync } from '../hooks/useOfflineSync';
 
 export default function RootLayout() {
   const { user, isLoading, initialize } = useAuthStore();
-  const { themeMode, loadTheme } = useSettingsStore();
-  const systemScheme = useColorScheme();
-  const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && systemScheme === 'dark');
+  const { season, loadSeason } = useSettingsStore();
   const { loadSortOrder } = useItemStore();
   const { loadLowStock } = useLowStockStore();
   const { status } = useOfflineSync();
@@ -23,7 +21,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     initialize();
-    loadTheme();
+    loadSeason();
     loadSortOrder();
     loadLowStock();
   }, []);
@@ -40,7 +38,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <PaperProvider theme={isDarkMode ? darkTheme : theme}>
+      <PaperProvider theme={seasonThemes[season]}>
         {status !== 'online' && (
           <View style={status === 'offline' ? styles.offlineBanner : styles.syncBanner}>
             <Text style={styles.bannerText}>

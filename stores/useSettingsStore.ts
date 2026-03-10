@@ -1,46 +1,32 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const THEME_KEY = 'super-shopper:theme';
+const SEASON_KEY = 'super-shopper:season';
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
 interface SettingsStore {
-  themeMode: ThemeMode;
-  isDarkMode: boolean;
-  loadTheme: () => Promise<void>;
-  setThemeMode: (mode: ThemeMode, systemIsDark?: boolean) => Promise<void>;
-  // kept for backwards compat with existing toggle in settings
-  toggleTheme: () => Promise<void>;
+  season: Season;
+  loadSeason: () => Promise<void>;
+  setSeason: (s: Season) => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsStore>((set, get) => ({
-  themeMode: 'system',
-  isDarkMode: false,
+export const useSettingsStore = create<SettingsStore>((set) => ({
+  season: 'autumn',
 
-  loadTheme: async () => {
+  loadSeason: async () => {
     try {
-      const saved = await AsyncStorage.getItem(THEME_KEY);
-      if (saved === 'dark' || saved === 'light' || saved === 'system') {
-        set({ themeMode: saved as ThemeMode });
+      const saved = await AsyncStorage.getItem(SEASON_KEY);
+      if (saved === 'spring' || saved === 'summer' || saved === 'autumn' || saved === 'winter') {
+        set({ season: saved });
       }
     } catch {}
   },
 
-  setThemeMode: async (mode, systemIsDark = false) => {
-    const isDark = mode === 'dark' || (mode === 'system' && systemIsDark);
-    set({ themeMode: mode, isDarkMode: isDark });
+  setSeason: async (season) => {
+    set({ season });
     try {
-      await AsyncStorage.setItem(THEME_KEY, mode);
-    } catch {}
-  },
-
-  toggleTheme: async () => {
-    const { themeMode } = get();
-    const next: ThemeMode = themeMode === 'light' ? 'dark' : 'light';
-    set({ themeMode: next, isDarkMode: next === 'dark' });
-    try {
-      await AsyncStorage.setItem(THEME_KEY, next);
+      await AsyncStorage.setItem(SEASON_KEY, season);
     } catch {}
   },
 }));

@@ -1,56 +1,88 @@
-import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
-import { useColorScheme } from 'react-native';
-import { useSettingsStore } from '../stores/useSettingsStore';
+import { MD3LightTheme } from 'react-native-paper';
+import { useSettingsStore, type Season } from '../stores/useSettingsStore';
 
-// ─── Cozy palette ────────────────────────────────────────────────────────────
-// Light mode: warm parchment, house-plant sage, butter yellow notepad
-export const colors = {
-  // Brand
-  primary: '#7BA05B',       // sage green (house plant)
-  primaryDark: '#4E7C3A',   // deeper sage (pressed / active)
-  primaryLight: '#D4E8C2',  // light sage (chip backgrounds, badges)
-  // Status
-  error: '#C0524A',         // muted terracotta
-  warning: '#D4874A',       // earthy amber (low-stock)
-  // Backgrounds
-  background: '#FEFAE0',    // warm parchment (app bg)
-  surface: '#FFFEF7',       // paper white (cards, dialogs)
-  butter: '#FFF3B0',        // notepad yellow (shop tab)
-  butterDark: '#EDE068',    // ruled-line yellow (dividers in shop)
-  // Text
-  text: '#4A3728',          // warm brown (pencil on paper)
-  textLight: '#8C7B6E',     // muted warm grey
-  // Accents
-  dustyRose: '#E8BFB8',     // soft blush
-  lavender: '#C8BEE8',      // soft purple
-  softShadow: '#E0D5C8',    // borders / dividers
+// ─── Season palettes ──────────────────────────────────────────────────────────
+
+const springColors = {
+  primary: '#A3CCDA',     // sky blue
+  primaryDark: '#7AAFBF', // deeper sky
+  primaryLight: '#BDE3C3',// soft mint
+  error: '#D47070',
+  warning: '#D4A050',
+  background: '#F8F7BA',  // soft warm yellow
+  surface: '#FEFEF5',
+  butter: '#F8F7BA',
+  butterDark: '#EDEAA0',
+  text: '#3D3050',        // soft purple-dark
+  textLight: '#8A7090',
+  dustyRose: '#F5D2D2',
+  lavender: '#BDE3C3',
+  softShadow: '#E8D8D8',
 };
 
-// Dark mode: cozy evening — deep espresso darks, candlelight accents
-export const darkColors = {
-  primary: '#8FC46A',
-  primaryDark: '#7BA05B',
-  primaryLight: '#2D4A1E',
-  error: '#D4706A',
+const summerColors = {
+  primary: '#84B179',     // leafy sage
+  primaryDark: '#5E8B54', // deep garden
+  primaryLight: '#C7EABB',// pale mint
+  error: '#C05454',
+  warning: '#C87941',
+  background: '#E8F5BD',  // fresh lime-yellow
+  surface: '#F4FADF',
+  butter: '#E8F5BD',
+  butterDark: '#C7EABB',
+  text: '#2D4A28',        // deep forest green
+  textLight: '#5A7A55',
+  dustyRose: '#A2CB8B',
+  lavender: '#C7EABB',
+  softShadow: '#C7EABB',
+};
+
+const autumnColors = {
+  primary: '#DA8359',     // warm amber-orange
+  primaryDark: '#C06A40', // burnt sienna
+  primaryLight: '#ECDCCC',// warm beige
+  error: '#C0524A',
+  warning: '#DA8359',
+  background: '#FCFAEE',  // warm cream
+  surface: '#FFFEF9',
+  butter: '#ECDCCC',      // warm beige notepad
+  butterDark: '#D4C0A5',
+  text: '#3D2B1F',        // warm dark brown
+  textLight: '#8C6E5A',
+  dustyRose: '#ECDCCC',
+  lavender: '#A5B68D',    // muted sage
+  softShadow: '#E0CDB8',
+};
+
+const winterColors = {
+  primary: '#547792',     // steel blue
+  primaryDark: '#213448', // deep navy
+  primaryLight: '#94B4C1',// muted teal
+  error: '#C0524A',
   warning: '#D4874A',
-  background: '#1E1A16',
-  surface: '#2C2520',
-  butter: '#3A3010',
-  butterDark: '#4A3E18',
-  text: '#EDE4D8',
-  textLight: '#A09080',
-  dustyRose: '#6E3E38',
-  lavender: '#4A4268',
-  softShadow: '#3A3020',
+  background: '#EAE0CF',  // warm off-white
+  surface: '#F5F0E8',
+  butter: '#EAE0CF',      // cream notepad
+  butterDark: '#D4C8B5',
+  text: '#213448',        // deep navy
+  textLight: '#547792',
+  dustyRose: '#94B4C1',
+  lavender: '#94B4C1',
+  softShadow: '#D0C8BC',
 };
 
-export type Colors = typeof colors;
+export const seasonPalettes: Record<Season, typeof autumnColors> = {
+  spring: springColors,
+  summer: summerColors,
+  autumn: autumnColors,
+  winter: winterColors,
+};
+
+export type Colors = typeof autumnColors;
 
 export function useColors(): Colors {
-  const themeMode = useSettingsStore((s) => s.themeMode);
-  const systemScheme = useColorScheme();
-  const isDark = themeMode === 'dark' || (themeMode === 'system' && systemScheme === 'dark');
-  return isDark ? darkColors : colors;
+  const season = useSettingsStore((s) => s.season);
+  return seasonPalettes[season];
 }
 
 // ─── Spacing ─────────────────────────────────────────────────────────────────
@@ -70,33 +102,32 @@ export const radius = {
   pill: 24,
 };
 
-// ─── React Native Paper MD3 themes ───────────────────────────────────────────
-export const theme = {
-  ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    primary: colors.primary,
-    secondary: colors.dustyRose,
-    error: colors.error,
-    background: colors.background,
-    surface: colors.surface,
-    onPrimary: '#FFFFFF',
-    onBackground: colors.text,
-    onSurface: colors.text,
-  },
+// ─── React Native Paper MD3 themes (one per season) ──────────────────────────
+function makePaperTheme(c: Colors) {
+  return {
+    ...MD3LightTheme,
+    colors: {
+      ...MD3LightTheme.colors,
+      primary: c.primary,
+      secondary: c.dustyRose,
+      error: c.error,
+      background: c.background,
+      surface: c.surface,
+      onPrimary: '#FFFFFF',
+      onBackground: c.text,
+      onSurface: c.text,
+    },
+  };
+}
+
+export const seasonThemes: Record<Season, ReturnType<typeof makePaperTheme>> = {
+  spring: makePaperTheme(springColors),
+  summer: makePaperTheme(summerColors),
+  autumn: makePaperTheme(autumnColors),
+  winter: makePaperTheme(winterColors),
 };
 
-export const darkTheme = {
-  ...MD3DarkTheme,
-  colors: {
-    ...MD3DarkTheme.colors,
-    primary: darkColors.primary,
-    secondary: darkColors.dustyRose,
-    error: darkColors.error,
-    background: darkColors.background,
-    surface: darkColors.surface,
-    onPrimary: '#FFFFFF',
-    onBackground: darkColors.text,
-    onSurface: darkColors.text,
-  },
-};
+// Legacy exports kept so auth screens and any stray imports don't break
+export const colors = autumnColors;
+export const theme = seasonThemes.autumn;
+export const darkTheme = seasonThemes.winter;

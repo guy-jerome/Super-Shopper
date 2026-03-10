@@ -1,16 +1,23 @@
 import { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, useColorScheme } from 'react-native';
-import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar, IconButton, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar, IconButton } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useSettingsStore, type ThemeMode } from '../../stores/useSettingsStore';
+import { useSettingsStore, type Season } from '../../stores/useSettingsStore';
 import { useShareStore } from '../../stores/useShareStore';
-import { useColors, spacing, radius, type Colors } from '../../constants/theme';
+import { useColors, spacing, radius, seasonPalettes, type Colors } from '../../constants/theme';
+
+const SEASONS: { id: Season; label: string; icon: string; swatches: string[] }[] = [
+  { id: 'spring', label: 'Spring', icon: 'flower-tulip-outline', swatches: ['#F5D2D2', '#F8F7BA', '#BDE3C3', '#A3CCDA'] },
+  { id: 'summer', label: 'Summer', icon: 'white-balance-sunny',  swatches: ['#84B179', '#A2CB8B', '#C7EABB', '#E8F5BD'] },
+  { id: 'autumn', label: 'Autumn', icon: 'leaf-maple',           swatches: ['#A5B68D', '#ECDCCC', '#FCFAEE', '#DA8359'] },
+  { id: 'winter', label: 'Winter', icon: 'snowflake',            swatches: ['#213448', '#547792', '#94B4C1', '#EAE0CF'] },
+];
 
 export default function SettingsScreen() {
   const { user, signOut, updatePassword, deleteAccount } = useAuthStore();
-  const { themeMode, setThemeMode } = useSettingsStore();
-  const systemScheme = useColorScheme();
+  const { season, setSeason } = useSettingsStore();
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -125,29 +132,43 @@ export default function SettingsScreen() {
           onPress={() => setShareDialog(true)}
         />
         <Divider style={styles.divider} />
-        <List.Item
-          title="Theme"
-          description={themeMode === 'system' ? 'System default' : themeMode === 'dark' ? 'Dark' : 'Light'}
-          titleStyle={styles.listItemTitle}
-          descriptionStyle={styles.listItemDescription}
-          left={(p) => <List.Icon {...p} icon="palette-outline" color={colors.primary} />}
-          right={() => (
-            <View style={styles.themeSegment}>
-              {(['light', 'system', 'dark'] as ThemeMode[]).map((m) => (
-                <Button
-                  key={m}
-                  mode={themeMode === m ? 'contained' : 'outlined'}
-                  compact
-                  onPress={() => setThemeMode(m, systemScheme === 'dark')}
-                  style={[styles.themeBtn, themeMode === m ? styles.themeBtnActive : styles.themeBtnInactive]}
-                  labelStyle={styles.themeBtnLabel}
+        <View style={styles.seasonSection}>
+          <View style={styles.seasonSectionHeader}>
+            <MaterialCommunityIcons name="palette-outline" size={20} color={colors.primary} />
+            <Text variant="labelLarge" style={styles.seasonSectionLabel}>Season Theme</Text>
+          </View>
+          <View style={styles.seasonGrid}>
+            {SEASONS.map((s) => {
+              const p = seasonPalettes[s.id];
+              const active = season === s.id;
+              return (
+                <TouchableOpacity
+                  key={s.id}
+                  style={[styles.seasonCard, { borderColor: active ? p.primary : p.softShadow, borderWidth: active ? 2.5 : 1.5 }]}
+                  onPress={() => setSeason(s.id)}
+                  activeOpacity={0.8}
                 >
-                  {m === 'system' ? 'Auto' : m === 'dark' ? 'Dark' : 'Light'}
-                </Button>
-              ))}
-            </View>
-          )}
-        />
+                  {/* Canopy stripe */}
+                  <View style={[styles.seasonCanopy, { backgroundColor: p.primary }]} />
+                  {/* Palette swatches */}
+                  <View style={styles.seasonSwatches}>
+                    {s.swatches.map((hex, i) => (
+                      <View key={i} style={[styles.seasonSwatch, { backgroundColor: hex }]} />
+                    ))}
+                  </View>
+                  {/* Icon + label */}
+                  <View style={[styles.seasonBody, { backgroundColor: p.background }]}>
+                    <MaterialCommunityIcons name={s.icon as any} size={22} color={p.primary} />
+                    <Text style={[styles.seasonName, { color: p.text }]}>{s.label}</Text>
+                    {active && (
+                      <MaterialCommunityIcons name="check-circle" size={14} color={p.primary} style={{ marginTop: 2 }} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
       </View>
 
       <View style={styles.signOutSection}>
@@ -346,11 +367,48 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     fontStyle: 'italic',
     letterSpacing: 0.5,
   },
-  themeSegment: { flexDirection: 'row', gap: 4, alignItems: 'center' },
-  themeBtn: { minWidth: 0 },
-  themeBtnActive: { backgroundColor: colors.primary },
-  themeBtnInactive: { backgroundColor: colors.surface, borderColor: colors.softShadow },
-  themeBtnLabel: { fontSize: 11 },
+  seasonSection: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  seasonSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  seasonSectionLabel: { color: colors.textLight },
+  seasonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  seasonCard: {
+    width: '47%',
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+  },
+  seasonCanopy: {
+    height: 6,
+  },
+  seasonSwatches: {
+    flexDirection: 'row',
+    height: 18,
+  },
+  seasonSwatch: {
+    flex: 1,
+  },
+  seasonBody: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    gap: 4,
+  },
+  seasonName: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
   shareRow: {
     flexDirection: 'row',
     alignItems: 'center',
