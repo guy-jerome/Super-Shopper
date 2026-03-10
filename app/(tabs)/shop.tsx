@@ -28,7 +28,7 @@ import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { SwipeableRow } from "../../components/SwipeableRow";
-import { useColors, spacing, type Colors } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors } from "../../constants/theme";
 import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
 import { SkeletonRow } from "../../components/SkeletonRow";
 
@@ -585,7 +585,7 @@ export default function ShopScreen() {
       </ScrollView>
 
       <FAB
-        icon="plus"
+        icon="pencil-plus"
         label="Add Item"
         style={styles.fab}
         onPress={() => setAddDialog(true)}
@@ -807,7 +807,9 @@ function ShoppingItem({
 }
 
 function createStyles(colors: Colors) { return StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  // Overall container: butter yellow notepad
+  container: { flex: 1, backgroundColor: colors.butter },
+  // Header peeks above the notepad in parchment
   headerSurface: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
@@ -824,7 +826,8 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   progressBar: { flex: 1, height: 6, borderRadius: 3 },
   progressText: { color: colors.textLight, minWidth: 90, textAlign: "right" },
-  scroll: { flex: 1 },
+  // ScrollView area is the notepad itself
+  scroll: { flex: 1, backgroundColor: colors.butter },
   scrollContent: { paddingBottom: 100 },
   fab: {
     position: "absolute",
@@ -833,7 +836,13 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     backgroundColor: colors.primary,
   },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  notesSection: { padding: spacing.md },
+  // Notes section: cream/parchment background with soft bottom border
+  notesSection: {
+    padding: spacing.md,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.softShadow,
+  },
   notesHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -860,11 +869,15 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     marginBottom: spacing.sm,
   },
   emptySubtitle: { color: colors.textLight, textAlign: "center" },
+  // Item rows: transparent so butter-yellow notepad shows through; ruled line at bottom
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingRight: spacing.md,
-    minHeight: 56,
+    minHeight: 52,
+    backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.butterDark,
   },
   itemInfo: {
     flex: 1,
@@ -875,31 +888,39 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   itemNameWrap: { flex: 1 },
   itemName: { color: colors.text },
   itemMeta: { color: colors.textLight, marginTop: 1 },
-  itemChecked: { textDecorationLine: "line-through", color: colors.textLight },
+  // Checked items: red-pen strikethrough (terracotta)
+  itemChecked: { textDecorationLine: "line-through", color: colors.error },
+  // Qty badge: light sage chip
   qtyBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: 12,
   },
   qtyBadgeText: { color: colors.primary },
-  itemDivider: { marginLeft: spacing.md + 36 },
+  // Divider between items hidden — ruled line on itemRow handles visual separation
+  itemDivider: { marginLeft: spacing.md + 36, backgroundColor: "transparent" },
   clearButton: { margin: spacing.md, borderColor: colors.error },
+  // Aisle headers: sticky-note tab style (full-width, light sage, left accent bar)
   aisleHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 0,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
-  aisleHeaderText: { flex: 1, color: colors.primary, fontWeight: "600" },
+  aisleHeaderText: { flex: 1, color: colors.primaryDark, fontWeight: "600" },
   markAllBtn: { paddingHorizontal: spacing.sm, paddingVertical: 4 },
   markAllText: { color: colors.primary },
-  jumpBar: { maxHeight: 44, backgroundColor: colors.background },
+  // Jump bar pills
+  jumpBar: { maxHeight: 44, backgroundColor: colors.butter },
   jumpBarContent: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
@@ -908,10 +929,10 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   jumpPill: {
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: radius.pill,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.surface,
+    borderColor: colors.softShadow,
   },
   jumpPillActive: {
     backgroundColor: colors.primary,
@@ -926,12 +947,17 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     gap: spacing.lg,
   },
   qtyValue: { minWidth: 40, textAlign: "center", color: colors.text },
+  // Shared section: paper-white card with soft shadow
   sharedSection: {
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
     padding: spacing.md,
-    borderRadius: 10,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
+    shadowColor: colors.text,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   sharedHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   sharedHeaderText: { color: colors.primary, fontWeight: '600' },
@@ -940,21 +966,35 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   sharedItemName: { flex: 1, color: colors.text },
   sharedItemChecked: { textDecorationLine: 'line-through', color: colors.textLight },
   sharedItemMeta: { color: colors.textLight, fontSize: 12 },
-  historySection: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+  // History section: paper-white card with soft shadow
+  historySection: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    shadowColor: colors.text,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+    overflow: "hidden",
+  },
   historyHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
   historyDateRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.surface,
+    borderBottomColor: colors.softShadow,
   },
-  historyItem: { color: colors.text, paddingVertical: 4, paddingLeft: spacing.sm },
+  historyItem: { color: colors.text, paddingVertical: 4, paddingLeft: spacing.md + spacing.sm },
   historyItemChecked: { color: colors.textLight, textDecorationLine: "line-through" },
 }); }
