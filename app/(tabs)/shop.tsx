@@ -36,9 +36,17 @@ import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { SwipeableRow } from "../../components/SwipeableRow";
 import { useColors, spacing, radius, type Colors, getCardStyle, useSeasonalBgStyle } from "../../constants/theme";
+import { useSettingsStore, type Season } from "../../stores/useSettingsStore";
 import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { SeasonalDivider } from "../../components/SeasonalDivider";
+
+const SHOP_TAGLINES: Record<Season, string> = {
+  spring: 'The bees approve of your shopping habits.',
+  summer: 'Fresh picks and garden finds await.',
+  autumn: 'Cozy up the pantry — harvest season calls.',
+  winter: 'Stock up and stay warm by the fire.',
+};
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -46,6 +54,7 @@ export default function ShopScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const bgStyle = useSeasonalBgStyle(colors.butter);
+  const season = useSettingsStore((s) => s.season);
   const { user } = useAuthStore();
   const {
     shoppingList,
@@ -510,7 +519,7 @@ export default function ShopScreen() {
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
               Head to the Home tab and tap items you're running low on — they'll appear here organised by aisle.
             </Text>
-            <Text style={styles.emptyDecorative}>Happy shopping ✨</Text>
+            <Text style={styles.emptyDecorative}>{SHOP_TAGLINES[season]}</Text>
           </View>
         ) : aisleGroups ? (
           aisleGroups.map((group) => (
@@ -942,7 +951,7 @@ function ShoppingProgress({ checked, total, colors }: { checked: number; total: 
       <View style={{ height: 6, backgroundColor: colors.softShadow, borderRadius: 3, overflow: 'hidden' }}>
         <Animated.View style={[{
           height: 6,
-          backgroundColor: colors.primary,
+          backgroundColor: colors.accent,
           borderRadius: 3,
         }, barStyle]} />
       </View>
@@ -1050,7 +1059,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   // Sticky notes + coupons panels above the list
   stickyPanels: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.butter,
     borderBottomWidth: 2,
     borderBottomColor: colors.butterDark,
   },
@@ -1067,8 +1076,8 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   panelContent: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
-    borderLeftWidth: 2,
-    borderLeftColor: colors.primaryLight,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
     marginLeft: spacing.md,
   },
   panelDivider: { backgroundColor: colors.softShadow },
@@ -1127,8 +1136,8 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   itemNameWrap: { flex: 1 },
   itemName: { color: colors.text },
   itemMeta: { color: colors.textLight, marginTop: 1 },
-  // Checked items: red-pen strikethrough (terracotta)
-  itemChecked: { textDecorationLine: "line-through", color: colors.error },
+  // Checked items: seasonal accent strikethrough
+  itemChecked: { textDecorationLine: "line-through", color: colors.accent },
   // Qty badge: light sage chip
   qtyBadge: {
     flexDirection: "row",
