@@ -33,7 +33,7 @@ import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
 import { DragHandle } from "../../components/DraggableList";
-import { useColors, spacing, radius, type Colors } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, useSeasonalBgStyle } from "../../constants/theme";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { useSettingsStore } from "../../stores/useSettingsStore";
@@ -46,6 +46,7 @@ export default function StoresScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const storeListStyles = useMemo(() => createStoreListStyles(colors), [colors]);
+  const bgStyle = useSeasonalBgStyle(colors.background);
   const { user } = useAuthStore();
   const { season } = useSettingsStore();
   const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
@@ -268,7 +269,7 @@ export default function StoresScreen() {
   // ── Store detail view ──────────────────────────────────────────────────────
   if (screen === "detail" && activeStore) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, bgStyle]}>
         <Surface style={styles.headerSurface} elevation={0}>
           <View style={styles.headerRow}>
             <IconButton icon="arrow-left" onPress={() => setScreen("list")} />
@@ -555,7 +556,7 @@ export default function StoresScreen() {
 
   // ── Store list view ────────────────────────────────────────────────────────
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, bgStyle]}>
       <PageHeader title="Stores" subtitle="Manage your store layouts" colors={colors} />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">

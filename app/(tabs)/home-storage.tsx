@@ -39,7 +39,7 @@ import { DragHandle } from "../../components/DraggableList";
 import { SwipeableRow } from "../../components/SwipeableRow";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useColors, spacing, radius, type Colors, getCardStyle } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, getCardStyle, useSeasonalBgStyle } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
 import { STORAGE_TEMPLATES } from "../../constants/templates";
 import { OnboardingModal } from "../../components/OnboardingModal";
@@ -55,6 +55,7 @@ const today = new Date().toISOString().split("T")[0];
 export default function HomeStorageScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const bgStyle = useSeasonalBgStyle(colors.background);
   const { user } = useAuthStore();
   const {
     locations,
@@ -306,7 +307,7 @@ export default function HomeStorageScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, bgStyle]}>
       <PageHeader title="Home Storage" subtitle="Check items you need to buy" colors={colors} />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">

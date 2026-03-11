@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore, type Season } from '../../stores/useSettingsStore';
 import { useShareStore } from '../../stores/useShareStore';
-import { useColors, spacing, radius, seasonPalettes, type Colors } from '../../constants/theme';
+import { useColors, spacing, radius, seasonPalettes, type Colors, useSeasonalBgStyle } from '../../constants/theme';
 import { PageHeader } from '../../components/PageHeader';
 
 const SEASONS: { id: Season; label: string; icon: string; swatches: string[] }[] = [
@@ -21,6 +21,7 @@ export default function SettingsScreen() {
   const { season, setSeason } = useSettingsStore();
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const bgStyle = useSeasonalBgStyle(colors.background);
   const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
   const { myShares, loadShares, shareWithEmail, removeShare } = useShareStore();
@@ -98,7 +99,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, bgStyle]}>
       <PageHeader title="Settings" colors={colors} />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">

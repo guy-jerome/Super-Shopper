@@ -28,7 +28,7 @@ import { useShoppingStore } from "../../stores/useShoppingStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
-import { useColors, spacing, radius, type Colors } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, useSeasonalBgStyle } from "../../constants/theme";
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
@@ -39,6 +39,7 @@ const TAG_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA', '#B8E
 export default function ItemsScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const bgStyle = useSeasonalBgStyle(colors.background);
   const { user } = useAuthStore();
   const {
     items,
@@ -165,7 +166,7 @@ export default function ItemsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, bgStyle]}>
       <PageHeader
         title="Items"
         subtitle={`${items.length} item${items.length !== 1 ? 's' : ''} total`}

@@ -35,7 +35,7 @@ import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import { SwipeableRow } from "../../components/SwipeableRow";
-import { useColors, spacing, radius, type Colors, getCardStyle } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, getCardStyle, useSeasonalBgStyle } from "../../constants/theme";
 import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { SeasonalDivider } from "../../components/SeasonalDivider";
@@ -45,6 +45,7 @@ const today = new Date().toISOString().split("T")[0];
 export default function ShopScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const bgStyle = useSeasonalBgStyle(colors.butter);
   const { user } = useAuthStore();
   const {
     shoppingList,
@@ -285,7 +286,7 @@ export default function ShopScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, bgStyle]}>
       {/* Header */}
       <Surface style={styles.headerSurface} elevation={1}>
         <View style={styles.headerRow}>
