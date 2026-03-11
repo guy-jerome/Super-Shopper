@@ -38,6 +38,7 @@ import { SwipeableRow } from "../../components/SwipeableRow";
 import { useColors, spacing, radius, type Colors } from "../../constants/theme";
 import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
 import { SkeletonRow } from "../../components/SkeletonRow";
+import { SeasonalDivider } from "../../components/SeasonalDivider";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -512,64 +513,66 @@ export default function ShopScreen() {
           </View>
         ) : aisleGroups ? (
           aisleGroups.map((group) => (
-            <View
-              key={group.aisleId}
-              onLayout={(e) => {
-                aisleSectionOffsets.current[group.aisleId] =
-                  e.nativeEvent.layout.y;
-              }}
-            >
-              <View style={styles.aisleHeader}>
-                <MaterialCommunityIcons
-                  name="map-marker-outline"
-                  size={16}
-                  color={colors.primary}
-                />
-                <Text variant="labelLarge" style={styles.aisleHeaderText}>
-                  {group.name}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    const allDone = group.items.every((i) => i.checked);
-                    markAllChecked(
-                      group.items.map((i) => i.id),
-                      !allDone,
-                    );
-                  }}
-                  style={styles.markAllBtn}
-                >
-                  <Text variant="labelSmall" style={styles.markAllText}>
-                    {group.items.every((i) => i.checked)
-                      ? "Unmark all"
-                      : "Mark all done"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              {group.items.map((item) => (
-                <SwipeableRow
-                  key={item.id}
-                  onDelete={() => {
-                    const saved = item;
-                    showUndo(
-                      `${saved.item_name} removed`,
-                      () => removeFromList(saved.id),
-                      () => { if (user) addToList(user.id, saved.item_id, saved.quantity); },
-                    );
-                  }}
-                >
-                  <ShoppingItem
-                    item={item}
-                    onToggle={() => handleToggleChecked(item.id, !item.checked)}
-                    onEditQty={() =>
-                      openQtyEdit(item.id, item.item_name, item.quantity)
-                    }
-                    onOpenDetail={() => setDetailItemId(item.item_id)}
-                    colors={colors}
-                    styles={styles}
+            <View key={group.aisleId}>
+              <View
+                onLayout={(e) => {
+                  aisleSectionOffsets.current[group.aisleId] =
+                    e.nativeEvent.layout.y;
+                }}
+              >
+                <View style={styles.aisleHeader}>
+                  <MaterialCommunityIcons
+                    name="map-marker-outline"
+                    size={16}
+                    color={colors.primary}
                   />
-                  <Divider style={styles.itemDivider} />
-                </SwipeableRow>
-              ))}
+                  <Text variant="labelLarge" style={styles.aisleHeaderText}>
+                    {group.name}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const allDone = group.items.every((i) => i.checked);
+                      markAllChecked(
+                        group.items.map((i) => i.id),
+                        !allDone,
+                      );
+                    }}
+                    style={styles.markAllBtn}
+                  >
+                    <Text variant="labelSmall" style={styles.markAllText}>
+                      {group.items.every((i) => i.checked)
+                        ? "Unmark all"
+                        : "Mark all done"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {group.items.map((item) => (
+                  <SwipeableRow
+                    key={item.id}
+                    onDelete={() => {
+                      const saved = item;
+                      showUndo(
+                        `${saved.item_name} removed`,
+                        () => removeFromList(saved.id),
+                        () => { if (user) addToList(user.id, saved.item_id, saved.quantity); },
+                      );
+                    }}
+                  >
+                    <ShoppingItem
+                      item={item}
+                      onToggle={() => handleToggleChecked(item.id, !item.checked)}
+                      onEditQty={() =>
+                        openQtyEdit(item.id, item.item_name, item.quantity)
+                      }
+                      onOpenDetail={() => setDetailItemId(item.item_id)}
+                      colors={colors}
+                      styles={styles}
+                    />
+                    <Divider style={styles.itemDivider} />
+                  </SwipeableRow>
+                ))}
+              </View>
+              <SeasonalDivider />
             </View>
           ))
         ) : (

@@ -21,7 +21,6 @@ import {
   ActivityIndicator,
   Checkbox,
   IconButton,
-  Divider,
   Surface,
   Snackbar,
   Searchbar,
@@ -47,6 +46,7 @@ import { OnboardingModal } from "../../components/OnboardingModal";
 import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { EmptyState } from "../../components/EmptyState";
+import { SeasonalDivider } from "../../components/SeasonalDivider";
 import { PageHeader } from "../../components/PageHeader";
 import { useSettingsStore } from "../../stores/useSettingsStore";
 
@@ -1096,7 +1096,7 @@ function LocationSection({
           )}
         </View>
       )}
-      <Divider />
+      <SeasonalDivider />
     </View>
   );
 }
