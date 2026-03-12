@@ -36,8 +36,8 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // Season-aware frosted glass background
   const isDark = season === 'winter';
-  const frostedBg = isDark ? 'rgba(30,58,80,0.90)' : 'rgba(255,255,255,0.88)';
-  const borderColor = colors.primary + '26'; // ~15% opacity
+  const frostedBg = isDark ? 'rgba(30,42,60,0.92)' : 'rgba(255,255,255,0.88)';
+  const borderColor = colors.divider + '4D'; // ~30% opacity divider border
 
   // Web frosted glass via inline style (backdropFilter not in RN StyleSheet types)
   const webFrostedStyle =
@@ -59,8 +59,8 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         if (!tabConfig) return null;
 
         const iconName = focused ? tabConfig.active : tabConfig.inactive;
-        const iconColor = focused ? colors.primary : colors.textLight;
-        const labelColor = focused ? colors.primary : colors.textLight;
+        const iconColor = focused ? colors.accent : colors.textLight;
+        const labelColor = focused ? colors.accent : colors.textLight;
 
         // Badge count for specific tabs
         let badge = 0;
@@ -101,7 +101,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               <View
                 style={[
                   styles.activePill,
-                  { backgroundColor: colors.primary + '22' },
+                  { backgroundColor: colors.accent + '33' },
                 ]}
               />
             )}
@@ -110,7 +110,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             <View style={styles.iconWrapper}>
               <MaterialCommunityIcons name={iconName} size={22} color={iconColor} />
               {badge > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+                <View style={[styles.badge, { backgroundColor: colors.accent }]}>
                   <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
                 </View>
               )}

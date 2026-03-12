@@ -171,6 +171,7 @@ export default function ItemsScreen() {
         title="Items"
         subtitle={`${items.length} item${items.length !== 1 ? 's' : ''} total`}
         colors={colors}
+        tab="items"
         right={
           <Menu
             visible={sortMenuVisible}
@@ -324,7 +325,7 @@ export default function ItemsScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="tag-multiple-outline"
-            title={search || filterMode !== "all" ? "No matching items" : "No items yet"}
+            title={search || filterMode !== "all" ? "No matching items" : season === 'spring' ? "No items yet — start your collection" : season === 'summer' ? "A blank slate — what do you need?" : season === 'autumn' ? "Open a fresh page" : "Nothing in the basket yet"}
             subtitle={
               filterMode === "no-home"
                 ? "All items have a home storage location"

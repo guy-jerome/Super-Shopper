@@ -100,7 +100,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, bgStyle]}>
-      <PageHeader title="Settings" colors={colors} />
+      <PageHeader title="Settings" colors={colors} tab="settings" />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">
           <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />

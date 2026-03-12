@@ -308,7 +308,7 @@ export default function HomeStorageScreen() {
 
   return (
     <View style={[styles.container, bgStyle]}>
-      <PageHeader title="Home Storage" subtitle="Check items you need to buy" colors={colors} />
+      <PageHeader title="Home Storage" subtitle="Check items you need to buy" colors={colors} tab="home-storage" titleFont="handwritten" />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">
           <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />
@@ -342,7 +342,7 @@ export default function HomeStorageScreen() {
         {locations.length === 0 ? (
           <EmptyState
             icon="fridge-outline"
-            title="No locations yet"
+            title={season === 'spring' ? 'Your shelves are bare — time to plant some groceries!' : season === 'summer' ? "Basket's empty — let's fill it!" : season === 'autumn' ? 'Nothing on the shelves yet' : 'Cozy and empty in here'}
             subtitle="Add your kitchen zones — Fridge, Pantry, Freezer — to start tracking what you need."
             colors={colors}
           >
@@ -823,6 +823,7 @@ function SubsectionSection({
   colors: Colors;
 }) {
   const sectionStyles = useMemo(() => createSectionStyles(colors), [colors]);
+  const { season } = useSettingsStore();
   const headerAnim = useRef(new Animated.Value(0)).current;
 
   const handleHeaderActiveChange = (active: boolean) => {
@@ -845,8 +846,15 @@ function SubsectionSection({
 
   return (
     <View style={sectionStyles.subsectionContainer}>
-      <Animated.View style={[sectionStyles.subsectionHeader, { backgroundColor: headerBg }]}>
-        <View style={sectionStyles.subsectionLine} />
+      <Animated.View style={[
+        sectionStyles.subsectionHeader,
+        { backgroundColor: headerBg },
+        season === 'summer' && { backgroundColor: colors.primaryDark },
+        season === 'autumn' && { backgroundColor: colors.accentLight, transform: [{ rotate: '-0.3deg' }] },
+        season === 'winter' && { backgroundColor: colors.cardBg },
+        season === 'spring' && { backgroundColor: colors.accentLight },
+      ]}>
+        <View style={[sectionStyles.subsectionLine, { backgroundColor: season === 'winter' ? colors.accent : season === 'summer' ? colors.accent : colors.stripe }]} />
         <DragHandle
           canMoveUp={subIdx > 0}
           canMoveDown={subIdx < totalSubs - 1}
@@ -872,8 +880,8 @@ function SubsectionSection({
             color={colors.textLight}
           />
           <View style={sectionStyles.titleText}>
-            <Text variant="bodyLarge" style={sectionStyles.subsectionName}>
-              {subsection.name}
+            <Text variant="bodyLarge" style={[sectionStyles.subsectionName, season === 'summer' && { color: '#F5F5DC' }, season === 'winter' && { color: colors.accent }]}>
+              {season === 'winter' ? `·❄· ${subsection.name}` : subsection.name}
             </Text>
             <Text variant="bodySmall" style={sectionStyles.itemCount}>
               {subsection.items.length} item{subsection.items.length !== 1 ? "s" : ""}

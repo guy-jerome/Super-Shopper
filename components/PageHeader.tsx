@@ -5,6 +5,16 @@ import type { Colors } from '../constants/theme';
 import { spacing } from '../constants/theme';
 import { useSettingsStore, type Season } from '../stores/useSettingsStore';
 
+// Per-tab, per-season background watermark icon
+const TAB_SEASON_ICONS: Record<string, Record<Season, string>> = {
+  'home-storage': { spring: 'flower', summer: 'basket', autumn: 'cupboard', winter: 'fire' },
+  items:          { spring: 'bee', summer: 'notebook', autumn: 'book-open-variant', winter: 'yarn' },
+  stores:         { spring: 'store', summer: 'cart', autumn: 'map-marker', winter: 'snowflake' },
+  shop:           { spring: 'clipboard-list', summer: 'bag-personal', autumn: 'format-list-checkbox', winter: 'gift' },
+  settings:       { spring: 'ladybug', summer: 'leaf', autumn: 'coffee', winter: 'cat' },
+};
+
+// Fallback generic season icon if tab not provided
 const SEASON_ICONS: Record<Season, string> = {
   spring: 'flower-tulip-outline',
   summer: 'white-balance-sunny',
@@ -18,10 +28,20 @@ interface PageHeaderProps {
   colors: Colors;
   right?: React.ReactNode;
   left?: React.ReactNode;
+  tab?: string;                              // e.g. 'home-storage', 'shop', etc.
+  titleFont?: 'display' | 'handwritten';    // 'handwritten' uses Caveat_700Bold
 }
 
-export function PageHeader({ title, subtitle, colors, right, left }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, colors, right, left, tab, titleFont }: PageHeaderProps) {
   const season = useSettingsStore((s) => s.season);
+
+  const watermarkIcon = tab
+    ? (TAB_SEASON_ICONS[tab]?.[season] ?? SEASON_ICONS[season])
+    : SEASON_ICONS[season];
+
+  const titleStyle = titleFont === 'handwritten'
+    ? [styles.title, { color: colors.text, fontFamily: 'Caveat_700Bold', fontSize: 30 }]
+    : [styles.title, { color: colors.text }];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -33,7 +53,7 @@ export function PageHeader({ title, subtitle, colors, right, left }: PageHeaderP
       {Platform.OS === 'web' && (
         <View style={styles.watermark} pointerEvents="none">
           <MaterialCommunityIcons
-            name={SEASON_ICONS[season] as any}
+            name={watermarkIcon as any}
             size={90}
             color={colors.primary}
           />
@@ -44,7 +64,7 @@ export function PageHeader({ title, subtitle, colors, right, left }: PageHeaderP
       <View style={styles.content}>
         {left && <View style={styles.leftSlot}>{left}</View>}
         <View style={styles.titleArea}>
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          <Text style={titleStyle}>{title}</Text>
           {subtitle && (
             <Text style={[styles.subtitle, { color: colors.textLight }]}>{subtitle}</Text>
           )}

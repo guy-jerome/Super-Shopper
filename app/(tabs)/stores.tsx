@@ -557,7 +557,7 @@ export default function StoresScreen() {
   // ── Store list view ────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, bgStyle]}>
-      <PageHeader title="Stores" subtitle="Manage your store layouts" colors={colors} />
+      <PageHeader title="Stores" subtitle="Manage your store layouts" colors={colors} tab="stores" />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">
           <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />
@@ -574,7 +574,7 @@ export default function StoresScreen() {
         {stores.length === 0 ? (
           <EmptyState
             icon="storefront-outline"
-            title="No stores yet"
+            title={season === 'spring' ? "No stores yet — add your favourite market" : season === 'summer' ? "No market set up yet" : season === 'autumn' ? "Add your shops here" : "No stores mapped yet"}
             subtitle="Add your grocery stores to organize shopping by aisle."
             colors={colors}
           >

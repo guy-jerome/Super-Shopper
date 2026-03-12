@@ -442,7 +442,7 @@ export default function ShopScreen() {
                 autoFocus
               />
             ) : (
-              <TouchableOpacity onPress={() => setEditingNotes(true)}>
+              <TouchableOpacity onPress={() => setEditingNotes(true)} style={styles.noteDisplayBox}>
                 <Text style={[styles.notesText, !notes && styles.notesPlaceholder]}>
                   {notes || "Tap to add notes..."}
                 </Text>
@@ -486,7 +486,7 @@ export default function ShopScreen() {
                 autoFocus
               />
             ) : (
-              <TouchableOpacity onPress={() => setEditingCoupons(true)}>
+              <TouchableOpacity onPress={() => setEditingCoupons(true)} style={styles.noteDisplayBox}>
                 <Text style={[styles.notesText, !savedCoupons && styles.notesPlaceholder]}>
                   {savedCoupons || "Tap to add coupons..."}
                 </Text>
@@ -514,7 +514,7 @@ export default function ShopScreen() {
               color={colors.primaryLight}
             />
             <Text variant="titleLarge" style={styles.emptyTitle}>
-              Your list is clear!
+              {season === 'spring' ? "Nothing on the list — enjoy the freedom!" : season === 'summer' ? "List is clear — you're all set!" : season === 'autumn' ? "List is blank — what do you need?" : "Nothing to fetch — stay warm!"}
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
               Head to the Home tab and tap items you're running low on — they'll appear here organised by aisle.
@@ -530,14 +530,25 @@ export default function ShopScreen() {
                     e.nativeEvent.layout.y;
                 }}
               >
-                <View style={styles.aisleHeader}>
+                <View style={[
+                  styles.aisleHeader,
+                  season === 'summer' && { backgroundColor: colors.primaryDark, borderLeftColor: colors.accent },
+                  season === 'autumn' && { backgroundColor: colors.accentLight, borderLeftColor: colors.stripe, transform: [{ rotate: '-0.3deg' }] },
+                  season === 'winter' && { backgroundColor: colors.cardBg, borderLeftColor: colors.accent },
+                  season === 'spring' && { backgroundColor: colors.accentLight, borderLeftColor: colors.stripe },
+                ]}>
                   <MaterialCommunityIcons
                     name="map-marker-outline"
                     size={16}
-                    color={colors.primary}
+                    color={season === 'summer' ? '#F5F5DC' : colors.primary}
                   />
-                  <Text variant="labelLarge" style={styles.aisleHeaderText}>
-                    {group.name}
+                  <Text variant="labelLarge" style={[
+                    styles.aisleHeaderText,
+                    season === 'summer' && { color: '#F5F5DC' },
+                    season === 'autumn' && { color: colors.text },
+                    season === 'winter' && { color: colors.text },
+                  ]}>
+                    {season === 'winter' ? `·❄· ${group.name} ·❄·` : group.name}
                   </Text>
                   <TouchableOpacity
                     onPress={() => {
@@ -549,7 +560,10 @@ export default function ShopScreen() {
                     }}
                     style={styles.markAllBtn}
                   >
-                    <Text variant="labelSmall" style={styles.markAllText}>
+                    <Text variant="labelSmall" style={[
+                      styles.markAllText,
+                      season === 'summer' && { color: '#F5F5DC' },
+                    ]}>
                       {group.items.every((i) => i.checked)
                         ? "Unmark all"
                         : "Mark all done"}
@@ -1081,13 +1095,29 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     marginLeft: spacing.md,
   },
   panelDivider: { backgroundColor: colors.softShadow },
-  notesInput: { minHeight: 60 },
+  notesInput: {
+    minHeight: 60,
+    backgroundColor: colors.cardBg,
+    borderStyle: 'dashed' as const,
+    borderColor: colors.divider,
+    borderRadius: 6,
+  },
   notesText: {
     color: colors.text,
     lineHeight: 22,
     paddingVertical: spacing.xs,
   },
   notesPlaceholder: { color: colors.textLight, fontStyle: "italic" },
+  noteDisplayBox: {
+    backgroundColor: colors.cardBg,
+    borderWidth: 1,
+    borderStyle: 'dashed' as const,
+    borderColor: colors.divider,
+    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    minHeight: 44,
+  },
   emptyState: {
     alignItems: "center",
     justifyContent: "center",

@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, Text } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
+import { Caveat_700Bold } from '@expo-google-fonts/caveat';
 import * as SplashScreen from 'expo-splash-screen';
 import { seasonThemes } from '../constants/theme';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -15,7 +16,7 @@ import { useOfflineSync } from '../hooks/useOfflineSync';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold });
+  const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Caveat_700Bold });
   const { user, isLoading, initialize } = useAuthStore();
   const { season, loadSeason } = useSettingsStore();
   const { loadSortOrder } = useItemStore();
