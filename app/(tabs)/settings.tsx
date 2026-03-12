@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar, IconButton } from 'react-native-paper';
+import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar, IconButton, Menu } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -37,6 +37,7 @@ export default function SettingsScreen() {
   const [shareError, setShareError] = useState('');
   const [isSharing, setIsSharing] = useState(false);
   const [snackbar, setSnackbar] = useState('');
+  const [accountMenu, setAccountMenu] = useState(false);
 
   useEffect(() => { loadShares(); }, []);
 
@@ -107,14 +108,30 @@ export default function SettingsScreen() {
         </View>
       )}
 
-      {/* Account card */}
-      <Surface style={styles.accountCard} elevation={1}>
-        <Avatar.Text size={56} label={initials} style={styles.avatar} />
-        <View style={styles.accountInfo}>
-          <Text variant="titleMedium" style={styles.email}>{user?.email}</Text>
-          <Text variant="bodySmall" style={styles.accountLabel}>Signed in</Text>
-        </View>
-      </Surface>
+      {/* Account card — tap for sign out */}
+      <Menu
+        visible={accountMenu}
+        onDismiss={() => setAccountMenu(false)}
+        anchor={
+          <TouchableOpacity onPress={() => setAccountMenu(true)} activeOpacity={0.7}>
+            <Surface style={styles.accountCard} elevation={1}>
+              <Avatar.Text size={56} label={initials} style={styles.avatar} />
+              <View style={styles.accountInfo}>
+                <Text variant="titleMedium" style={styles.email}>{user?.email}</Text>
+                <Text variant="bodySmall" style={styles.accountLabel}>Tap to manage account</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textLight} />
+            </Surface>
+          </TouchableOpacity>
+        }
+      >
+        <Menu.Item
+          leadingIcon="logout"
+          onPress={() => { setAccountMenu(false); signOut(); }}
+          title="Sign Out"
+          titleStyle={{ color: colors.error }}
+        />
+      </Menu>
 
       {/* Settings list */}
       <View style={styles.section}>
@@ -177,17 +194,6 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <View style={styles.signOutSection}>
-        <Button
-          mode="outlined"
-          onPress={signOut}
-          textColor={colors.error}
-          style={styles.signOutButton}
-          icon="logout"
-        >
-          Sign Out
-        </Button>
-      </View>
 
       <Portal>
         {/* Account management dialog */}
@@ -357,8 +363,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   divider: { backgroundColor: colors.softShadow },
   listItemTitle: { color: colors.text },
   listItemDescription: { color: colors.textLight },
-  signOutSection: { marginTop: 'auto', padding: spacing.md },
-  signOutButton: { borderColor: colors.error },
+
   dialogEmail: { color: colors.textLight, marginBottom: spacing.md },
   sectionLabel: { color: colors.text, marginBottom: spacing.sm },
   input: { marginBottom: spacing.sm, borderColor: colors.softShadow },
