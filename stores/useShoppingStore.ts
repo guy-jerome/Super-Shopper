@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '../lib/supabase';
+import { queueChange } from '../lib/sync';
+import { localStore, STORAGE_KEYS } from '../lib/storage';
 import type { ShoppingListItem, StoreProfile, ShopMode } from '../types/app.types';
 
 const CURRENT_STORE_KEY = 'super-shopper:currentStore';
@@ -24,6 +27,15 @@ async function saveCurrentStore(store: StoreProfile | null): Promise<void> {
   } catch {
     // ignore
   }
+}
+
+// Module-level network state — updated by listener so mutations are synchronous checks
+let _online = true;
+NetInfo.fetch().then((s) => { _online = s.isConnected !== false; });
+NetInfo.addEventListener((s) => { _online = s.isConnected !== false; });
+
+async function cacheList(list: ShoppingListItemWithName[], notes: string) {
+  await localStore.set(STORAGE_KEYS.SHOPPING_LIST, { list, notes });
 }
 
 export type StoreLocation = {
@@ -77,6 +89,18 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
 
   fetchShoppingList: async (userId, date) => {
     set({ isLoading: true });
+
+    // Show cached data instantly while fetching
+    const cached = await localStore.get<{ list: ShoppingListItemWithName[]; notes: string }>(STORAGE_KEYS.SHOPPING_LIST);
+    if (cached) {
+      set({ shoppingList: cached.list, notes: cached.notes ?? '' });
+    }
+
+    if (!_online) {
+      set({ isLoading: false });
+      return;
+    }
+
     const [listResult, notesResult] = await Promise.all([
       supabase
         .from('shopping_list')
@@ -100,8 +124,10 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
         store_locations: row.items?.item_store_locations ?? [],
       })) as ShoppingListItemWithName[];
       set({ shoppingList: withNames });
-    }
-    if (!notesResult.error) {
+      const notes = !notesResult.error ? (notesResult.data?.content ?? '') : get().notes;
+      set({ notes });
+      await cacheList(withNames, notes);
+    } else if (!notesResult.error) {
       set({ notes: notesResult.data?.content ?? '' });
     }
     set({ isLoading: false });
@@ -138,11 +164,11 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
   addToList: async (userId, itemId, quantity, optimisticName?) => {
     const date = new Date().toISOString().split('T')[0];
 
-    // Optimistic: add a placeholder entry immediately so isInList() returns true instantly
-    const tempId = `optimistic-${itemId}`;
+    // Use a stable UUID so it can be referenced in queued changes if offline
+    const offlineId = crypto.randomUUID();
     if (optimisticName) {
       const optimistic: ShoppingListItemWithName = {
-        id: tempId,
+        id: offlineId,
         user_id: userId,
         item_id: itemId,
         quantity,
@@ -156,6 +182,12 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
         updated_at: new Date().toISOString(),
       };
       set((state) => ({ shoppingList: [...state.shoppingList, optimistic] }));
+    }
+
+    if (!_online) {
+      await queueChange({ table_name: 'shopping_list', record_id: offlineId, operation: 'INSERT', data: { id: offlineId, user_id: userId, item_id: itemId, quantity, shopping_date: date, checked: false }, timestamp: Date.now() });
+      await cacheList(get().shoppingList, get().notes);
+      return;
     }
 
     const { data, error } = await supabase
@@ -175,19 +207,26 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
       // Replace optimistic entry (or append if no optimistic was added)
       set((state) => ({
         shoppingList: optimisticName
-          ? state.shoppingList.map((i) => i.id === tempId ? withName : i)
+          ? state.shoppingList.map((i) => i.id === offlineId ? withName : i)
           : [...state.shoppingList, withName],
       }));
+      await cacheList(get().shoppingList, get().notes);
     } else if (error && optimisticName) {
       // Revert optimistic entry on error
-      set((state) => ({ shoppingList: state.shoppingList.filter((i) => i.id !== tempId) }));
+      set((state) => ({ shoppingList: state.shoppingList.filter((i) => i.id !== offlineId) }));
     }
   },
 
   removeFromList: async (id) => {
     // Optimistic: remove immediately for instant UI response
     set((state) => ({ shoppingList: state.shoppingList.filter((i) => i.id !== id) }));
+    if (!_online) {
+      await queueChange({ table_name: 'shopping_list', record_id: id, operation: 'DELETE', data: null, timestamp: Date.now() });
+      await cacheList(get().shoppingList, get().notes);
+      return;
+    }
     await supabase.from('shopping_list').delete().eq('id', id);
+    await cacheList(get().shoppingList, get().notes);
   },
 
   toggleChecked: async (id, checked) => {
@@ -195,6 +234,11 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     set((state) => ({
       shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, checked } : i)),
     }));
+    if (!_online) {
+      await queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { checked, updated_at: new Date().toISOString() }, timestamp: Date.now() });
+      await cacheList(get().shoppingList, get().notes);
+      return;
+    }
     const { error } = await supabase
       .from('shopping_list')
       .update({ checked, updated_at: new Date().toISOString() })
@@ -204,6 +248,8 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
       set((state) => ({
         shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, checked: !checked } : i)),
       }));
+    } else {
+      await cacheList(get().shoppingList, get().notes);
     }
   },
 
@@ -212,18 +258,30 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     set((state) => ({
       shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, quantity } : i)),
     }));
+    if (!_online) {
+      await queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { quantity, updated_at: new Date().toISOString() }, timestamp: Date.now() });
+      await cacheList(get().shoppingList, get().notes);
+      return;
+    }
     await supabase
       .from('shopping_list')
       .update({ quantity, updated_at: new Date().toISOString() })
       .eq('id', id);
+    await cacheList(get().shoppingList, get().notes);
   },
 
   updateNotes: async (userId, date, notes) => {
+    set({ notes });
+    if (!_online) {
+      await queueChange({ table_name: 'shopping_notes', record_id: `${userId}_${date}`, operation: 'UPSERT', data: { user_id: userId, shopping_date: date, content: notes }, timestamp: Date.now() });
+      await cacheList(get().shoppingList, notes);
+      return;
+    }
     await supabase.from('shopping_notes').upsert(
       { user_id: userId, shopping_date: date, content: notes },
       { onConflict: 'user_id,shopping_date' }
     );
-    set({ notes });
+    await cacheList(get().shoppingList, notes);
   },
 
   markAllChecked: async (ids, checked) => {
@@ -232,10 +290,17 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     set((state) => ({
       shoppingList: state.shoppingList.map((i) => ids.includes(i.id) ? { ...i, checked } : i),
     }));
+    if (!_online) {
+      const ts = Date.now();
+      await Promise.all(ids.map((id) => queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { checked, updated_at: new Date().toISOString() }, timestamp: ts })));
+      await cacheList(get().shoppingList, get().notes);
+      return;
+    }
     await supabase
       .from('shopping_list')
       .update({ checked, updated_at: new Date().toISOString() })
       .in('id', ids);
+    await cacheList(get().shoppingList, get().notes);
   },
 
   clearCheckedItems: async () => {
@@ -244,7 +309,14 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     if (checkedIds.length === 0) return;
     // Optimistic: clear immediately for instant UI response
     set((state) => ({ shoppingList: state.shoppingList.filter((i) => !i.checked) }));
+    if (!_online) {
+      const ts = Date.now();
+      await Promise.all(checkedIds.map((id) => queueChange({ table_name: 'shopping_list', record_id: id, operation: 'DELETE', data: null, timestamp: ts })));
+      await cacheList(get().shoppingList, get().notes);
+      return;
+    }
     await supabase.from('shopping_list').delete().in('id', checkedIds);
+    await cacheList(get().shoppingList, get().notes);
   },
 
   updateAisleItemOrder: (aisleId, positions) => {

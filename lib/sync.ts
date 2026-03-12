@@ -5,7 +5,7 @@ export interface PendingChange {
   id: string;
   table_name: string;
   record_id: string;
-  operation: 'INSERT' | 'UPDATE' | 'DELETE';
+  operation: 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT';
   data: Record<string, unknown> | null;
   timestamp: number;
   synced: boolean;
@@ -32,6 +32,10 @@ export async function processPendingChanges(): Promise<void> {
           .from(change.table_name as never)
           .update(change.data as never)
           .eq('id', change.record_id);
+      } else if (change.operation === 'UPSERT') {
+        await supabase
+          .from(change.table_name as never)
+          .upsert(change.data as never);
       }
       change.synced = true;
     } catch {

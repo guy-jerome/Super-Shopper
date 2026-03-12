@@ -1,5 +1,7 @@
 import { create } from 'zustand';
+import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '../lib/supabase';
+import { localStore, STORAGE_KEYS } from '../lib/storage';
 import type { StorageLocationWithItems } from '../types/app.types';
 
 interface StorageStore {
@@ -18,6 +20,10 @@ interface StorageStore {
   moveItem: (locationId: string, itemId: string, direction: 'up' | 'down') => Promise<void>;
   transferItem: (itemId: string, fromLocationId: string, toLocationId: string, atEnd: boolean) => Promise<void>;
 }
+
+let _online = true;
+NetInfo.fetch().then((s) => { _online = s.isConnected !== false; });
+NetInfo.addEventListener((s) => { _online = s.isConnected !== false; });
 
 function sortItems(items: any[]) {
   return [...items].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
@@ -45,6 +51,18 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
 
   fetchLocations: async (userId) => {
     set({ isLoading: true });
+
+    // Show cached data instantly while fetching
+    const cached = await localStore.get<StorageLocationWithItems[]>(STORAGE_KEYS.STORAGE_LOCATIONS);
+    if (cached) {
+      set({ locations: cached });
+    }
+
+    if (!_online) {
+      set({ isLoading: false });
+      return;
+    }
+
     const { data, error } = await supabase
       .from('storage_locations')
       .select('*, items(*)')
@@ -52,7 +70,9 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
       .order('order_index', { ascending: true });
 
     if (!error && data) {
-      set({ locations: buildTree(data) });
+      const tree = buildTree(data);
+      set({ locations: tree });
+      await localStore.set(STORAGE_KEYS.STORAGE_LOCATIONS, tree);
     }
     set({ isLoading: false });
   },
