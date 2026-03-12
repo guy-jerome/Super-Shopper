@@ -539,7 +539,7 @@ export default function ShopScreen() {
                     e.nativeEvent.layout.y;
                 }}
               >
-                <TouchableOpacity
+                <View
                   style={[
                     styles.aisleHeader,
                     season === 'summer' && { backgroundColor: colors.primaryDark, borderLeftColor: colors.accent },
@@ -547,16 +547,17 @@ export default function ShopScreen() {
                     season === 'winter' && { backgroundColor: colors.cardBg, borderLeftColor: colors.accent },
                     season === 'spring' && { backgroundColor: colors.accentLight, borderLeftColor: colors.stripe },
                   ]}
-                  onPress={() => toggleAisle(group.aisleId)}
                 >
-                  <Text variant="labelLarge" style={[
-                    styles.aisleHeaderText,
-                    season === 'summer' && { color: '#F5F5DC' },
-                    season === 'autumn' && { color: colors.text },
-                    season === 'winter' && { color: colors.text },
-                  ]}>
-                    {season === 'winter' ? `·❄· ${group.name} ·❄·` : group.name}
-                  </Text>
+                  <TouchableOpacity style={{ flex: 1 }} onPress={() => toggleAisle(group.aisleId)}>
+                    <Text variant="labelLarge" style={[
+                      styles.aisleHeaderText,
+                      season === 'summer' && { color: '#F5F5DC' },
+                      season === 'autumn' && { color: colors.text },
+                      season === 'winter' && { color: colors.text },
+                    ]}>
+                      {season === 'winter' ? `·❄· ${group.name} ·❄·` : group.name}
+                    </Text>
+                  </TouchableOpacity>
                   {!collapsedAisles.has(group.aisleId) && (
                     <TouchableOpacity
                       onPress={() => {
@@ -578,12 +579,14 @@ export default function ShopScreen() {
                       </Text>
                     </TouchableOpacity>
                   )}
-                  <MaterialCommunityIcons
-                    name={collapsedAisles.has(group.aisleId) ? "chevron-down" : "chevron-up"}
-                    size={16}
-                    color={season === 'summer' ? '#F5F5DC' : colors.primary}
-                  />
-                </TouchableOpacity>
+                  <TouchableOpacity onPress={() => toggleAisle(group.aisleId)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <MaterialCommunityIcons
+                      name={collapsedAisles.has(group.aisleId) ? "chevron-down" : "chevron-up"}
+                      size={18}
+                      color={season === 'summer' ? '#F5F5DC' : colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
                 {!collapsedAisles.has(group.aisleId) && group.items.map((item) => (
                   <SwipeableRow
                     key={item.id}
