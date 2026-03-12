@@ -78,9 +78,9 @@ export default function ShopScreen() {
   const { templates, loadTemplates, saveTemplate, deleteTemplate } = useListTemplateStore();
   const { sharedWithMe, loadSharedItems } = useShareStore();
 
-  const [notesCollapsed, setNotesCollapsed] = useState(false);
+  const [notesCollapsed, setNotesCollapsed] = useState(true);
   const [editingNotes, setEditingNotes] = useState(false);
-  const [couponsCollapsed, setCouponsCollapsed] = useState(false);
+  const [couponsCollapsed, setCouponsCollapsed] = useState(true);
   const [couponsValue, setCouponsValue] = useState('');
   const [savedCoupons, setSavedCoupons] = useState('');
   const [editingCoupons, setEditingCoupons] = useState(false);
@@ -110,6 +110,16 @@ export default function ShopScreen() {
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [collapsedAisles, setCollapsedAisles] = useState<Set<string>>(new Set());
+
+  const toggleAisle = useCallback((aisleId: string) => {
+    setCollapsedAisles(prev => {
+      const next = new Set(prev);
+      if (next.has(aisleId)) next.delete(aisleId);
+      else next.add(aisleId);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -407,95 +417,6 @@ export default function ShopScreen() {
         </ScrollView>
       )}
 
-      {/* Sticky Notes + Coupons panels */}
-      <View style={styles.stickyPanels}>
-        {/* Notes panel */}
-        <View style={styles.panelHeader}>
-          <MaterialCommunityIcons name="note-text-outline" size={18} color={colors.textLight} />
-          <TouchableOpacity style={{ flex: 1 }} onPress={() => setNotesCollapsed((c) => !c)}>
-            <Text variant="labelLarge" style={styles.panelLabel}>Notes</Text>
-          </TouchableOpacity>
-          <IconButton
-            icon={editingNotes ? "check" : "pencil-outline"}
-            size={18}
-            style={styles.panelEditBtn}
-            onPress={editingNotes ? saveNotes : () => { setNotesCollapsed(false); setEditingNotes(true); }}
-          />
-          <TouchableOpacity onPress={() => setNotesCollapsed((c) => !c)} style={styles.chevronBtn}>
-            <MaterialCommunityIcons
-              name={notesCollapsed ? "chevron-down" : "chevron-up"}
-              size={20}
-              color={colors.textLight}
-            />
-          </TouchableOpacity>
-        </View>
-        {!notesCollapsed && (
-          <View style={styles.panelContent}>
-            {editingNotes ? (
-              <TextInput
-                value={notesValue}
-                onChangeText={setNotesValue}
-                multiline
-                mode="outlined"
-                placeholder="Add shopping notes..."
-                style={styles.notesInput}
-                autoFocus
-              />
-            ) : (
-              <TouchableOpacity onPress={() => setEditingNotes(true)} style={styles.noteDisplayBox}>
-                <Text style={[styles.notesText, !notes && styles.notesPlaceholder]}>
-                  {notes || "Tap to add notes..."}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        <Divider style={styles.panelDivider} />
-
-        {/* Coupons panel */}
-        <View style={styles.panelHeader}>
-          <MaterialCommunityIcons name="ticket-percent-outline" size={18} color={colors.textLight} />
-          <TouchableOpacity style={{ flex: 1 }} onPress={() => setCouponsCollapsed((c) => !c)}>
-            <Text variant="labelLarge" style={styles.panelLabel}>Coupons</Text>
-          </TouchableOpacity>
-          <IconButton
-            icon={editingCoupons ? "check" : "pencil-outline"}
-            size={18}
-            style={styles.panelEditBtn}
-            onPress={editingCoupons ? saveCoupons : () => { setCouponsCollapsed(false); setEditingCoupons(true); }}
-          />
-          <TouchableOpacity onPress={() => setCouponsCollapsed((c) => !c)} style={styles.chevronBtn}>
-            <MaterialCommunityIcons
-              name={couponsCollapsed ? "chevron-down" : "chevron-up"}
-              size={20}
-              color={colors.textLight}
-            />
-          </TouchableOpacity>
-        </View>
-        {!couponsCollapsed && (
-          <View style={styles.panelContent}>
-            {editingCoupons ? (
-              <TextInput
-                value={couponsValue}
-                onChangeText={setCouponsValue}
-                multiline
-                mode="outlined"
-                placeholder="Add coupon codes or deals..."
-                style={styles.notesInput}
-                autoFocus
-              />
-            ) : (
-              <TouchableOpacity onPress={() => setEditingCoupons(true)} style={styles.noteDisplayBox}>
-                <Text style={[styles.notesText, !savedCoupons && styles.notesPlaceholder]}>
-                  {savedCoupons || "Tap to add coupons..."}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-      </View>
-
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -504,6 +425,94 @@ export default function ShopScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
       >
+        {/* Notes + Coupons */}
+        <View style={styles.stickyPanels}>
+          {/* Notes panel */}
+          <View style={styles.panelHeader}>
+            <MaterialCommunityIcons name="note-text-outline" size={18} color={colors.textLight} />
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => setNotesCollapsed((c) => !c)}>
+              <Text variant="labelLarge" style={styles.panelLabel}>Notes</Text>
+            </TouchableOpacity>
+            <IconButton
+              icon={editingNotes ? "check" : "pencil-outline"}
+              size={18}
+              style={styles.panelEditBtn}
+              onPress={editingNotes ? saveNotes : () => { setNotesCollapsed(false); setEditingNotes(true); }}
+            />
+            <TouchableOpacity onPress={() => setNotesCollapsed((c) => !c)} style={styles.chevronBtn}>
+              <MaterialCommunityIcons
+                name={notesCollapsed ? "chevron-down" : "chevron-up"}
+                size={20}
+                color={colors.textLight}
+              />
+            </TouchableOpacity>
+          </View>
+          {!notesCollapsed && (
+            <View style={styles.panelContent}>
+              {editingNotes ? (
+                <TextInput
+                  value={notesValue}
+                  onChangeText={setNotesValue}
+                  multiline
+                  mode="outlined"
+                  placeholder="Add shopping notes..."
+                  style={styles.notesInput}
+                  autoFocus
+                />
+              ) : (
+                <TouchableOpacity onPress={() => setEditingNotes(true)} style={styles.noteDisplayBox}>
+                  <Text style={[styles.notesText, !notes && styles.notesPlaceholder]}>
+                    {notes || "Tap to add notes..."}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          <Divider style={styles.panelDivider} />
+
+          {/* Coupons panel */}
+          <View style={styles.panelHeader}>
+            <MaterialCommunityIcons name="ticket-percent-outline" size={18} color={colors.textLight} />
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => setCouponsCollapsed((c) => !c)}>
+              <Text variant="labelLarge" style={styles.panelLabel}>Coupons</Text>
+            </TouchableOpacity>
+            <IconButton
+              icon={editingCoupons ? "check" : "pencil-outline"}
+              size={18}
+              style={styles.panelEditBtn}
+              onPress={editingCoupons ? saveCoupons : () => { setCouponsCollapsed(false); setEditingCoupons(true); }}
+            />
+            <TouchableOpacity onPress={() => setCouponsCollapsed((c) => !c)} style={styles.chevronBtn}>
+              <MaterialCommunityIcons
+                name={couponsCollapsed ? "chevron-down" : "chevron-up"}
+                size={20}
+                color={colors.textLight}
+              />
+            </TouchableOpacity>
+          </View>
+          {!couponsCollapsed && (
+            <View style={styles.panelContent}>
+              {editingCoupons ? (
+                <TextInput
+                  value={couponsValue}
+                  onChangeText={setCouponsValue}
+                  multiline
+                  mode="outlined"
+                  placeholder="Add coupon codes or deals..."
+                  style={styles.notesInput}
+                  autoFocus
+                />
+              ) : (
+                <TouchableOpacity onPress={() => setEditingCoupons(true)} style={styles.noteDisplayBox}>
+                  <Text style={[styles.notesText, !savedCoupons && styles.notesPlaceholder]}>
+                    {savedCoupons || "Tap to add coupons..."}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
 
         {/* Shopping list */}
         {shoppingList.length === 0 ? (
@@ -530,18 +539,16 @@ export default function ShopScreen() {
                     e.nativeEvent.layout.y;
                 }}
               >
-                <View style={[
-                  styles.aisleHeader,
-                  season === 'summer' && { backgroundColor: colors.primaryDark, borderLeftColor: colors.accent },
-                  season === 'autumn' && { backgroundColor: colors.accentLight, borderLeftColor: colors.stripe, transform: [{ rotate: '-0.3deg' }] },
-                  season === 'winter' && { backgroundColor: colors.cardBg, borderLeftColor: colors.accent },
-                  season === 'spring' && { backgroundColor: colors.accentLight, borderLeftColor: colors.stripe },
-                ]}>
-                  <MaterialCommunityIcons
-                    name="map-marker-outline"
-                    size={16}
-                    color={season === 'summer' ? '#F5F5DC' : colors.primary}
-                  />
+                <TouchableOpacity
+                  style={[
+                    styles.aisleHeader,
+                    season === 'summer' && { backgroundColor: colors.primaryDark, borderLeftColor: colors.accent },
+                    season === 'autumn' && { backgroundColor: colors.accentLight, borderLeftColor: colors.stripe, transform: [{ rotate: '-0.3deg' }] },
+                    season === 'winter' && { backgroundColor: colors.cardBg, borderLeftColor: colors.accent },
+                    season === 'spring' && { backgroundColor: colors.accentLight, borderLeftColor: colors.stripe },
+                  ]}
+                  onPress={() => toggleAisle(group.aisleId)}
+                >
                   <Text variant="labelLarge" style={[
                     styles.aisleHeaderText,
                     season === 'summer' && { color: '#F5F5DC' },
@@ -550,27 +557,34 @@ export default function ShopScreen() {
                   ]}>
                     {season === 'winter' ? `·❄· ${group.name} ·❄·` : group.name}
                   </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      const allDone = group.items.every((i) => i.checked);
-                      markAllChecked(
-                        group.items.map((i) => i.id),
-                        !allDone,
-                      );
-                    }}
-                    style={styles.markAllBtn}
-                  >
-                    <Text variant="labelSmall" style={[
-                      styles.markAllText,
-                      season === 'summer' && { color: '#F5F5DC' },
-                    ]}>
-                      {group.items.every((i) => i.checked)
-                        ? "Unmark all"
-                        : "Mark all done"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {group.items.map((item) => (
+                  {!collapsedAisles.has(group.aisleId) && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        const allDone = group.items.every((i) => i.checked);
+                        markAllChecked(
+                          group.items.map((i) => i.id),
+                          !allDone,
+                        );
+                      }}
+                      style={styles.markAllBtn}
+                    >
+                      <Text variant="labelSmall" style={[
+                        styles.markAllText,
+                        season === 'summer' && { color: '#F5F5DC' },
+                      ]}>
+                        {group.items.every((i) => i.checked)
+                          ? "Unmark all"
+                          : "Mark all done"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <MaterialCommunityIcons
+                    name={collapsedAisles.has(group.aisleId) ? "chevron-down" : "chevron-up"}
+                    size={16}
+                    color={season === 'summer' ? '#F5F5DC' : colors.primary}
+                  />
+                </TouchableOpacity>
+                {!collapsedAisles.has(group.aisleId) && group.items.map((item) => (
                   <SwipeableRow
                     key={item.id}
                     onDelete={() => {
@@ -953,20 +967,20 @@ function ShoppingProgress({ checked, total, colors }: { checked: number; total: 
   if (total === 0) return null;
 
   return (
-    <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-        <Text style={{ fontSize: 12, color: colors.textLight, fontWeight: '600' }}>
+    <View style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+        <Text style={{ fontSize: 11, color: colors.textLight, fontWeight: '600' }}>
           {checked === total ? '✓ All done!' : `${checked} of ${total} items`}
         </Text>
-        <Text style={{ fontSize: 12, color: colors.textLight }}>
+        <Text style={{ fontSize: 11, color: colors.textLight }}>
           {total > 0 ? Math.round((checked / total) * 100) : 0}%
         </Text>
       </View>
-      <View style={{ height: 6, backgroundColor: colors.softShadow, borderRadius: 3, overflow: 'hidden' }}>
+      <View style={{ height: 4, backgroundColor: colors.softShadow, borderRadius: 2, overflow: 'hidden' }}>
         <Animated.View style={[{
-          height: 6,
+          height: 4,
           backgroundColor: colors.accent,
-          borderRadius: 3,
+          borderRadius: 2,
         }, barStyle]} />
       </View>
     </View>
@@ -1198,15 +1212,15 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   markAllBtn: { paddingHorizontal: spacing.sm, paddingVertical: 4 },
   markAllText: { color: colors.primary },
   // Jump bar pills
-  jumpBar: { maxHeight: 44, backgroundColor: colors.butter },
+  jumpBar: { maxHeight: 34, backgroundColor: colors.butter },
   jumpBarContent: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 3,
     gap: spacing.xs,
   },
   jumpPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -1216,7 +1230,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  jumpPillText: { color: colors.text, fontSize: 13, fontWeight: "500" },
+  jumpPillText: { color: colors.text, fontSize: 11, fontWeight: "500" },
   jumpPillTextActive: { color: "#fff" },
   qtyStepper: {
     flexDirection: "row",
