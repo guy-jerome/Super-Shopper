@@ -46,23 +46,30 @@ ALTER TABLE household_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE household_invites ENABLE ROW LEVEL SECURITY;
 
 -- ── Helper function (avoids recursive RLS) ───────────────────
--- SECURITY DEFINER bypasses RLS when called from within policies,
--- preventing infinite recursion on household_members self-references.
+-- Uses plpgsql with SET LOCAL row_security = off to reliably bypass
+-- RLS when querying household_members from within policies.
 CREATE OR REPLACE FUNCTION get_my_household_id()
 RETURNS UUID
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
-STABLE
 SET search_path = public
 AS $$
-  SELECT household_id FROM household_members WHERE user_id = auth.uid() LIMIT 1;
+DECLARE
+  hid UUID;
+BEGIN
+  SET LOCAL row_security = off;
+  SELECT household_id INTO hid FROM household_members WHERE user_id = auth.uid() LIMIT 1;
+  RETURN hid;
+END;
 $$;
 
 -- ── Policies: households ──────────────────────────────────────
 
--- NOTE: uses get_my_household_id() to avoid recursive RLS on household_members
+-- NOTE: also allows creator to see their household before being added as a member
 CREATE POLICY "members_can_see_household" ON households
-  FOR SELECT USING (id = get_my_household_id());
+  FOR SELECT USING (
+    created_by = auth.uid() OR id = get_my_household_id()
+  );
 
 CREATE POLICY "creator_can_insert_household" ON households
   FOR INSERT WITH CHECK (created_by = auth.uid());
