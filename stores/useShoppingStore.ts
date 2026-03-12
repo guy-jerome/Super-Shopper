@@ -4,6 +4,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '../lib/supabase';
 import { queueChange } from '../lib/sync';
 import { localStore, STORAGE_KEYS } from '../lib/storage';
+import { getHouseholdId } from '../lib/householdContext';
 import type { ShoppingListItem, StoreProfile, ShopMode } from '../types/app.types';
 
 const CURRENT_STORE_KEY = 'super-shopper:currentStore';
@@ -49,6 +50,8 @@ export type ShoppingListItemWithName = ShoppingListItem & {
   item_brand: string | null;
   item_quantity: string | null;
   store_locations: StoreLocation[];
+  household_id: string | null;
+  added_by: string | null;
 };
 
 interface ShoppingStore {
@@ -70,6 +73,7 @@ interface ShoppingStore {
   clearCheckedItems: () => Promise<void>;
   markAllChecked: (ids: string[], checked: boolean) => Promise<void>;
   updateAisleItemOrder: (aisleId: string, positions: { itemId: string; position_index: number }[]) => void;
+  applyRealtimeChange: (event: 'UPDATE' | 'DELETE', row?: any, id?: string) => void;
 }
 
 export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
@@ -101,12 +105,21 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
       return;
     }
 
+    const householdId = getHouseholdId();
+    const listQuery = householdId
+      ? supabase
+          .from('shopping_list')
+          .select('*, items(name, brand, quantity, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
+          .eq('shopping_date', date)
+          .or(`user_id.eq.${userId},household_id.eq.${householdId}`)
+      : supabase
+          .from('shopping_list')
+          .select('*, items(name, brand, quantity, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
+          .eq('user_id', userId)
+          .eq('shopping_date', date);
+
     const [listResult, notesResult] = await Promise.all([
-      supabase
-        .from('shopping_list')
-        .select('*, items(name, brand, quantity, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
-        .eq('user_id', userId)
-        .eq('shopping_date', date),
+      listQuery,
       supabase
         .from('shopping_notes')
         .select('content')
@@ -122,6 +135,8 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
         item_brand: row.items?.brand ?? null,
         item_quantity: row.items?.quantity ?? null,
         store_locations: row.items?.item_store_locations ?? [],
+        household_id: (row as any).household_id ?? null,
+        added_by: (row as any).added_by ?? null,
       })) as ShoppingListItemWithName[];
       set({ shoppingList: withNames });
       const notes = !notesResult.error ? (notesResult.data?.content ?? '') : get().notes;
@@ -163,6 +178,7 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
 
   addToList: async (userId, itemId, quantity, optimisticName?) => {
     const date = new Date().toISOString().split('T')[0];
+    const householdId = getHouseholdId();
 
     // Use a stable UUID so it can be referenced in queued changes if offline
     const offlineId = crypto.randomUUID();
@@ -178,6 +194,8 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
         item_brand: null,
         item_quantity: null,
         store_locations: [],
+        household_id: householdId,
+        added_by: householdId ? userId : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -185,14 +203,14 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     }
 
     if (!_online) {
-      await queueChange({ table_name: 'shopping_list', record_id: offlineId, operation: 'INSERT', data: { id: offlineId, user_id: userId, item_id: itemId, quantity, shopping_date: date, checked: false }, timestamp: Date.now() });
+      await queueChange({ table_name: 'shopping_list', record_id: offlineId, operation: 'INSERT', data: { id: offlineId, user_id: userId, item_id: itemId, quantity, shopping_date: date, checked: false, ...(householdId ? { household_id: householdId, added_by: userId } : {}) }, timestamp: Date.now() });
       await cacheList(get().shoppingList, get().notes);
       return;
     }
 
     const { data, error } = await supabase
       .from('shopping_list')
-      .insert({ user_id: userId, item_id: itemId, quantity, shopping_date: date })
+      .insert({ user_id: userId, item_id: itemId, quantity, shopping_date: date, ...(householdId ? { household_id: householdId, added_by: userId } : {}) })
       .select('*, items(name, brand, quantity, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
       .single();
 
@@ -203,6 +221,8 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
         item_brand: (data as any).items?.brand ?? null,
         item_quantity: (data as any).items?.quantity ?? null,
         store_locations: (data as any).items?.item_store_locations ?? [],
+        household_id: (data as any).household_id ?? null,
+        added_by: (data as any).added_by ?? null,
       };
       // Replace optimistic entry (or append if no optimistic was added)
       set((state) => ({
@@ -331,6 +351,18 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
         ),
       })),
     }));
+  },
+
+  applyRealtimeChange: (event, row?, id?) => {
+    if (event === 'UPDATE' && row) {
+      set((state) => ({
+        shoppingList: state.shoppingList.map((i) =>
+          i.id === row.id ? { ...i, checked: row.checked, quantity: row.quantity, updated_at: row.updated_at } : i
+        ),
+      }));
+    } else if (event === 'DELETE' && id) {
+      set((state) => ({ shoppingList: state.shoppingList.filter((i) => i.id !== id) }));
+    }
   },
 }));
 

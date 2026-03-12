@@ -11,6 +11,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useItemStore } from '../stores/useItemStore';
 import { useLowStockStore } from '../stores/useLowStockStore';
+import { useHouseholdStore } from '../stores/useHouseholdStore';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
 SplashScreen.preventAutoHideAsync();
@@ -21,6 +22,7 @@ export default function RootLayout() {
   const { season, loadSeason } = useSettingsStore();
   const { loadSortOrder } = useItemStore();
   const { loadLowStock } = useLowStockStore();
+  const { loadHousehold } = useHouseholdStore();
   const { status } = useOfflineSync();
   const router = useRouter();
   const segments = useSegments();
@@ -31,6 +33,10 @@ export default function RootLayout() {
     loadSortOrder();
     loadLowStock();
   }, []);
+
+  useEffect(() => {
+    if (user) loadHousehold();
+  }, [user?.id]);
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();

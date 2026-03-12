@@ -31,6 +31,8 @@ import { useStoreStore } from "../../stores/useStoreStore";
 import { useItemStore } from "../../stores/useItemStore";
 import { useListTemplateStore } from "../../stores/useListTemplateStore";
 import { useShareStore } from "../../stores/useShareStore";
+import { useHouseholdStore } from "../../stores/useHouseholdStore";
+import { useHouseholdRealtimeSubscription } from "../../hooks/useHouseholdRealtimeSubscription";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
@@ -72,11 +74,19 @@ export default function ShopScreen() {
     removeFromList,
     markAllChecked,
     addToList,
+    applyRealtimeChange,
   } = useShoppingStore();
   const { stores, fetchStores } = useStoreStore();
   const { addItem, fetchItems } = useItemStore();
   const { templates, loadTemplates, saveTemplate, deleteTemplate } = useListTemplateStore();
   const { sharedWithMe, loadSharedItems } = useShareStore();
+  const household = useHouseholdStore((s) => s.household);
+  const members = useHouseholdStore((s) => s.members);
+  const memberEmailMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    members.forEach((m) => { map[m.user_id] = m.email; });
+    return map;
+  }, [members]);
 
   const [notesCollapsed, setNotesCollapsed] = useState(true);
   const [editingNotes, setEditingNotes] = useState(false);
@@ -143,6 +153,24 @@ export default function ShopScreen() {
   }, [user?.id]);
 
   useRealtimeSubscription('shopping_list', user?.id ?? '', handleRealtimeChange);
+
+  const handleHouseholdRealtimeChange = useCallback((payload: any) => {
+    const { eventType, new: newRow, old: oldRow } = payload;
+    if (eventType === 'INSERT') {
+      // Partner added an item — do a full refresh to get item names from the join
+      if (newRow?.user_id !== user?.id) {
+        fetchShoppingList(user!.id, today);
+      }
+    } else if (eventType === 'UPDATE') {
+      if (newRow?.user_id !== user?.id) {
+        applyRealtimeChange('UPDATE', newRow);
+      }
+    } else if (eventType === 'DELETE') {
+      applyRealtimeChange('DELETE', undefined, oldRow?.id);
+    }
+  }, [user?.id]);
+
+  useHouseholdRealtimeSubscription(household?.id ?? null, handleHouseholdRealtimeChange);
 
   const showUndo = (message: string, action: () => void, undo: () => void) => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
@@ -601,6 +629,7 @@ export default function ShopScreen() {
                   >
                     <ShoppingItem
                       item={item}
+                      addedByEmail={item.added_by && item.added_by !== user?.id ? (memberEmailMap[item.added_by] ?? null) : null}
                       onToggle={() => handleToggleChecked(item.id, !item.checked)}
                       onEditQty={() =>
                         openQtyEdit(item.id, item.item_name, item.quantity)
@@ -624,6 +653,7 @@ export default function ShopScreen() {
             >
               <ShoppingItem
                 item={item}
+                addedByEmail={item.added_by && item.added_by !== user?.id ? (memberEmailMap[item.added_by] ?? null) : null}
                 onToggle={() => handleToggleChecked(item.id, !item.checked)}
                 onEditQty={() =>
                   openQtyEdit(item.id, item.item_name, item.quantity)
@@ -871,6 +901,7 @@ export default function ShopScreen() {
 
 function ShoppingItem({
   item,
+  addedByEmail,
   onToggle,
   onEditQty,
   onOpenDetail,
@@ -886,6 +917,7 @@ function ShoppingItem({
     quantity: number;
     checked: boolean;
   };
+  addedByEmail?: string | null;
   onToggle: () => void;
   onEditQty: () => void;
   onOpenDetail: () => void;
@@ -943,6 +975,11 @@ function ShoppingItem({
             />
           </TouchableOpacity>
         </View>
+        {!!addedByEmail && (
+          <View style={styles.addedByChip}>
+            <Text style={styles.addedByText}>{addedByEmail[0].toUpperCase()}</Text>
+          </View>
+        )}
         <IconButton
           icon="eye-outline"
           size={22}
@@ -1292,4 +1329,14 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   },
   historyItem: { color: colors.text, paddingVertical: 4, paddingLeft: spacing.md + spacing.sm },
   historyItemChecked: { color: colors.textLight, textDecorationLine: "line-through" },
+  addedByChip: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
+  },
+  addedByText: { color: '#fff', fontSize: 11, fontWeight: '700' as const },
 }); }

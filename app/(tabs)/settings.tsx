@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore, type Season } from '../../stores/useSettingsStore';
 import { useShareStore } from '../../stores/useShareStore';
+import { useHouseholdStore } from '../../stores/useHouseholdStore';
 import { useColors, spacing, radius, seasonPalettes, type Colors, useSeasonalBgStyle } from '../../constants/theme';
 import { PageHeader } from '../../components/PageHeader';
 
@@ -25,6 +26,7 @@ export default function SettingsScreen() {
   const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
   const { myShares, loadShares, shareWithEmail, removeShare } = useShareStore();
+  const { household, members, loadHousehold, createHousehold, joinHousehold, leaveHousehold, generateInviteCode } = useHouseholdStore();
 
   const [accountDialog, setAccountDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
@@ -38,8 +40,69 @@ export default function SettingsScreen() {
   const [isSharing, setIsSharing] = useState(false);
   const [snackbar, setSnackbar] = useState('');
   const [accountMenu, setAccountMenu] = useState(false);
+  const [householdDialog, setHouseholdDialog] = useState(false);
+  const [householdName, setHouseholdName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [householdLoading, setHouseholdLoading] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [householdError, setHouseholdError] = useState('');
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
 
   useEffect(() => { loadShares(); }, []);
+
+  const handleCreateHousehold = async () => {
+    setHouseholdError('');
+    if (!householdName.trim()) return;
+    setHouseholdLoading(true);
+    try {
+      await createHousehold(householdName.trim());
+      setHouseholdName('');
+      setSnackbar('Household created!');
+    } catch (e: any) {
+      setHouseholdError(e.message ?? 'Failed to create household');
+    } finally {
+      setHouseholdLoading(false);
+    }
+  };
+
+  const handleJoinHousehold = async () => {
+    setHouseholdError('');
+    if (!joinCode.trim()) return;
+    setHouseholdLoading(true);
+    try {
+      await joinHousehold(joinCode.trim().toUpperCase());
+      setJoinCode('');
+      setSnackbar('Joined household!');
+    } catch (e: any) {
+      setHouseholdError(e.message ?? 'Failed to join household');
+    } finally {
+      setHouseholdLoading(false);
+    }
+  };
+
+  const handleGenerateCode = async () => {
+    setHouseholdLoading(true);
+    try {
+      const code = await generateInviteCode();
+      setGeneratedCode(code);
+    } catch (e: any) {
+      setHouseholdError(e.message ?? 'Failed to generate code');
+    } finally {
+      setHouseholdLoading(false);
+    }
+  };
+
+  const handleLeaveHousehold = async () => {
+    setHouseholdLoading(true);
+    try {
+      await leaveHousehold();
+      setLeaveConfirm(false);
+      setHouseholdDialog(false);
+      setSnackbar('Left household');
+    } finally {
+      setHouseholdLoading(false);
+    }
+  };
 
   const handleShare = async () => {
     setShareError('');
@@ -155,6 +218,16 @@ export default function SettingsScreen() {
           onPress={() => setShareDialog(true)}
         />
         <Divider style={styles.divider} />
+        <List.Item
+          title="Household"
+          description={household ? `${household.name} · ${members.length} member${members.length !== 1 ? 's' : ''}` : 'Share lists in real time with family'}
+          titleStyle={styles.listItemTitle}
+          descriptionStyle={styles.listItemDescription}
+          left={(p) => <List.Icon {...p} icon="home-account" color={colors.primary} />}
+          right={(p) => <List.Icon {...p} icon="chevron-right" />}
+          onPress={() => { setHouseholdError(''); setGeneratedCode(null); setHouseholdDialog(true); }}
+        />
+        <Divider style={styles.divider} />
         <View style={styles.seasonSection}>
           <View style={styles.seasonSectionHeader}>
             <MaterialCommunityIcons name="palette-outline" size={20} color={colors.primary} />
@@ -196,6 +269,114 @@ export default function SettingsScreen() {
 
 
       <Portal>
+        {/* Household dialog */}
+        <Dialog visible={householdDialog} onDismiss={() => { setHouseholdDialog(false); setHouseholdName(''); setJoinCode(''); setHouseholdError(''); setGeneratedCode(null); }}>
+          <Dialog.Title>{household ? household.name : 'Household'}</Dialog.Title>
+          <Dialog.Content>
+            {household ? (
+              <>
+                <Text variant="bodySmall" style={styles.dialogEmail}>
+                  Real-time shared shopping list with your household.
+                </Text>
+                <Text variant="titleSmall" style={[styles.sectionLabel, { marginTop: spacing.sm }]}>Members</Text>
+                {members.map((m) => {
+                  const initials = m.email.slice(0, 2).toUpperCase();
+                  return (
+                    <View key={m.user_id} style={styles.shareRow}>
+                      <Avatar.Text size={32} label={initials} style={{ backgroundColor: colors.primary, marginRight: spacing.sm }} />
+                      <Text style={{ flex: 1, color: colors.text }}>{m.email}</Text>
+                    </View>
+                  );
+                })}
+                {generatedCode ? (
+                  <View style={styles.inviteCodeBox}>
+                    <Text variant="bodySmall" style={styles.dialogEmail}>Share this code — expires in 24 hours:</Text>
+                    <Text selectable style={styles.inviteCodeText}>{generatedCode}</Text>
+                  </View>
+                ) : null}
+                {!!householdError && <Text style={styles.errorText}>{householdError}</Text>}
+              </>
+            ) : (
+              <>
+                <Text variant="bodySmall" style={styles.dialogEmail}>
+                  Create a household or join one with an invite code.
+                </Text>
+                <TextInput
+                  label="Household name"
+                  value={householdName}
+                  onChangeText={(t) => { setHouseholdName(t); setHouseholdError(''); }}
+                  mode="outlined"
+                  style={styles.input}
+                />
+                <Button
+                  mode="contained"
+                  onPress={handleCreateHousehold}
+                  loading={householdLoading}
+                  disabled={!householdName.trim() || householdLoading}
+                  style={{ marginBottom: spacing.md }}
+                >
+                  Create Household
+                </Button>
+                <View style={styles.orDivider}>
+                  <View style={styles.orLine} />
+                  <Text style={styles.orText}>or</Text>
+                  <View style={styles.orLine} />
+                </View>
+                <TextInput
+                  label="Invite code"
+                  value={joinCode}
+                  onChangeText={(t) => { setJoinCode(t); setHouseholdError(''); }}
+                  mode="outlined"
+                  autoCapitalize="characters"
+                  style={styles.input}
+                />
+                <Button
+                  mode="outlined"
+                  onPress={handleJoinHousehold}
+                  loading={householdLoading}
+                  disabled={!joinCode.trim() || householdLoading}
+                >
+                  Join with Code
+                </Button>
+                {!!householdError && <Text style={styles.errorText}>{householdError}</Text>}
+              </>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions style={household ? styles.dialogActions : undefined}>
+            {household && (
+              <Button textColor={colors.error} onPress={() => setLeaveConfirm(true)}>
+                Leave
+              </Button>
+            )}
+            <View style={household ? styles.dialogRightActions : undefined}>
+              {household && (
+                <Button onPress={handleGenerateCode} loading={householdLoading} disabled={householdLoading}>
+                  Invite Code
+                </Button>
+              )}
+              <Button onPress={() => { setHouseholdDialog(false); setHouseholdName(''); setJoinCode(''); setHouseholdError(''); setGeneratedCode(null); }}>
+                {household ? 'Close' : 'Cancel'}
+              </Button>
+            </View>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Leave household confirmation */}
+        <Dialog visible={leaveConfirm} onDismiss={() => setLeaveConfirm(false)}>
+          <Dialog.Title>Leave Household?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.text }}>
+              You will lose access to the shared list. You can rejoin with a new invite code.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setLeaveConfirm(false)}>Cancel</Button>
+            <Button textColor={colors.error} onPress={handleLeaveHousehold} loading={householdLoading}>
+              Leave
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
         {/* Account management dialog */}
         <Dialog visible={accountDialog} onDismiss={() => { setAccountDialog(false); setNewPassword(''); setConfirmPassword(''); setPasswordError(''); }}>
           <Dialog.Title>Account</Dialog.Title>
@@ -427,4 +608,25 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.softShadow,
   },
+  inviteCodeBox: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    alignItems: 'center' as const,
+  },
+  inviteCodeText: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    letterSpacing: 6,
+    color: colors.primary,
+    fontFamily: 'Nunito_800ExtraBold',
+  },
+  orDivider: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginBottom: spacing.sm,
+  },
+  orLine: { flex: 1, height: 1, backgroundColor: colors.softShadow },
+  orText: { color: colors.textLight, marginHorizontal: spacing.sm, fontSize: 12 },
 }); }
