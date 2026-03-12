@@ -45,12 +45,24 @@ ALTER TABLE households ENABLE ROW LEVEL SECURITY;
 ALTER TABLE household_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE household_invites ENABLE ROW LEVEL SECURITY;
 
+-- ── Helper function (avoids recursive RLS) ───────────────────
+-- SECURITY DEFINER bypasses RLS when called from within policies,
+-- preventing infinite recursion on household_members self-references.
+CREATE OR REPLACE FUNCTION get_my_household_id()
+RETURNS UUID
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT household_id FROM household_members WHERE user_id = auth.uid() LIMIT 1;
+$$;
+
 -- ── Policies: households ──────────────────────────────────────
 
+-- NOTE: uses get_my_household_id() to avoid recursive RLS on household_members
 CREATE POLICY "members_can_see_household" ON households
-  FOR SELECT USING (
-    id IN (SELECT household_id FROM household_members WHERE user_id = auth.uid())
-  );
+  FOR SELECT USING (id = get_my_household_id());
 
 CREATE POLICY "creator_can_insert_household" ON households
   FOR INSERT WITH CHECK (created_by = auth.uid());
@@ -58,11 +70,7 @@ CREATE POLICY "creator_can_insert_household" ON households
 -- ── Policies: household_members ───────────────────────────────
 
 CREATE POLICY "members_can_read_household_roster" ON household_members
-  FOR SELECT USING (
-    household_id IN (
-      SELECT household_id FROM household_members hm WHERE hm.user_id = auth.uid()
-    )
-  );
+  FOR SELECT USING (household_id = get_my_household_id());
 
 CREATE POLICY "user_can_insert_self_as_member" ON household_members
   FOR INSERT WITH CHECK (user_id = auth.uid());
@@ -78,8 +86,7 @@ CREATE POLICY "anyone_can_read_valid_invite" ON household_invites
 
 CREATE POLICY "members_can_create_invite" ON household_invites
   FOR INSERT WITH CHECK (
-    created_by = auth.uid() AND
-    household_id IN (SELECT household_id FROM household_members WHERE user_id = auth.uid())
+    created_by = auth.uid() AND household_id = get_my_household_id()
   );
 
 -- Allow marking invites as used
@@ -89,18 +96,10 @@ CREATE POLICY "owner_can_mark_invite_used" ON household_invites
 -- ── Extra RLS policies for household access on existing tables ─
 
 CREATE POLICY "household_list_access" ON shopping_list
-  FOR ALL USING (
-    household_id IN (
-      SELECT household_id FROM household_members WHERE user_id = auth.uid()
-    )
-  );
+  FOR ALL USING (household_id = get_my_household_id());
 
 CREATE POLICY "household_notes_access" ON shopping_notes
-  FOR ALL USING (
-    household_id IN (
-      SELECT household_id FROM household_members WHERE user_id = auth.uid()
-    )
-  );
+  FOR ALL USING (household_id = get_my_household_id());
 
 -- ── Enable realtime on shopping_list ─────────────────────────
 ALTER PUBLICATION supabase_realtime ADD TABLE shopping_list;
