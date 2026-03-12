@@ -16,6 +16,7 @@ interface StorageStore {
   updateItem: (id: string, name: string) => Promise<void>;
   unlinkItem: (id: string) => Promise<void>;
   moveItem: (locationId: string, itemId: string, direction: 'up' | 'down') => Promise<void>;
+  transferItem: (itemId: string, fromLocationId: string, toLocationId: string, atEnd: boolean) => Promise<void>;
 }
 
 function sortItems(items: any[]) {
@@ -295,5 +296,46 @@ export const useStorageStore = create<StorageStore>((set, get) => ({
       supabase.from('items').update({ order_index: idx }).eq('id', newItems[idx].id),
       supabase.from('items').update({ order_index: newIdx }).eq('id', newItems[newIdx].id),
     ]);
+  },
+
+  transferItem: async (itemId, fromLocationId, toLocationId, atEnd) => {
+    const { locations } = get();
+
+    // Find item in fromLocation (top-level or subsection)
+    const findInLoc = (locs: StorageLocationWithItems[], locId: string) => {
+      for (const l of locs) {
+        if (l.id === locId) return l.items;
+        for (const s of l.subsections) {
+          if (s.id === locId) return s.items;
+        }
+      }
+      return null;
+    };
+
+    const fromItems = findInLoc(locations, fromLocationId);
+    const toItems = findInLoc(locations, toLocationId);
+    if (!fromItems || !toItems) return;
+
+    const item = fromItems.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const newFromItems = fromItems.filter((i) => i.id !== itemId);
+    const newToItems = atEnd ? [...toItems, item] : [item, ...toItems];
+
+    const patchLoc = (locs: StorageLocationWithItems[], locId: string, newItems: any[]): StorageLocationWithItems[] =>
+      locs.map((l) => {
+        if (l.id === locId) return { ...l, items: newItems };
+        return { ...l, subsections: l.subsections.map((s) => s.id === locId ? { ...s, items: newItems } : s) };
+      });
+
+    set((state) => ({
+      locations: patchLoc(patchLoc(state.locations, fromLocationId, newFromItems), toLocationId, newToItems),
+    }));
+
+    // Persist: update home_location_id and order_index
+    const newOrderIdx = atEnd ? newToItems.length - 1 : 0;
+    await supabase.from('items').update({ home_location_id: toLocationId, order_index: newOrderIdx }).eq('id', itemId);
+    await Promise.all(newFromItems.map((i, idx) => supabase.from('items').update({ order_index: idx }).eq('id', i.id)));
+    await Promise.all(newToItems.map((i, idx) => supabase.from('items').update({ order_index: idx }).eq('id', i.id)));
   },
 }));

@@ -48,7 +48,13 @@
       "Bash(git add:*)",
       "Bash(npx supabase:*)",
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_f730e3a61a748ff7c74cc810407664f083710121 npx supabase:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cmd:*)",
+      "Bash(powershell:*)",
+      "Bash(tasklist:*)",
+      "Bash(node_modules/.bin/expo install:*)",
+      "Bash(node_modules/.bin/tsc:*)",
+      "Bash(claude --version)"
     ]
   }
 }

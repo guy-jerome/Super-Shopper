@@ -66,6 +66,7 @@ export default function StoresScreen() {
     addItemToAisle,
     removeItemFromAisle,
     moveItemInAisle,
+    transferItemAcrossAisles,
     updateItemInAisle,
   } = useStoreStore();
   const { items: globalItems, fetchItems } = useItemStore();
@@ -342,6 +343,9 @@ export default function StoresScreen() {
                 }
                 onAddItem={openAddItem}
                 onMoveItem={moveItemInAisle}
+                prevAisleId={aisleIdx > 0 ? activeStore.aisles[aisleIdx - 1].id : null}
+                nextAisleId={aisleIdx < activeStore.aisles.length - 1 ? activeStore.aisles[aisleIdx + 1].id : null}
+                onTransferItem={(locId, toAisleId, atEnd) => transferItemAcrossAisles(locId, aisle.id, toAisleId, atEnd)}
                 onRemoveItem={(locId) => {
                   const item = aisle.item_store_locations.find(
                     (l: any) => l.id === locId,
@@ -557,7 +561,7 @@ export default function StoresScreen() {
   // ── Store list view ────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, bgStyle]}>
-      <PageHeader title="Stores" subtitle="Manage your store layouts" colors={colors} tab="stores" />
+      <PageHeader title="Stores" subtitle="Manage your store layouts" colors={colors} tab="stores" titleFont="handwritten" />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">
           <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />
@@ -885,6 +889,9 @@ function AnimatedAisleItem({
   totalItems,
   aisleId,
   onMoveItem,
+  prevAisleId,
+  nextAisleId,
+  onTransferItem,
   onRemoveItem,
   onEditItem,
   onOpenDetail,
@@ -895,6 +902,9 @@ function AnimatedAisleItem({
   totalItems: number;
   aisleId: string;
   onMoveItem: (aisleId: string, locId: string, dir: "up" | "down") => void;
+  prevAisleId: string | null;
+  nextAisleId: string | null;
+  onTransferItem: (locId: string, toAisleId: string, atEnd: boolean) => void;
   onRemoveItem: (locId: string) => void;
   onEditItem: (locId: string, positionTag: string | null) => void;
   onOpenDetail: (itemId: string) => void;
@@ -924,6 +934,10 @@ function AnimatedAisleItem({
         canMoveDown={locIdx < totalItems - 1}
         onMoveUp={() => onMoveItem(aisleId, loc.id, "up")}
         onMoveDown={() => onMoveItem(aisleId, loc.id, "down")}
+        canMoveToPrev={locIdx === 0 && !!prevAisleId}
+        canMoveToNext={locIdx === totalItems - 1 && !!nextAisleId}
+        onMoveToPrev={() => prevAisleId && onTransferItem(loc.id, prevAisleId, false)}
+        onMoveToNext={() => nextAisleId && onTransferItem(loc.id, nextAisleId, true)}
         onActiveChange={handleActiveChange}
         size="sm"
       />
@@ -970,6 +984,9 @@ function AisleSection({
   onDeleteAisle,
   onAddItem,
   onMoveItem,
+  prevAisleId,
+  nextAisleId,
+  onTransferItem,
   onRemoveItem,
   onEditItem,
   onOpenDetail,
@@ -985,6 +1002,9 @@ function AisleSection({
   onDeleteAisle: (id: string) => void;
   onAddItem: (aisleId: string) => void;
   onMoveItem: (aisleId: string, locId: string, dir: "up" | "down") => void;
+  prevAisleId: string | null;
+  nextAisleId: string | null;
+  onTransferItem: (locId: string, toAisleId: string, atEnd: boolean) => void;
   onRemoveItem: (locId: string) => void;
   onEditItem: (locId: string, positionTag: string | null) => void;
   onOpenDetail: (itemId: string) => void;
@@ -1081,6 +1101,9 @@ function AisleSection({
                 totalItems={aisle.item_store_locations.length}
                 aisleId={aisle.id}
                 onMoveItem={onMoveItem}
+                prevAisleId={prevAisleId}
+                nextAisleId={nextAisleId}
+                onTransferItem={onTransferItem}
                 onRemoveItem={onRemoveItem}
                 onEditItem={onEditItem}
                 onOpenDetail={onOpenDetail}

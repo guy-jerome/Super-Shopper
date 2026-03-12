@@ -69,6 +69,7 @@ export default function HomeStorageScreen() {
     addItem,
     unlinkItem,
     moveItem,
+    transferItem,
   } = useStorageStore();
   const { shoppingList, fetchShoppingList, addToList, removeFromList } =
     useShoppingStore();
@@ -416,6 +417,7 @@ export default function HomeStorageScreen() {
                 onMoveLocation={(dir) => moveLocation(location.id, dir)}
                 onMoveSubsection={(subId, dir) => moveSubsection(location.id, subId, dir)}
                 onMoveItem={(locId, itemId, dir) => moveItem(locId, itemId, dir)}
+                onTransferItem={(itemId, fromLocId, toLocId, atEnd) => transferItem(itemId, fromLocId, toLocId, atEnd)}
                 onAddSubsection={() => {
                   setTargetParentId(location.id);
                   setSubsectionName("");
@@ -660,6 +662,7 @@ type LocationSectionProps = {
 
   onMoveSubsection: (subId: string, direction: "up" | "down") => void;
   onMoveItem: (locationId: string, itemId: string, direction: "up" | "down") => void;
+  onTransferItem: (itemId: string, fromLocId: string, toLocId: string, atEnd: boolean) => void;
   onAddSubsection: () => void;
   onOpenDetail: (itemId: string) => void;
   colors: Colors;
@@ -680,6 +683,9 @@ function AnimatedItemRow({
   onUnlinkItem,
   onMoveItem,
   onOpenDetail,
+  prevSectionId,
+  nextSectionId,
+  onTransferItem,
   colors,
   indented = false,
 }: {
@@ -695,6 +701,9 @@ function AnimatedItemRow({
   onUnlinkItem: (id: string) => void;
   onMoveItem: (locId: string, id: string, dir: "up" | "down") => void;
   onOpenDetail: (id: string) => void;
+  prevSectionId?: string | null;
+  nextSectionId?: string | null;
+  onTransferItem?: (itemId: string, toLocId: string, atEnd: boolean) => void;
   colors: Colors;
   indented?: boolean;
 }) {
@@ -730,6 +739,10 @@ function AnimatedItemRow({
             canMoveDown={itemIdx < totalItems - 1}
             onMoveUp={() => onMoveItem(locationId, item.id, "up")}
             onMoveDown={() => onMoveItem(locationId, item.id, "down")}
+            canMoveToPrev={itemIdx === 0 && !!prevSectionId}
+            canMoveToNext={itemIdx === totalItems - 1 && !!nextSectionId}
+            onMoveToPrev={() => prevSectionId && onTransferItem?.(item.id, prevSectionId, false)}
+            onMoveToNext={() => nextSectionId && onTransferItem?.(item.id, nextSectionId, true)}
             onActiveChange={handleActiveChange}
             size="sm"
           />
@@ -796,6 +809,9 @@ function SubsectionSection({
   onUnlinkItem,
   onMoveSubsection,
   onMoveItem,
+  onTransferItem,
+  prevSubId,
+  nextSubId,
   onRenameLocation,
   onDeleteLocation,
   onOpenDetail,
@@ -817,6 +833,9 @@ function SubsectionSection({
   onUnlinkItem: (id: string) => void;
   onMoveSubsection: (subId: string, dir: "up" | "down") => void;
   onMoveItem: (locId: string, itemId: string, dir: "up" | "down") => void;
+  onTransferItem?: (itemId: string, toLocId: string, atEnd: boolean) => void;
+  prevSubId?: string | null;
+  nextSubId?: string | null;
   onRenameLocation: (id: string, name: string) => void;
   onDeleteLocation: (id: string, name: string) => void;
   onOpenDetail: (id: string) => void;
@@ -923,6 +942,9 @@ function SubsectionSection({
                 onUnlinkItem={onUnlinkItem}
                 onMoveItem={onMoveItem}
                 onOpenDetail={onOpenDetail}
+                prevSectionId={itemIdx === 0 ? prevSubId : null}
+                nextSectionId={itemIdx === filteredItems.length - 1 ? nextSubId : null}
+                onTransferItem={onTransferItem}
                 colors={colors}
                 indented
               />
@@ -958,6 +980,7 @@ function LocationSection({
   onMoveLocation,
   onMoveSubsection,
   onMoveItem,
+  onTransferItem,
   onAddSubsection,
   onOpenDetail,
   colors,
@@ -1069,6 +1092,8 @@ function LocationSection({
               onUnlinkItem={onUnlinkItem}
               onMoveItem={onMoveItem}
               onOpenDetail={onOpenDetail}
+              nextSectionId={itemIdx === filteredItems.length - 1 ? (location.subsections[0]?.id ?? null) : null}
+              onTransferItem={(itemId, toLocId, atEnd) => onTransferItem(itemId, location.id, toLocId, atEnd)}
               colors={colors}
             />
           ))}
@@ -1097,6 +1122,9 @@ function LocationSection({
                 onUnlinkItem={onUnlinkItem}
                 onMoveSubsection={onMoveSubsection}
                 onMoveItem={onMoveItem}
+                prevSubId={subIdx > 0 ? location.subsections[subIdx - 1].id : null}
+                nextSubId={subIdx < location.subsections.length - 1 ? location.subsections[subIdx + 1].id : null}
+                onTransferItem={(itemId, toLocId, atEnd) => onTransferItem(itemId, sub.id, toLocId, atEnd)}
                 onRenameLocation={onRenameLocation}
                 onDeleteLocation={onDeleteLocation}
                 onOpenDetail={onOpenDetail}

@@ -141,19 +141,32 @@ export const fontConfig = {
 
 // ─── React Native Paper MD3 themes (one per season) ──────────────────────────
 function makePaperTheme(c: Colors) {
+  const isDark = c.background < '#888888'; // dark seasons have low-value hex backgrounds
   return {
     ...MD3LightTheme,
     fonts: configureFonts({ config: { fontFamily: 'Nunito_400Regular' } }),
     colors: {
       ...MD3LightTheme.colors,
       primary: c.primary,
-      secondary: c.accent,        // accent replaces dustyRose as Paper secondary
+      secondary: c.accent,
       error: c.error,
       background: c.background,
       surface: c.surface,
       onPrimary: '#FFFFFF',
       onBackground: c.text,
       onSurface: c.text,
+      // Override surfaceVariant + related tokens so Paper Menus/Dialogs read correctly on dark bg
+      surfaceVariant: c.cardBg,
+      onSurfaceVariant: c.text,
+      surfaceContainerHigh: c.cardBg,
+      surfaceContainerHighest: c.cardBorder,
+      surfaceContainer: c.surface,
+      surfaceContainerLow: c.background,
+      surfaceContainerLowest: c.background,
+      outline: c.divider,
+      outlineVariant: c.divider + '88',
+      inverseSurface: isDark ? c.text : c.background,
+      inverseOnSurface: isDark ? c.background : c.text,
     },
   };
 }

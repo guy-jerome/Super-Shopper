@@ -172,6 +172,7 @@ export default function ItemsScreen() {
         subtitle={`${items.length} item${items.length !== 1 ? 's' : ''} total`}
         colors={colors}
         tab="items"
+        titleFont="handwritten"
         right={
           <Menu
             visible={sortMenuVisible}

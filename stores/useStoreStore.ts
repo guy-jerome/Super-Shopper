@@ -20,6 +20,7 @@ interface StoreStore {
   removeItemFromAisle: (itemStoreLocationId: string) => Promise<void>;
   updateItemInAisle: (locId: string, positionTag: string | null) => Promise<void>;
   moveItemInAisle: (aisleId: string, itemLocId: string, direction: 'up' | 'down') => void;
+  transferItemAcrossAisles: (itemLocId: string, fromAisleId: string, toAisleId: string, atEnd: boolean) => void;
 }
 
 export const useStoreStore = create<StoreStore>((set, get) => ({
@@ -305,5 +306,51 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
         supabase.from('item_store_locations').update({ position_index: i }).eq('id', l.id)
       )
     );
+  },
+
+  transferItemAcrossAisles: (itemLocId, fromAisleId, toAisleId, atEnd) => {
+    const { activeStore } = get();
+    if (!activeStore) return;
+    const fromAisle = activeStore.aisles.find((a) => a.id === fromAisleId);
+    const toAisle = activeStore.aisles.find((a) => a.id === toAisleId);
+    if (!fromAisle || !toAisle) return;
+    const item = fromAisle.item_store_locations.find((l) => l.id === itemLocId);
+    if (!item) return;
+
+    const newFromLocs = fromAisle.item_store_locations.filter((l) => l.id !== itemLocId);
+    const newToLocs = atEnd
+      ? [...toAisle.item_store_locations, item]
+      : [item, ...toAisle.item_store_locations];
+
+    set((state) => {
+      if (!state.activeStore) return state;
+      return {
+        activeStore: {
+          ...state.activeStore,
+          aisles: state.activeStore.aisles.map((a) => {
+            if (a.id === fromAisleId) return { ...a, item_store_locations: newFromLocs };
+            if (a.id === toAisleId) return { ...a, item_store_locations: newToLocs };
+            return a;
+          }),
+        },
+      };
+    });
+
+    // Update shopping store order for both aisles
+    useShoppingStore.getState().updateAisleItemOrder(
+      fromAisleId,
+      newFromLocs.map((l, i) => ({ itemId: (l as any).item_id, position_index: i }))
+    );
+    useShoppingStore.getState().updateAisleItemOrder(
+      toAisleId,
+      newToLocs.map((l, i) => ({ itemId: (l as any).item_id, position_index: i }))
+    );
+
+    // Persist: move item to new aisle, update position indices for both aisles
+    supabase.from('item_store_locations').update({ aisle_id: toAisleId, position_index: atEnd ? newToLocs.length - 1 : 0 }).eq('id', itemLocId);
+    Promise.all([
+      ...newFromLocs.map((l, i) => supabase.from('item_store_locations').update({ position_index: i }).eq('id', l.id)),
+      ...newToLocs.map((l, i) => supabase.from('item_store_locations').update({ position_index: i }).eq('id', l.id)),
+    ]);
   },
 }));

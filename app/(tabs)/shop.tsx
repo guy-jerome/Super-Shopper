@@ -1059,7 +1059,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: spacing.sm,
   },
-  headerTitle: { color: colors.text, fontWeight: "bold" },
+  headerTitle: { color: colors.text, fontFamily: 'Caveat_700Bold', fontSize: 32 },
   headerDate: { color: colors.textLight, fontSize: 13 },
   // ScrollView area is the notepad itself
   scroll: { flex: 1, backgroundColor: colors.butter },

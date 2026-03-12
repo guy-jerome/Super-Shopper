@@ -8,6 +8,11 @@ type DragHandleProps = {
   canMoveDown: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  // Cross-section / cross-aisle transfer
+  canMoveToPrev?: boolean;
+  canMoveToNext?: boolean;
+  onMoveToPrev?: () => void;
+  onMoveToNext?: () => void;
   onActiveChange?: (active: boolean) => void;
   size?: 'sm' | 'md';
 };
@@ -17,6 +22,10 @@ export function DragHandle({
   canMoveDown,
   onMoveUp,
   onMoveDown,
+  canMoveToPrev,
+  canMoveToNext,
+  onMoveToPrev,
+  onMoveToNext,
   onActiveChange,
   size = 'md',
 }: DragHandleProps) {
@@ -26,9 +35,9 @@ export function DragHandle({
   const lastStep = useRef(0);
   const THRESHOLD = size === 'sm' ? 36 : 44;
 
-  const propsRef = useRef({ canMoveUp, canMoveDown, onMoveUp, onMoveDown, onActiveChange });
+  const propsRef = useRef({ canMoveUp, canMoveDown, onMoveUp, onMoveDown, canMoveToPrev, canMoveToNext, onMoveToPrev, onMoveToNext, onActiveChange });
   useEffect(() => {
-    propsRef.current = { canMoveUp, canMoveDown, onMoveUp, onMoveDown, onActiveChange };
+    propsRef.current = { canMoveUp, canMoveDown, onMoveUp, onMoveDown, canMoveToPrev, canMoveToNext, onMoveToPrev, onMoveToNext, onActiveChange };
   });
 
   const activate = () => {
@@ -63,11 +72,16 @@ export function DragHandle({
         activate();
       },
       onPanResponderMove: (_, gestureState) => {
-        const { canMoveUp, canMoveDown, onMoveUp, onMoveDown } = propsRef.current;
+        const { canMoveUp, canMoveDown, onMoveUp, onMoveDown, canMoveToPrev, canMoveToNext, onMoveToPrev, onMoveToNext } = propsRef.current;
         const step = Math.floor(gestureState.dy / THRESHOLD);
         if (step !== lastStep.current) {
-          if (step > lastStep.current && canMoveDown) onMoveDown();
-          else if (step < lastStep.current && canMoveUp) onMoveUp();
+          if (step > lastStep.current) {
+            if (canMoveDown) onMoveDown();
+            else if (canMoveToNext) onMoveToNext?.();
+          } else {
+            if (canMoveUp) onMoveUp();
+            else if (canMoveToPrev) onMoveToPrev?.();
+          }
           lastStep.current = step;
         }
       },
