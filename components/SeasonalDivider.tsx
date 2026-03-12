@@ -263,7 +263,8 @@ export function SeasonalDivider() {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    paddingVertical: spacing.sm,
+    paddingVertical: 2,
     paddingHorizontal: spacing.md,
+    transform: [{ scaleY: 0.6 }],
   },
 });
