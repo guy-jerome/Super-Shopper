@@ -3,7 +3,8 @@
 -- Dashboard → SQL Editor → New query → paste + run
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
--- ── Households ────────────────────────────────────────────────
+-- ── Create all tables first (before any cross-table policies) ─
+
 CREATE TABLE IF NOT EXISTS households (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name       TEXT NOT NULL DEFAULT 'Our Household',
@@ -11,7 +12,40 @@ CREATE TABLE IF NOT EXISTS households (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS household_members (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  household_id UUID REFERENCES households(id) ON DELETE CASCADE NOT NULL,
+  user_id      UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  joined_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(household_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS household_invites (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code         TEXT UNIQUE NOT NULL,
+  household_id UUID REFERENCES households(id) ON DELETE CASCADE NOT NULL,
+  created_by   UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  expires_at   TIMESTAMPTZ NOT NULL,
+  used         BOOLEAN DEFAULT FALSE,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── Extend existing tables ────────────────────────────────────
+
+ALTER TABLE shopping_list
+  ADD COLUMN IF NOT EXISTS household_id UUID REFERENCES households(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS added_by     UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE shopping_notes
+  ADD COLUMN IF NOT EXISTS household_id UUID REFERENCES households(id) ON DELETE SET NULL;
+
+-- ── Enable RLS on new tables ──────────────────────────────────
+
 ALTER TABLE households ENABLE ROW LEVEL SECURITY;
+ALTER TABLE household_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE household_invites ENABLE ROW LEVEL SECURITY;
+
+-- ── Policies: households ──────────────────────────────────────
 
 CREATE POLICY "members_can_see_household" ON households
   FOR SELECT USING (
@@ -21,16 +55,7 @@ CREATE POLICY "members_can_see_household" ON households
 CREATE POLICY "creator_can_insert_household" ON households
   FOR INSERT WITH CHECK (created_by = auth.uid());
 
--- ── Household members ─────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS household_members (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  household_id UUID REFERENCES households(id) ON DELETE CASCADE NOT NULL,
-  user_id      UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  joined_at    TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(household_id, user_id)
-);
-
-ALTER TABLE household_members ENABLE ROW LEVEL SECURITY;
+-- ── Policies: household_members ───────────────────────────────
 
 CREATE POLICY "members_can_read_household_roster" ON household_members
   FOR SELECT USING (
@@ -45,18 +70,7 @@ CREATE POLICY "user_can_insert_self_as_member" ON household_members
 CREATE POLICY "user_can_delete_self_as_member" ON household_members
   FOR DELETE USING (user_id = auth.uid());
 
--- ── Invite codes ──────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS household_invites (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code         TEXT UNIQUE NOT NULL,
-  household_id UUID REFERENCES households(id) ON DELETE CASCADE NOT NULL,
-  created_by   UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  expires_at   TIMESTAMPTZ NOT NULL,
-  used         BOOLEAN DEFAULT FALSE,
-  created_at   TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE household_invites ENABLE ROW LEVEL SECURITY;
+-- ── Policies: household_invites ───────────────────────────────
 
 -- Anyone can look up a valid code (needed for joining)
 CREATE POLICY "anyone_can_read_valid_invite" ON household_invites
@@ -68,21 +82,12 @@ CREATE POLICY "members_can_create_invite" ON household_invites
     household_id IN (SELECT household_id FROM household_members WHERE user_id = auth.uid())
   );
 
--- Allow the system to mark invites as used
+-- Allow marking invites as used
 CREATE POLICY "owner_can_mark_invite_used" ON household_invites
   FOR UPDATE USING (TRUE);
 
--- ── Extend shopping_list ─────────────────────────────────────
-ALTER TABLE shopping_list
-  ADD COLUMN IF NOT EXISTS household_id UUID REFERENCES households(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS added_by     UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+-- ── Extra RLS policies for household access on existing tables ─
 
--- ── Extend shopping_notes ────────────────────────────────────
-ALTER TABLE shopping_notes
-  ADD COLUMN IF NOT EXISTS household_id UUID REFERENCES households(id) ON DELETE SET NULL;
-
--- ── Extra RLS policies for household access ──────────────────
--- These stack with the existing user_id policies (Supabase OR's them)
 CREATE POLICY "household_list_access" ON shopping_list
   FOR ALL USING (
     household_id IN (
