@@ -732,8 +732,7 @@ function AnimatedItemRow({
         {/* Left stripe */}
         <View style={[sectionStyles.itemStripe, { backgroundColor: colors.stripe }]} />
         {/* Existing row content */}
-        <Animated.View style={[sectionStyles.itemRowInner, { backgroundColor }, indented && sectionStyles.itemRowIndented]}>
-          {indented && <View style={sectionStyles.subsectionIndent} />}
+        <Animated.View style={[sectionStyles.itemRowInner, { backgroundColor }]}>
           <DragHandle
             canMoveUp={itemIdx > 0}
             canMoveDown={itemIdx < totalItems - 1}
@@ -759,7 +758,7 @@ function AnimatedItemRow({
             />
             <View style={sectionStyles.itemNameWrap}>
               <View style={sectionStyles.itemNameRow}>
-                <Text variant="bodyLarge" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
+                <Text variant="bodyMedium" numberOfLines={1} ellipsizeMode="tail" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>
                   {item.name}
                 </Text>
                 {lowStock && (
@@ -778,12 +777,13 @@ function AnimatedItemRow({
           </TouchableOpacity>
           <IconButton
             icon={lowStock ? "alert-circle" : "alert-circle-outline"}
-            size={22}
+            size={18}
             iconColor={lowStock ? colors.warning : colors.textLight}
+            style={{ margin: 0 }}
             onPress={() => onToggleLowStock(item.id)}
           />
-          <IconButton icon="eye-outline" size={22} iconColor={colors.textLight} onPress={() => onOpenDetail(item.id)} />
-          <IconButton icon="delete-outline" size={22} iconColor={colors.error} onPress={() => onUnlinkItem(item.id)} />
+          <IconButton icon="eye-outline" size={18} iconColor={colors.textLight} style={{ margin: 0 }} onPress={() => onOpenDetail(item.id)} />
+          <IconButton icon="delete-outline" size={18} iconColor={colors.error} style={{ margin: 0 }} onPress={() => onUnlinkItem(item.id)} />
         </Animated.View>
       </View>
     </SwipeableRow>
@@ -873,7 +873,6 @@ function SubsectionSection({
         season === 'winter' && { backgroundColor: colors.cardBg },
         season === 'spring' && { backgroundColor: colors.accentLight },
       ]}>
-        <View style={[sectionStyles.subsectionLine, { backgroundColor: season === 'winter' ? colors.accent : season === 'summer' ? colors.accent : colors.stripe }]} />
         <DragHandle
           canMoveUp={subIdx > 0}
           canMoveDown={subIdx < totalSubs - 1}
@@ -888,11 +887,6 @@ function SubsectionSection({
           onLongPress={() => onRenameLocation(subsection.id, subsection.name)}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons
-            name="folder-outline"
-            size={14}
-            color={colors.primary}
-          />
           <MaterialCommunityIcons
             name={isExpanded ? "chevron-up" : "chevron-down"}
             size={16}
@@ -910,12 +904,13 @@ function SubsectionSection({
             </Text>
           </View>
         </TouchableOpacity>
-        <IconButton icon="pencil-outline" size={22} iconColor={colors.textLight} onPress={() => onRenameLocation(subsection.id, subsection.name)} />
-        <IconButton icon="plus-circle-outline" size={22} iconColor={colors.primary} onPress={() => onAddItem(subsection.id)} />
+        <IconButton icon="pencil-outline" size={18} iconColor={colors.textLight} style={{ margin: 0 }} onPress={() => onRenameLocation(subsection.id, subsection.name)} />
+        <IconButton icon="plus-circle-outline" size={18} iconColor={colors.primary} style={{ margin: 0 }} onPress={() => onAddItem(subsection.id)} />
         <IconButton
           icon="delete-outline"
-          size={22}
+          size={18}
           iconColor={colors.error}
+          style={{ margin: 0 }}
           onPress={() => onDeleteLocation(subsection.id, subsection.name)}
         />
       </Animated.View>
@@ -1280,23 +1275,12 @@ function createSectionStyles(colors: Colors) {
       alignItems: "center",
       paddingLeft: spacing.xs,
       paddingRight: spacing.xs,
-      minHeight: 48,
+      height: 48,
     },
-    itemRowIndented: {
-      paddingLeft: 0,
-    },
-    subsectionIndent: {
-      width: spacing.md,
-      alignSelf: "stretch",
-      borderLeftWidth: 2,
-      borderLeftColor: colors.primary + "40",
-      marginLeft: spacing.sm,
-      marginRight: spacing.xs,
-    },
-    itemTouchable: { flex: 1, flexDirection: "row", alignItems: "center" },
-    itemNameWrap: { flex: 1, marginLeft: spacing.xs },
-    itemNameRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, flexWrap: "wrap" },
-    itemName: { color: colors.text },
+    itemTouchable: { flex: 1, flexDirection: "row", alignItems: "center", overflow: "hidden" },
+    itemNameWrap: { flex: 1, marginLeft: spacing.xs, overflow: "hidden" },
+    itemNameRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, overflow: "hidden", flexShrink: 1 },
+    itemName: { color: colors.text, flexShrink: 1 },
     itemMeta: { color: colors.textLight, marginTop: 1 },
     itemChecked: { textDecorationLine: "line-through", color: colors.textLight },
     lowChip: {
@@ -1318,14 +1302,13 @@ function createSectionStyles(colors: Colors) {
     // Subsection styles
     subsectionContainer: {
       backgroundColor: colors.surface,
-      borderLeftWidth: 3,
-      borderLeftColor: colors.primary + "30",
-      marginLeft: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.primary + "30",
     },
     subsectionHeader: {
       flexDirection: "row",
       alignItems: "center",
-      paddingLeft: spacing.lg,
+      paddingLeft: spacing.xs,
       paddingRight: spacing.xs,
       paddingVertical: 2,
       backgroundColor: colors.softShadow,
