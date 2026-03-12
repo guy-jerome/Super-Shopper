@@ -1,4 +1,4 @@
-import { MD3LightTheme, configureFonts } from 'react-native-paper';
+import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
 import { useSettingsStore, type Season } from '../stores/useSettingsStore';
 
 // ─── Season palettes ──────────────────────────────────────────────────────────
@@ -142,11 +142,23 @@ export const fontConfig = {
 // ─── React Native Paper MD3 themes (one per season) ──────────────────────────
 function makePaperTheme(c: Colors) {
   const isDark = c.background < '#888888'; // dark seasons have low-value hex backgrounds
+  const baseTheme = isDark ? MD3DarkTheme : MD3LightTheme;
+
+  // Distinct dialog/menu background per season — noticeably tinted, not plain white
+  const dialogBg = isDark
+    ? '#1A3050'  // winter: deep navy
+    : c.primary.startsWith('#7B') || c.primary.startsWith('#94') // spring / rough heuristic
+    ? '#DFF2EB'  // spring: soft mint
+    : c.primary.startsWith('#6B')
+    ? '#D8F0CC'  // summer: soft garden green
+    : '#FDF0D8'; // autumn: warm amber cream
+
   return {
-    ...MD3LightTheme,
+    ...baseTheme,
+    dark: isDark,
     fonts: configureFonts({ config: { fontFamily: 'Nunito_400Regular' } }),
     colors: {
-      ...MD3LightTheme.colors,
+      ...baseTheme.colors,
       primary: c.primary,
       secondary: c.accent,
       error: c.error,
@@ -155,12 +167,12 @@ function makePaperTheme(c: Colors) {
       onPrimary: '#FFFFFF',
       onBackground: c.text,
       onSurface: c.text,
-      // Override surfaceVariant + related tokens so Paper Menus/Dialogs read correctly on dark bg
+      // Override surfaceVariant + related tokens so Paper Menus/Dialogs use seasonal colors
       surfaceVariant: c.cardBg,
       onSurfaceVariant: c.text,
-      surfaceContainerHigh: c.cardBg,
+      surfaceContainerHigh: dialogBg,   // Dialog background
       surfaceContainerHighest: c.cardBorder,
-      surfaceContainer: c.surface,
+      surfaceContainer: dialogBg,        // Menu background
       surfaceContainerLow: c.background,
       surfaceContainerLowest: c.background,
       outline: c.divider,
