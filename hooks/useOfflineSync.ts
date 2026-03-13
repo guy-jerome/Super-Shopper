@@ -3,6 +3,8 @@ import NetInfo from '@react-native-community/netinfo';
 import { processPendingChanges } from '../lib/sync';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useShoppingStore } from '../stores/useShoppingStore';
+import { useStorageStore } from '../stores/useStorageStore';
+import { useItemStore } from '../stores/useItemStore';
 import type { SyncStatus } from '../types/app.types';
 
 export function useOfflineSync() {
@@ -12,12 +14,19 @@ export function useOfflineSync() {
     const unsubscribe = NetInfo.addEventListener(async (state) => {
       if (state.isConnected) {
         setStatus('syncing');
-        await processPendingChanges();
+        const { failed } = await processPendingChanges();
+        if (failed > 0) {
+          console.warn(`[sync] ${failed} change(s) exceeded max retries and were abandoned`);
+        }
         // Re-fetch to reconcile local state with server after queued changes applied
         const user = useAuthStore.getState().user;
         if (user) {
           const today = new Date().toISOString().split('T')[0];
-          await useShoppingStore.getState().fetchShoppingList(user.id, today);
+          await Promise.all([
+            useShoppingStore.getState().fetchShoppingList(user.id, today),
+            useStorageStore.getState().fetchLocations(user.id),
+            useItemStore.getState().fetchItems(user.id),
+          ]);
         }
         setStatus('online');
       } else {
