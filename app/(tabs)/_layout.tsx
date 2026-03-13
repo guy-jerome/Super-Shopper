@@ -264,9 +264,9 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen name="home-storage" options={{ title: "Home" }} />
-      <Tabs.Screen name="items" options={{ title: "Items" }} />
       <Tabs.Screen name="stores" options={{ title: "Stores" }} />
       <Tabs.Screen name="shop" options={{ title: "Shop" }} />
+      <Tabs.Screen name="items" options={{ title: "Items" }} />
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
     </Tabs>
   );

@@ -443,7 +443,7 @@ export default function HomeStorageScreen() {
       </Snackbar>
 
       <FAB
-        icon="sprout"
+        icon="plus-box-outline"
         label="Add Location"
         style={styles.fab}
         onPress={() => setLocationDialog(true)}
