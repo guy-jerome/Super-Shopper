@@ -4,48 +4,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Colors } from "../constants/theme";
 import { spacing } from "../constants/theme";
-import { useSettingsStore, type Season } from "../stores/useSettingsStore";
 
-// Per-tab, per-season background watermark icon
-const TAB_SEASON_ICONS: Record<string, Record<Season, string>> = {
-  "home-storage": {
-    spring: "flower",
-    summer: "basket",
-    autumn: "cupboard",
-    winter: "fire",
-  },
-  items: {
-    spring: "bee",
-    summer: "notebook",
-    autumn: "book-open-variant",
-    winter: "yarn",
-  },
-  stores: {
-    spring: "store",
-    summer: "cart",
-    autumn: "map-marker",
-    winter: "snowflake",
-  },
-  shop: {
-    spring: "clipboard-list",
-    summer: "bag-personal",
-    autumn: "format-list-checkbox",
-    winter: "gift",
-  },
-  settings: {
-    spring: "ladybug",
-    summer: "leaf",
-    autumn: "coffee",
-    winter: "cat",
-  },
-};
-
-// Fallback generic season icon if tab not provided
-const SEASON_ICONS: Record<Season, string> = {
-  spring: "flower-tulip-outline",
-  summer: "white-balance-sunny",
-  autumn: "leaf-maple",
-  winter: "snowflake",
+// Fixed per-tab watermark icon (not season-dependent so alignment is consistent)
+const TAB_ICONS: Record<string, string> = {
+  "home-storage": "home-variant-outline",
+  items:          "tag-multiple-outline",
+  stores:         "store-outline",
+  shop:           "cart-outline",
+  settings:       "cog-outline",
 };
 
 interface PageHeaderProps {
@@ -67,12 +33,9 @@ export function PageHeader({
   tab,
   titleFont,
 }: PageHeaderProps) {
-  const season = useSettingsStore((s) => s.season);
   const insets = useSafeAreaInsets();
 
-  const watermarkIcon = tab
-    ? (TAB_SEASON_ICONS[tab]?.[season] ?? SEASON_ICONS[season])
-    : SEASON_ICONS[season];
+  const watermarkIcon = tab ? (TAB_ICONS[tab] ?? "information-outline") : "information-outline";
 
   const titleStyle =
     titleFont === "handwritten"
