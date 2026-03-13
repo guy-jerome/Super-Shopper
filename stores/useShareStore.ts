@@ -54,6 +54,10 @@ export const useShareStore = create<ShareStore>((set, get) => ({
   shareWithEmail: async (email: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not signed in');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim().toLowerCase())) {
+      throw new Error('Please enter a valid email address');
+    }
 
     // Look up the target user's profile
     const { data: profile, error: profileError } = await supabase

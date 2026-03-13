@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform, ScrollView, Share } from 'react-native';
 import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar, IconButton, Menu } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -129,8 +129,8 @@ export default function SettingsScreen() {
 
   const handleChangePassword = async () => {
     setPasswordError('');
-    if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -295,6 +295,15 @@ export default function SettingsScreen() {
                   <View style={styles.inviteCodeBox}>
                     <Text variant="bodySmall" style={styles.dialogEmail}>Share this code — expires in 24 hours:</Text>
                     <Text selectable style={styles.inviteCodeText}>{generatedCode}</Text>
+                    <Button
+                      icon="share-variant-outline"
+                      mode="outlined"
+                      compact
+                      style={{ marginTop: 8 }}
+                      onPress={() => Share.share({ message: `Join my Super Shopper household with code: ${generatedCode}` })}
+                    >
+                      Share Code
+                    </Button>
                   </View>
                 ) : null}
                 {!!householdError && <Text style={styles.errorText}>{householdError}</Text>}
