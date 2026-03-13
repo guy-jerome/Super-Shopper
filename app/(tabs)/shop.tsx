@@ -336,7 +336,7 @@ export default function ShopScreen() {
   return (
     <View style={[styles.container, bgStyle]}>
       {/* Seasonal illustration behind all content */}
-      <TabBackground tab="shop" />
+      <TabBackground tab="shop" opacity={0.50} />
       {/* Header */}
       <Surface style={styles.headerSurface} elevation={1}>
         <View style={styles.headerRow}>
@@ -1108,7 +1108,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   headerRow: {
     flexDirection: "row",

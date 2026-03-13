@@ -156,7 +156,7 @@ export function ShopTabIllustration() {
       {/* ── WALL ──────────────────────────────────────────────────────────── */}
       <Rect x={0} y={0} width={390} height={260} fill={p.bg} />
 
-      <G transform="translate(0, 60)">
+      <G transform="translate(0, 15)">
       {/* ── DESK SURFACE ──────────────────────────────────────────────────── */}
       {/* Top edge highlight */}
       <Rect x={0} y={155} width={390} height={10} fill={p.deskEdge} />
