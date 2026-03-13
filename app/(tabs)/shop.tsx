@@ -42,6 +42,7 @@ import { useSettingsStore, type Season } from "../../stores/useSettingsStore";
 import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { SeasonalDivider } from "../../components/SeasonalDivider";
+import { TabBackground } from "../../components/TabBackground";
 
 const SHOP_TAGLINES: Record<Season, string> = {
   spring: 'The bees approve of your shopping habits.',
@@ -334,6 +335,8 @@ export default function ShopScreen() {
 
   return (
     <View style={[styles.container, bgStyle]}>
+      {/* Seasonal illustration behind all content */}
+      <TabBackground tab="shop" />
       {/* Header */}
       <Surface style={styles.headerSurface} elevation={1}>
         <View style={styles.headerRow}>
@@ -1116,7 +1119,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   headerTitle: { color: colors.text, fontFamily: 'Caveat_700Bold', fontSize: 32 },
   headerDate: { color: colors.textLight, fontSize: 13 },
   // ScrollView area is the notepad itself
-  scroll: { flex: 1, backgroundColor: colors.butter },
+  scroll: { flex: 1, backgroundColor: 'transparent' },
   scrollContent: { paddingBottom: 100 },
   fab: {
     position: "absolute",

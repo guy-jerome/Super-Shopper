@@ -32,6 +32,7 @@ import { useColors, spacing, radius, type Colors, useSeasonalBgStyle } from "../
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
+import { TabBackground } from "../../components/TabBackground";
 import { useSettingsStore } from "../../stores/useSettingsStore";
 
 const TAG_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA', '#B8E8E0'];
@@ -167,6 +168,7 @@ export default function ItemsScreen() {
 
   return (
     <View style={[styles.container, bgStyle]}>
+      <TabBackground tab="items" />
       <PageHeader
         title="Items"
         subtitle={`${items.length} item${items.length !== 1 ? 's' : ''} total`}

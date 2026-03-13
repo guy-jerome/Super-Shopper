@@ -44,6 +44,7 @@ import type { StorageLocationWithItems } from "../../types/app.types";
 import { STORAGE_TEMPLATES } from "../../constants/templates";
 import { OnboardingModal } from "../../components/OnboardingModal";
 import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
+import { TabBackground } from "../../components/TabBackground";
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { EmptyState } from "../../components/EmptyState";
 import { SeasonalDivider } from "../../components/SeasonalDivider";
@@ -309,6 +310,7 @@ export default function HomeStorageScreen() {
 
   return (
     <View style={[styles.container, bgStyle]}>
+      <TabBackground tab="home-storage" />
       <PageHeader title="Home Storage" subtitle="Check items you need to buy" colors={colors} tab="home-storage" titleFont="handwritten" />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">

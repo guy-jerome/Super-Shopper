@@ -36,6 +36,7 @@ import { DragHandle } from "../../components/DraggableList";
 import { useColors, spacing, radius, type Colors, useSeasonalBgStyle } from "../../constants/theme";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
+import { TabBackground } from "../../components/TabBackground";
 import { useSettingsStore } from "../../stores/useSettingsStore";
 
 const AISLE_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA'];
@@ -561,6 +562,7 @@ export default function StoresScreen() {
   // ── Store list view ────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, bgStyle]}>
+      <TabBackground tab="stores" />
       <PageHeader title="Stores" subtitle="Manage your store layouts" colors={colors} tab="stores" titleFont="handwritten" />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">

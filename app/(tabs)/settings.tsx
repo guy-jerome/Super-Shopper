@@ -9,6 +9,7 @@ import { useShareStore } from '../../stores/useShareStore';
 import { useHouseholdStore } from '../../stores/useHouseholdStore';
 import { useColors, spacing, radius, seasonPalettes, type Colors, useSeasonalBgStyle } from '../../constants/theme';
 import { PageHeader } from '../../components/PageHeader';
+import { TabBackground } from '../../components/TabBackground';
 
 const SEASONS: { id: Season; label: string; icon: string; swatches: string[] }[] = [
   { id: 'spring', label: 'Spring', icon: 'flower-tulip-outline', swatches: ['#F5D2D2', '#F8F7BA', '#BDE3C3', '#A3CCDA'] },
@@ -164,6 +165,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, bgStyle]}>
+      <TabBackground tab="settings" />
       <PageHeader title="Settings" colors={colors} tab="settings" titleFont="handwritten" />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">
