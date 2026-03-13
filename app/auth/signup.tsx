@@ -1,40 +1,55 @@
-import { useState, useMemo } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Text, TextInput, Button, HelperText } from 'react-native-paper';
-import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../stores/useAuthStore';
-import { useColors, spacing, type Colors } from '../../constants/theme';
+import { useState, useMemo } from "react";
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
+import {
+  Text,
+  TextInput,
+  Button,
+  HelperText,
+  Banner,
+} from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useAuthStore } from "../../stores/useAuthStore";
+import { useColors, spacing, type Colors } from "../../constants/theme";
 
 export default function SignupScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const { signUp } = useAuthStore();
   const router = useRouter();
 
   const handleSignUp = async () => {
     if (!email.trim() || !password || !confirmPassword) {
-      setError('Please fill in all fields');
+      setError("Please fill in all fields");
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError("Password must be at least 8 characters");
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
       await signUp(email.trim(), password);
+      setEmailSent(true);
     } catch (e: any) {
-      setError(e.message ?? 'Sign up failed. Please try again.');
+      setError(e.message ?? "Sign up failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -43,13 +58,38 @@ export default function SignupScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
-          <Text variant="displaySmall" style={styles.appName}>Super Shopper</Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>Create an account</Text>
+          <Text variant="displaySmall" style={styles.appName}>
+            Super Shopper
+          </Text>
+          <Text variant="bodyLarge" style={styles.subtitle}>
+            Create an account
+          </Text>
         </View>
+
+        <Banner
+          visible={emailSent}
+          icon={({ size }) => (
+            <MaterialCommunityIcons
+              name="email-check-outline"
+              size={size}
+              color="green"
+            />
+          )}
+          actions={[
+            { label: "Sign In", onPress: () => router.push("/auth/login") },
+          ]}
+          style={styles.banner}
+        >
+          Account created! Check your inbox at {email.trim()} and click the
+          verification link before signing in.
+        </Banner>
 
         <View style={styles.form}>
           <TextInput
@@ -79,7 +119,11 @@ export default function SignupScreen() {
             mode="outlined"
             onSubmitEditing={handleSignUp}
           />
-          {!!error && <HelperText type="error" visible>{error}</HelperText>}
+          {!!error && (
+            <HelperText type="error" visible>
+              {error}
+            </HelperText>
+          )}
           <Button
             mode="contained"
             onPress={handleSignUp}
@@ -90,7 +134,11 @@ export default function SignupScreen() {
           >
             Create Account
           </Button>
-          <Button mode="text" onPress={() => router.push('/auth/login')} style={styles.linkButton}>
+          <Button
+            mode="text"
+            onPress={() => router.push("/auth/login")}
+            style={styles.linkButton}
+          >
             Already have an account? Sign In
           </Button>
         </View>
@@ -99,15 +147,22 @@ export default function SignupScreen() {
   );
 }
 
-function createStyles(colors: Colors) { return StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
-  header: { alignItems: 'center', marginBottom: spacing.xl },
-  appName: { color: colors.primary, fontWeight: 'bold', marginBottom: spacing.sm },
-  subtitle: { color: colors.textLight },
-  form: { width: '100%' },
-  input: { marginBottom: spacing.md },
-  button: { marginTop: spacing.sm },
-  buttonContent: { paddingVertical: spacing.xs },
-  linkButton: { marginTop: spacing.sm },
-}); }
+function createStyles(colors: Colors) {
+  return StyleSheet.create({
+    flex: { flex: 1, backgroundColor: colors.background },
+    container: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
+    header: { alignItems: "center", marginBottom: spacing.xl },
+    appName: {
+      color: colors.primary,
+      fontWeight: "bold",
+      marginBottom: spacing.sm,
+    },
+    subtitle: { color: colors.textLight },
+    banner: { marginBottom: spacing.md },
+    form: { width: "100%" },
+    input: { marginBottom: spacing.md },
+    button: { marginTop: spacing.sm },
+    buttonContent: { paddingVertical: spacing.xs },
+    linkButton: { marginTop: spacing.sm },
+  });
+}
