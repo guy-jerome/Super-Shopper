@@ -20,14 +20,13 @@ import { useItemStore } from "../stores/useItemStore";
 import { useShoppingStore } from "../stores/useShoppingStore";
 import { useColors, spacing, type Colors } from "../constants/theme";
 
-const today = new Date().toISOString().split("T")[0];
-
 type Props = {
   itemId: string | null;
   onDismiss: () => void;
 };
 
 export function ItemDetailModal({ itemId, onDismiss }: Props) {
+  const today = new Date().toISOString().split("T")[0];
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuthStore();

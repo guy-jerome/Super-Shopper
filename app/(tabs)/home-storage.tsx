@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from "expo-haptics";
 import {
   View,
@@ -51,12 +52,12 @@ import { SeasonalDivider } from "../../components/SeasonalDivider";
 import { PageHeader } from "../../components/PageHeader";
 import { useSettingsStore } from "../../stores/useSettingsStore";
 
-const today = new Date().toISOString().split("T")[0];
-
 export default function HomeStorageScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const bgStyle = useSeasonalBgStyle(colors.background);
+  const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
+  useFocusEffect(useCallback(() => { setToday(new Date().toISOString().split("T")[0]); }, []));
   const { user } = useAuthStore();
   const {
     locations,
@@ -72,12 +73,11 @@ export default function HomeStorageScreen() {
     moveItem,
     transferItem,
   } = useStorageStore();
-  const { shoppingList, fetchShoppingList, addToList, removeFromList } =
+  const { shoppingList, fetchShoppingList, addToList, removeFromList, updateQuantity } =
     useShoppingStore();
   const { items: globalItems, fetchItems } = useItemStore();
   const { lowStockIds, toggleLowStock, isLowStock } = useLowStockStore();
   const { season } = useSettingsStore();
-  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());
@@ -122,7 +122,7 @@ export default function HomeStorageScreen() {
   const itemSuggestions =
     itemName.trim().length > 0
       ? globalItems
-          .filter((i) => !i.hasHomeLocation && i.name.toLowerCase().includes(itemName.toLowerCase()))
+          .filter((i) => i.name.toLowerCase().includes(itemName.toLowerCase()))
           .slice(0, 5)
       : [];
 
@@ -187,7 +187,7 @@ export default function HomeStorageScreen() {
     // If already on list, update quantity; otherwise add fresh
     const existing = shoppingList.find((s) => s.item_id === qtyTarget.id);
     if (existing) {
-      await addToList(user.id, qtyTarget.id, qty);
+      await updateQuantity(existing.id, qty);
     } else {
       await addToList(user.id, qtyTarget.id, qty);
     }
@@ -298,7 +298,7 @@ export default function HomeStorageScreen() {
     setRefreshing(true);
     await Promise.all([fetchLocations(user.id), fetchShoppingList(user.id, today)]);
     setRefreshing(false);
-  }, [user?.id]);
+  }, [user?.id, today]);
 
   if (isLoading && locations.length === 0) {
     return (
@@ -311,7 +311,7 @@ export default function HomeStorageScreen() {
   return (
     <View style={[styles.container, bgStyle]}>
       <TabBackground tab="home-storage" />
-      <PageHeader title="Home Storage" subtitle="Check items you need to buy" colors={colors} tab="home-storage" titleFont="handwritten" />
+      <PageHeader title="Home Storage" subtitle="Browse your pantry & fridge" colors={colors} tab="home-storage" titleFont="handwritten" />
       {Platform.OS === 'web' && (
         <View style={styles.seasonDecor} pointerEvents="none">
           <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />

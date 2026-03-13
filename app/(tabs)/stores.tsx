@@ -50,7 +50,6 @@ export default function StoresScreen() {
   const bgStyle = useSeasonalBgStyle(colors.background);
   const { user } = useAuthStore();
   const { season } = useSettingsStore();
-  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
   const {
     stores,
     activeStore,
