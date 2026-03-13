@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { Text, List, Divider, Button, Avatar, Surface, Portal, Dialog, TextInput, Snackbar, IconButton, Menu } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -173,6 +173,7 @@ export default function SettingsScreen() {
         </View>
       )}
 
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
       {/* Account card — tap for sign out */}
       <Menu
         visible={accountMenu}
@@ -496,6 +497,7 @@ export default function SettingsScreen() {
       <Text style={styles.versionText}>
         Version {Constants.expoConfig?.version ?? '—'}
       </Text>
+      </ScrollView>
 
       <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={3000} style={{ bottom: 92 }}>
         {snackbar}
@@ -506,6 +508,8 @@ export default function SettingsScreen() {
 
 function createStyles(colors: Colors) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
   seasonDecor: {
     position: 'absolute' as const,
     right: -20,
