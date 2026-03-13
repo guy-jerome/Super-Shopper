@@ -68,7 +68,7 @@ export function PageHeader({
         <View style={styles.watermark} pointerEvents="none">
           <MaterialCommunityIcons
             name={watermarkIcon as any}
-            size={90}
+            size={64}
             color={colors.primary}
           />
         </View>
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   watermark: {
     position: "absolute",
     right: 14,
-    bottom: 14,
+    top: 8,
     opacity: 0.07,
   },
   content: {
