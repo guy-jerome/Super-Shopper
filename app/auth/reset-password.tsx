@@ -11,27 +11,36 @@ import { useRouter } from "expo-router";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useColors, spacing, type Colors } from "../../constants/theme";
 
-export default function LoginScreen() {
+export default function ResetPasswordScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuthStore();
+  const { updatePassword } = useAuthStore();
   const router = useRouter();
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
+  const handleReset = async () => {
+    if (!password || !confirmPassword) {
       setError("Please fill in all fields");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      await signIn(email.trim(), password);
+      await updatePassword(password);
+      // isRecovery is now false; _layout will redirect to tabs automatically
     } catch (e: any) {
-      setError(e.message ?? "Sign in failed. Please check your credentials.");
+      setError(e.message ?? "Failed to update password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -51,30 +60,27 @@ export default function LoginScreen() {
             Super Shopper
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
-            Sign in to your account
+            Choose a new password
           </Text>
         </View>
 
         <View style={styles.form}>
           <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
+            label="New Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
             style={styles.input}
             mode="outlined"
           />
           <TextInput
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
+            label="Confirm New Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
             secureTextEntry
-            autoComplete="password"
             style={styles.input}
             mode="outlined"
-            onSubmitEditing={handleLogin}
+            onSubmitEditing={handleReset}
           />
           {!!error && (
             <HelperText type="error" visible>
@@ -83,27 +89,13 @@ export default function LoginScreen() {
           )}
           <Button
             mode="contained"
-            onPress={handleLogin}
+            onPress={handleReset}
             loading={loading}
             disabled={loading}
             style={styles.button}
             contentStyle={styles.buttonContent}
           >
-            Sign In
-          </Button>
-          <Button
-            mode="text"
-            onPress={() => router.push("/auth/forgot-password")}
-            style={styles.linkButton}
-          >
-            Forgot your password?
-          </Button>
-          <Button
-            mode="text"
-            onPress={() => router.push("/auth/signup")}
-            style={styles.linkButton}
-          >
-            Don't have an account? Sign Up
+            Update Password
           </Button>
         </View>
       </ScrollView>
@@ -126,6 +118,5 @@ function createStyles(colors: Colors) {
     input: { marginBottom: spacing.md },
     button: { marginTop: spacing.sm },
     buttonContent: { paddingVertical: spacing.xs },
-    linkButton: { marginTop: spacing.sm },
   });
 }

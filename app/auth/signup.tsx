@@ -14,6 +14,7 @@ import {
   Banner,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useColors, spacing, type Colors } from "../../constants/theme";
@@ -46,7 +47,8 @@ export default function SignupScreen() {
     setError("");
     setLoading(true);
     try {
-      await signUp(email.trim(), password);
+      const redirectTo = Linking.createURL("auth/confirm");
+      await signUp(email.trim(), password, redirectTo);
       setEmailSent(true);
     } catch (e: any) {
       setError(e.message ?? "Sign up failed. Please try again.");
