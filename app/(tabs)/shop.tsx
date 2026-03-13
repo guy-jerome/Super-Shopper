@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useFocusEffect } from '@react-navigation/native';
 import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Share } from "react-native";
 import Animated, {
   useSharedValue,
@@ -51,10 +52,10 @@ const SHOP_TAGLINES: Record<Season, string> = {
   winter: 'Stock up and stay warm by the fire.',
 };
 
-const today = new Date().toISOString().split("T")[0];
-
 export default function ShopScreen() {
   const colors = useColors();
+  const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
+  useFocusEffect(useCallback(() => { setToday(new Date().toISOString().split("T")[0]); }, []));
   const styles = useMemo(() => createStyles(colors), [colors]);
   const bgStyle = useSeasonalBgStyle(colors.butter);
   const season = useSettingsStore((s) => s.season);
@@ -649,7 +650,16 @@ export default function ShopScreen() {
             </View>
           ))
         ) : (
-          [...shoppingList].sort((a, b) => Number(a.checked) - Number(b.checked)).map((item) => (
+          <>
+            {shoppingList.length > 0 && (
+              <Surface style={styles.storeHintBanner} elevation={0}>
+                <MaterialCommunityIcons name="store-outline" size={16} color={colors.primary} />
+                <Text variant="bodySmall" style={styles.storeHintText}>
+                  Select a store above to organise items by aisle
+                </Text>
+              </Surface>
+            )}
+            {[...shoppingList].sort((a, b) => Number(a.checked) - Number(b.checked)).map((item) => (
             <SwipeableRow
               key={item.id}
               onDelete={() => removeFromList(item.id)}
@@ -667,7 +677,8 @@ export default function ShopScreen() {
               />
               <Divider style={styles.itemDivider} />
             </SwipeableRow>
-          ))
+          ))}
+          </>
         )}
 
         {checkedCount > 0 && (
@@ -1275,6 +1286,21 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   },
   jumpPillText: { color: colors.text, fontSize: 11, fontWeight: "500" },
   jumpPillTextActive: { color: "#fff" },
+  storeHintBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginHorizontal: spacing.sm,
+    marginBottom: spacing.xs,
+    borderRadius: 8,
+    backgroundColor: colors.primaryLight + '33',
+  },
+  storeHintText: {
+    color: colors.primary,
+    flex: 1,
+  },
   qtyStepper: {
     flexDirection: "row",
     alignItems: "center",

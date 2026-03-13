@@ -9,17 +9,20 @@ export interface PendingChange {
   data: Record<string, unknown> | null;
   timestamp: number;
   synced: boolean;
+  retry_count: number;
 }
 
-export async function queueChange(change: Omit<PendingChange, 'id' | 'synced'>): Promise<void> {
+export async function queueChange(change: Omit<PendingChange, 'id' | 'synced' | 'retry_count'>): Promise<void> {
   const pending = (await localStore.get<PendingChange[]>(STORAGE_KEYS.PENDING_CHANGES)) ?? [];
-  pending.push({ ...change, id: crypto.randomUUID(), synced: false });
+  pending.push({ ...change, id: crypto.randomUUID(), synced: false, retry_count: 0 });
   await localStore.set(STORAGE_KEYS.PENDING_CHANGES, pending);
 }
 
-export async function processPendingChanges(): Promise<void> {
+const MAX_RETRIES = 3;
+
+export async function processPendingChanges(): Promise<{ failed: number }> {
   const pending = (await localStore.get<PendingChange[]>(STORAGE_KEYS.PENDING_CHANGES)) ?? [];
-  const unsynced = pending.filter((c) => !c.synced);
+  const unsynced = pending.filter((c) => !c.synced && (c.retry_count ?? 0) < MAX_RETRIES);
 
   for (const change of unsynced) {
     try {
@@ -39,9 +42,12 @@ export async function processPendingChanges(): Promise<void> {
       }
       change.synced = true;
     } catch {
-      // Leave as unsynced to retry later
+      change.retry_count = (change.retry_count ?? 0) + 1;
     }
   }
 
-  await localStore.set(STORAGE_KEYS.PENDING_CHANGES, pending.filter((c) => !c.synced));
+  const remaining = pending.filter((c) => !c.synced);
+  await localStore.set(STORAGE_KEYS.PENDING_CHANGES, remaining);
+  const failed = remaining.filter((c) => (c.retry_count ?? 0) >= MAX_RETRIES).length;
+  return { failed };
 }
