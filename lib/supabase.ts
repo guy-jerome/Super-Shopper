@@ -8,6 +8,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
+    // Always false — we exchange the PKCE code manually in _layout.tsx
+    // so we can detect recovery vs confirmation and set isRecovery correctly.
     detectSessionInUrl: false,
   },
 });
