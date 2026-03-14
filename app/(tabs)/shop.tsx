@@ -27,7 +27,7 @@ import {
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/useAuthStore";
-import { useShoppingStore } from "../../stores/useShoppingStore";
+import { useShoppingStore, type ShoppingListItemWithName } from "../../stores/useShoppingStore";
 import { useStoreStore } from "../../stores/useStoreStore";
 import { useItemStore } from "../../stores/useItemStore";
 import { useListTemplateStore } from "../../stores/useListTemplateStore";
@@ -117,6 +117,7 @@ export default function ShopScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const aisleSectionOffsets = useRef<Record<string, number>>({});
   const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void } | null>(null);
+  const [snackbar, setSnackbar] = useState('');
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [saveTemplateName, setSaveTemplateName] = useState('');
@@ -244,6 +245,14 @@ export default function ShopScreen() {
   };
 
   const formatDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  const isInList = (itemId: string) => shoppingList.some((s) => s.item_id === itemId);
+
+  const handleReAddItem = async (item: ShoppingListItemWithName) => {
+    if (!user || !item.item_id) return;
+    await addToList(user.id, item.item_id, 1, item.item_name);
+    setSnackbar(`${item.item_name} added to today's list`);
+  };
 
   const total = shoppingList.length;
   const checkedCount = shoppingList.filter((i) => i.checked).length;
@@ -744,9 +753,20 @@ export default function ShopScreen() {
                   <Text style={{ color: colors.textLight, fontSize: 12 }}>{history[date].length} items</Text>
                 </TouchableOpacity>
                 {openHistoryDate === date && history[date].map(item => (
-                  <Text key={item.id} style={[styles.historyItem, item.checked && styles.historyItemChecked]}>
-                    {item.checked ? '✓ ' : '• '}{item.item_name}
-                  </Text>
+                  <View key={item.id} style={styles.historyItemRow}>
+                    <Text style={[styles.historyItem, item.checked && styles.historyItemChecked, { flex: 1 }]}>
+                      {item.checked ? '✓ ' : '• '}{item.item_name}
+                    </Text>
+                    {!isInList(item.item_id) && (
+                      <IconButton
+                        icon="plus-circle-outline"
+                        size={18}
+                        iconColor={colors.primary}
+                        style={{ margin: 0 }}
+                        onPress={() => handleReAddItem(item)}
+                      />
+                    )}
+                  </View>
                 ))}
               </View>
             ))}
@@ -902,6 +922,14 @@ export default function ShopScreen() {
           style={{ backgroundColor: colors.surface, bottom: 92 }}
         >
           <Text style={{ color: colors.text }}>{undoSnackbar?.message}</Text>
+        </Snackbar>
+        <Snackbar
+          visible={!!snackbar}
+          onDismiss={() => setSnackbar('')}
+          duration={2000}
+          style={{ bottom: 80 }}
+        >
+          {snackbar}
         </Snackbar>
       </Portal>
 
@@ -1358,6 +1386,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   },
   historyItem: { color: colors.text, paddingVertical: 4, paddingLeft: spacing.md + spacing.sm },
   historyItemChecked: { color: colors.textLight, textDecorationLine: "line-through" },
+  historyItemRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: 8 },
   addedByChip: {
     width: 22,
     height: 22,

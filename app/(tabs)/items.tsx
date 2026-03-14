@@ -13,6 +13,8 @@ import {
   Chip,
   Searchbar,
   Menu,
+  Snackbar,
+  HelperText,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/useAuthStore";
@@ -34,6 +36,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { TabBackground } from "../../components/TabBackground";
 import { useSettingsStore } from "../../stores/useSettingsStore";
+import { itemSchema } from "@/utils/validators";
 
 const TAG_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA', '#B8E8E0'];
 
@@ -71,6 +74,8 @@ export default function ItemsScreen() {
     hasStoreLocation: boolean;
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [snackbar, setSnackbar] = useState('');
+  const [dialogError, setDialogError] = useState('');
   const { season } = useSettingsStore();
   const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
@@ -91,7 +96,10 @@ export default function ItemsScreen() {
 
   const handleAddToList = async (item: ItemWithLocations) => {
     if (!user) return;
-    if (isInList(item.id)) return;
+    if (isInList(item.id)) {
+      setSnackbar("Already on today's list");
+      return;
+    }
     await addToList(user.id, item.id, 1);
   };
 
@@ -126,7 +134,13 @@ export default function ItemsScreen() {
   }, [locations, activeStore]);
 
   const handleAddItem = async () => {
-    if (!user || !newItemName.trim()) return;
+    if (!user) return;
+    const result = itemSchema.safeParse({ name: newItemName.trim() });
+    if (!result.success) {
+      setDialogError(result.error.errors[0].message);
+      return;
+    }
+    setDialogError('');
     const tags = newItemTags
       .split(",")
       .map((t) => t.trim())
@@ -358,6 +372,7 @@ export default function ItemsScreen() {
             setNewItemName("");
             setNewItemTags("");
             setPendingSuggestion(null);
+            setDialogError('');
             setAddDialog(false);
           }}
         >
@@ -375,6 +390,7 @@ export default function ItemsScreen() {
               }}
               autoFocus
             />
+            <HelperText type="error" visible={!!dialogError}>{dialogError}</HelperText>
             <TextInput
               label="Tags (comma-separated, optional)"
               value={newItemTags}
@@ -390,6 +406,7 @@ export default function ItemsScreen() {
                 setNewItemName("");
                 setNewItemTags("");
                 setPendingSuggestion(null);
+                setDialogError('');
                 setAddDialog(false);
               }}
             >
@@ -443,6 +460,9 @@ export default function ItemsScreen() {
         itemId={detailItemId}
         onDismiss={() => setDetailItemId(null)}
       />
+      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={2000} style={{ bottom: 80 }}>
+        {snackbar}
+      </Snackbar>
     </View>
   );
 }

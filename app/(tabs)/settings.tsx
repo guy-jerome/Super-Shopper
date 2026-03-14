@@ -125,7 +125,9 @@ export default function SettingsScreen() {
     setSnackbar(`Removed share with ${email}`);
   };
 
-  const initials = user?.email?.slice(0, 2).toUpperCase() ?? '??';
+  const initials = user?.email
+    ? user.email.split('@')[0].slice(0, 2).toUpperCase()
+    : '??';
 
   const handleChangePassword = async () => {
     setPasswordError('');
