@@ -1332,6 +1332,8 @@ function createSectionStyles(colors: Colors) { return StyleSheet.create({
     minHeight: 48,
     borderBottomWidth: 1,
     borderBottomColor: colors.softShadow,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.stripe,
   },
   itemInfo: { flex: 1 },
   itemName: { color: colors.text },

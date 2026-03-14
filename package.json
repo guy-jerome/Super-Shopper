@@ -13,8 +13,13 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterEach": [
+    "setupFilesAfterEnv": [
       "@testing-library/jest-native/extend-expect"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/e2e/",
+      "<rootDir>/__tests__/setup.ts"
     ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|native-base|react-native-svg|zustand)"

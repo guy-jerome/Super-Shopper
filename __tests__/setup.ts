@@ -1,3 +1,12 @@
+// Mock @react-native-community/netinfo (used at module-init in useShoppingStore)
+jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true,
+  default: {
+    fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true }),
+    addEventListener: jest.fn().mockReturnValue(() => {}),
+  },
+}));
+
 // Mock Supabase client for all tests
 jest.mock('../lib/supabase', () => ({
   supabase: {

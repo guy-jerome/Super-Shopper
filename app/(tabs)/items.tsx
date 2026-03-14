@@ -590,7 +590,7 @@ function createStyles(colors: Colors) { return StyleSheet.create({
     padding: spacing.md,
     paddingLeft: spacing.md,
     borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
+    borderLeftColor: colors.stripe,
     shadowColor: '#4A3728',
     shadowOpacity: 0.10,
     shadowRadius: 6,
