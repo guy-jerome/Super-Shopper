@@ -38,6 +38,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { TabBackground } from "../../components/TabBackground";
 import { useSettingsStore } from "../../stores/useSettingsStore";
+import { storeSchema, aisleSchema, itemSchema } from "@/utils/validators";
 
 const AISLE_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA'];
 
@@ -100,6 +101,10 @@ export default function StoresScreen() {
   const [pendingTemplateIdx, setPendingTemplateIdx] = useState<number | null>(null);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
 
+  const [storeError, setStoreError] = useState('');
+  const [aisleError, setAisleError] = useState('');
+  const [aisleItemError, setAisleItemError] = useState('');
+
   // User-created store templates
   const { templates: userTemplates, loadTemplates, saveTemplate, deleteTemplate } = useStoreTemplateStore();
   const [saveTemplateDialog, setSaveTemplateDialog] = useState(false);
@@ -130,9 +135,16 @@ export default function StoresScreen() {
   };
 
   const handleAddStore = async () => {
-    if (!user || !storeName.trim()) return;
+    if (!user) return;
+    const result = storeSchema.safeParse({ name: storeName.trim() });
+    if (!result.success) {
+      setStoreError(result.error.errors[0].message);
+      return;
+    }
+    setStoreError('');
     await addStore(user.id, storeName.trim());
     setStoreName("");
+    setStoreError('');
     setStoreDialog(false);
   };
 
@@ -156,14 +168,27 @@ export default function StoresScreen() {
   };
 
   const handleAddAisle = async () => {
-    if (!activeStore || !aisleName.trim()) return;
+    if (!activeStore) return;
+    const result = aisleSchema.safeParse({ name: aisleName.trim() });
+    if (!result.success) {
+      setAisleError(result.error.errors[0].message);
+      return;
+    }
+    setAisleError('');
     await addAisle(activeStore.id, aisleName.trim());
     setAisleName("");
+    setAisleError('');
     setAisleDialog(false);
   };
 
   const handleAddItem = async () => {
-    if (!user || !itemName.trim() || !targetAisleId) return;
+    if (!user || !targetAisleId) return;
+    const result = itemSchema.safeParse({ name: itemName.trim() });
+    if (!result.success) {
+      setAisleItemError(result.error.errors[0].message);
+      return;
+    }
+    setAisleItemError('');
     await addItemToAisle(
       user.id,
       targetAisleId,
@@ -172,6 +197,7 @@ export default function StoresScreen() {
     );
     setItemName("");
     setItemPositionTag("");
+    setAisleItemError('');
     setItemDialog(false);
     // Refresh global items so new items appear
     fetchItems(user.id);
@@ -418,7 +444,7 @@ export default function StoresScreen() {
             </Dialog.Actions>
           </Dialog>
 
-          <Dialog visible={aisleDialog} onDismiss={() => setAisleDialog(false)}>
+        <Dialog visible={aisleDialog} onDismiss={() => { setAisleName(""); setAisleError(''); setAisleDialog(false); }}>
             <Dialog.Title>Add Aisle</Dialog.Title>
             <Dialog.Content>
               <TextInput
@@ -429,11 +455,13 @@ export default function StoresScreen() {
                 autoFocus
                 onSubmitEditing={handleAddAisle}
               />
+              {!!aisleError && <Text style={styles.inputError}>{aisleError}</Text>}
             </Dialog.Content>
             <Dialog.Actions>
               <Button
                 onPress={() => {
                   setAisleName("");
+                  setAisleError('');
                   setAisleDialog(false);
                 }}
               >
@@ -493,6 +521,7 @@ export default function StoresScreen() {
             onDismiss={() => {
               setItemName("");
               setItemPositionTag("");
+              setAisleItemError('');
               setItemDialog(false);
             }}
           >
@@ -506,14 +535,15 @@ export default function StoresScreen() {
                   <View style={{ flex: 1 }}>
                     <FoodSearch
                       value={itemName}
-                      onChangeText={(t) => setItemName(t)}
-                      onSelect={(name) => setItemName(name)}
+                      onChangeText={(t) => { setItemName(t); setAisleItemError(''); }}
+                      onSelect={(name) => { setItemName(name); setAisleItemError(''); }}
                       localSuggestions={localSuggestions}
                       autoFocus
                     />
                   </View>
                   <IconButton icon="barcode-scan" size={22} iconColor={colors.primary} style={{ margin: 0 }} onPress={() => setShowBarcodeScanner(true)} />
                 </View>
+                {!!aisleItemError && <Text style={styles.inputError}>{aisleItemError}</Text>}
                 <TextInput
                   label="Position tag (optional)"
                   value={itemPositionTag}
@@ -530,6 +560,7 @@ export default function StoresScreen() {
                 onPress={() => {
                   setItemName("");
                   setItemPositionTag("");
+                  setAisleItemError('');
                   setItemDialog(false);
                 }}
               >
@@ -569,6 +600,16 @@ export default function StoresScreen() {
           <MaterialCommunityIcons name={seasonIcon as any} size={180} color={colors.primary} />
         </View>
       )}
+      <View style={styles.templateChipRow}>
+        <Chip
+          icon="lightning-bolt"
+          onPress={() => setTemplateDialog(true)}
+          style={styles.topTemplateChip}
+          compact
+        >
+          Use a Template
+        </Chip>
+      </View>
 
       <ScrollView
         style={styles.scroll}
@@ -836,7 +877,7 @@ export default function StoresScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={storeDialog} onDismiss={() => setStoreDialog(false)}>
+        <Dialog visible={storeDialog} onDismiss={() => { setStoreName(""); setStoreError(''); setStoreDialog(false); }}>
           <Dialog.Title>Add Store</Dialog.Title>
           <Dialog.Content>
             <TextInput
@@ -847,6 +888,7 @@ export default function StoresScreen() {
               autoFocus
               onSubmitEditing={handleAddStore}
             />
+            {!!storeError && <Text style={styles.inputError}>{storeError}</Text>}
             <Button
               mode="text"
               icon="lightning-bolt"
@@ -870,6 +912,7 @@ export default function StoresScreen() {
             <Button
               onPress={() => {
                 setStoreName("");
+                setStoreError('');
                 setStoreDialog(false);
               }}
             >
@@ -1202,6 +1245,9 @@ function createStyles(colors: Colors) { return StyleSheet.create({
   templateCardText: { flex: 1 },
   templateChips: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: spacing.xs },
   templateChip: { height: 22 },
+  templateChipRow: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+  topTemplateChip: { backgroundColor: colors.primaryLight },
+  inputError: { color: colors.error, fontSize: 12, marginTop: 2 },
 }); }
 
 function createStoreListStyles(colors: Colors) { return StyleSheet.create({

@@ -51,6 +51,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { SeasonalDivider } from "../../components/SeasonalDivider";
 import { PageHeader } from "../../components/PageHeader";
 import { useSettingsStore } from "../../stores/useSettingsStore";
+import { locationSchema, itemSchema } from "@/utils/validators";
 
 export default function HomeStorageScreen() {
   const colors = useColors();
@@ -117,6 +118,10 @@ export default function HomeStorageScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  const [locationError, setLocationError] = useState('');
+  const [subsectionError, setSubsectionError] = useState('');
+  const [itemNameError, setItemNameError] = useState('');
+
   // Template applying state
   const [applyingTemplate, setApplyingTemplate] = useState(false);
 
@@ -160,6 +165,19 @@ export default function HomeStorageScreen() {
       await addToList(user.id, itemId, 1, name);
       setSnackbar(`${name} added to list`);
     }
+  };
+
+  const handleRestockAll = async () => {
+    if (!user) return;
+    const lowItems = globalItems.filter(
+      (i) => lowStockIds.has(i.id) && !isInList(i.id)
+    );
+    if (lowItems.length === 0) {
+      setSnackbar('All low-stock items already on list');
+      return;
+    }
+    await Promise.all(lowItems.map((i) => addToList(user.id, i.id, 1, i.name)));
+    setSnackbar(`${lowItems.length} low-stock item${lowItems.length !== 1 ? 's' : ''} added to list`);
   };
 
   const addAllToList = async (location: StorageLocationWithItems) => {
@@ -214,16 +232,30 @@ export default function HomeStorageScreen() {
     });
 
   const handleAddLocation = async () => {
-    if (!user || !locationName.trim()) return;
+    if (!user) return;
+    const result = locationSchema.safeParse({ name: locationName.trim() });
+    if (!result.success) {
+      setLocationError(result.error.errors[0].message);
+      return;
+    }
+    setLocationError('');
     await addLocation(user.id, locationName.trim());
     setLocationName("");
+    setLocationError('');
     setLocationDialog(false);
   };
 
   const handleAddSubsection = async () => {
-    if (!user || !subsectionName.trim() || !targetParentId) return;
+    if (!user || !targetParentId) return;
+    const result = locationSchema.safeParse({ name: subsectionName.trim() });
+    if (!result.success) {
+      setSubsectionError(result.error.errors[0].message);
+      return;
+    }
+    setSubsectionError('');
     await addLocation(user.id, subsectionName.trim(), targetParentId);
     setSubsectionName("");
+    setSubsectionError('');
     setSubsectionDialog(false);
     // Auto-expand the parent so user sees the new subsection
     setExpanded((prev) => new Set([...prev, targetParentId]));
@@ -267,7 +299,13 @@ export default function HomeStorageScreen() {
   };
 
   const handleAddItem = async () => {
-    if (!user || !itemName.trim() || !targetLocationId) return;
+    if (!user || !targetLocationId) return;
+    const result = itemSchema.safeParse({ name: itemName.trim() });
+    if (!result.success) {
+      setItemNameError(result.error.errors[0].message);
+      return;
+    }
+    setItemNameError('');
     const meta = pendingSuggestion
       ? {
           brand: pendingSuggestion.brand ?? null,
@@ -278,6 +316,7 @@ export default function HomeStorageScreen() {
     await addItem(user.id, targetLocationId, itemName.trim(), meta);
     fetchItems(user.id);
     setItemName("");
+    setItemNameError('');
     setPendingSuggestion(null);
     setItemDialog(false);
   };
@@ -333,6 +372,15 @@ export default function HomeStorageScreen() {
           <Text style={styles.lowStockBannerText}>
             {lowStockIds.size} item{lowStockIds.size !== 1 ? "s" : ""} running low
           </Text>
+          <Button
+            compact
+            mode="text"
+            onPress={handleRestockAll}
+            labelStyle={{ fontSize: 12 }}
+            style={{ marginLeft: 'auto' }}
+          >
+            Restock all
+          </Button>
         </View>
       )}
 
@@ -471,7 +519,7 @@ export default function HomeStorageScreen() {
         </Dialog>
 
         {/* Add location dialog */}
-        <Dialog visible={locationDialog} onDismiss={() => setLocationDialog(false)}>
+        <Dialog visible={locationDialog} onDismiss={() => { setLocationName(""); setLocationError(''); setLocationDialog(false); }}>
           <Dialog.Title>Add Storage Location</Dialog.Title>
           <Dialog.Content>
             <TextInput
@@ -482,6 +530,7 @@ export default function HomeStorageScreen() {
               autoFocus
               onSubmitEditing={handleAddLocation}
             />
+            {!!locationError && <Text style={styles.inputError}>{locationError}</Text>}
             <Button
               mode="text"
               icon="lightning-bolt"
@@ -492,13 +541,13 @@ export default function HomeStorageScreen() {
             </Button>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => { setLocationName(""); setLocationDialog(false); }}>Cancel</Button>
+            <Button onPress={() => { setLocationName(""); setLocationError(''); setLocationDialog(false); }}>Cancel</Button>
             <Button onPress={handleAddLocation} disabled={!locationName.trim()}>Add</Button>
           </Dialog.Actions>
         </Dialog>
 
         {/* Add subsection dialog */}
-        <Dialog visible={subsectionDialog} onDismiss={() => setSubsectionDialog(false)}>
+        <Dialog visible={subsectionDialog} onDismiss={() => { setSubsectionName(""); setSubsectionError(''); setSubsectionDialog(false); }}>
           <Dialog.Title>Add Sub-section</Dialog.Title>
           <Dialog.Content>
             <TextInput
@@ -509,9 +558,10 @@ export default function HomeStorageScreen() {
               autoFocus
               onSubmitEditing={handleAddSubsection}
             />
+            {!!subsectionError && <Text style={styles.inputError}>{subsectionError}</Text>}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => { setSubsectionName(""); setSubsectionDialog(false); }}>Cancel</Button>
+            <Button onPress={() => { setSubsectionName(""); setSubsectionError(''); setSubsectionDialog(false); }}>Cancel</Button>
             <Button onPress={handleAddSubsection} disabled={!subsectionName.trim()}>Add</Button>
           </Dialog.Actions>
         </Dialog>
@@ -600,7 +650,7 @@ export default function HomeStorageScreen() {
         visible={itemDialog}
         transparent
         animationType="fade"
-        onRequestClose={() => { setItemName(""); setPendingSuggestion(null); setItemDialog(false); }}
+        onRequestClose={() => { setItemName(""); setItemNameError(''); setPendingSuggestion(null); setItemDialog(false); }}
       >
         <View style={styles.addItemOverlay}>
           <Surface style={styles.addItemSheet} elevation={4}>
@@ -610,13 +660,14 @@ export default function HomeStorageScreen() {
             </View>
             <FoodSearch
               value={itemName}
-              onChangeText={(t) => { setItemName(t); setPendingSuggestion(null); }}
-              onSelect={(name, suggestion) => { setItemName(name); setPendingSuggestion(suggestion ?? null); }}
+              onChangeText={(t) => { setItemName(t); setPendingSuggestion(null); setItemNameError(''); }}
+              onSelect={(name, suggestion) => { setItemName(name); setPendingSuggestion(suggestion ?? null); setItemNameError(''); }}
               localSuggestions={itemSuggestions}
               autoFocus
             />
+            {!!itemNameError && <Text style={styles.inputError}>{itemNameError}</Text>}
             <View style={styles.addItemActions}>
-              <Button onPress={() => { setItemName(""); setPendingSuggestion(null); setItemDialog(false); }}>Cancel</Button>
+              <Button onPress={() => { setItemName(""); setItemNameError(''); setPendingSuggestion(null); setItemDialog(false); }}>Cancel</Button>
               <Button onPress={handleAddItem} disabled={!itemName.trim()}>Add</Button>
             </View>
           </Surface>
@@ -1176,6 +1227,7 @@ function createStyles(colors: Colors) {
     snackbar: { marginBottom: 92 },
     lowStockBanner: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: '#FDE8C8', paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
     lowStockBannerText: { color: colors.warning, fontSize: 13, fontWeight: "500" as const },
+    inputError: { color: colors.error, fontSize: 12, marginTop: 2 },
     addItemOverlay: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.5)",
