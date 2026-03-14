@@ -33,7 +33,7 @@ import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import { BarcodeScannerModal } from "../../components/BarcodeScannerModal";
 import { DragHandle } from "../../components/DraggableList";
-import { useColors, spacing, radius, type Colors, useSeasonalBgStyle } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, useSeasonalBgStyle, seasonIconName } from "../../constants/theme";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { TabBackground } from "../../components/TabBackground";
@@ -51,7 +51,7 @@ export default function StoresScreen() {
   const bgStyle = useSeasonalBgStyle(colors.background);
   const { user } = useAuthStore();
   const { season } = useSettingsStore();
-  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
+  const seasonIcon = seasonIconName(season);
   const {
     stores,
     activeStore,
@@ -65,6 +65,7 @@ export default function StoresScreen() {
     updateAisle,
     deleteAisle,
     moveAisle,
+    moveStore,
     addItemToAisle,
     removeItemFromAisle,
     moveItemInAisle,
@@ -635,7 +636,7 @@ export default function StoresScreen() {
             </Button>
           </EmptyState>
         ) : (
-          stores.map((store) => (
+          stores.map((store, storeIdx) => (
             <View key={store.id} style={storeListStyles.card}>
               <View style={storeListStyles.awningBar} />
               <TouchableOpacity
@@ -656,6 +657,18 @@ export default function StoresScreen() {
                   name="chevron-right"
                   size={24}
                   color={colors.textLight}
+                />
+                <IconButton
+                  icon="chevron-up"
+                  size={20}
+                  disabled={storeIdx === 0}
+                  onPress={() => moveStore(store.id, 'up')}
+                />
+                <IconButton
+                  icon="chevron-down"
+                  size={20}
+                  disabled={storeIdx === stores.length - 1}
+                  onPress={() => moveStore(store.id, 'down')}
                 />
                 <IconButton
                   icon="delete-outline"

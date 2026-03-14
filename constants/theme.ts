@@ -282,3 +282,10 @@ export function useSeasonalBgStyle(backgroundColor: string): Record<string, unkn
   const season = useSettingsStore((s) => s.season);
   return getSeasonalBgStyle(backgroundColor, season);
 }
+
+export function seasonIconName(season: Season): string {
+  if (season === 'spring') return 'flower-tulip-outline';
+  if (season === 'summer') return 'white-balance-sunny';
+  if (season === 'autumn') return 'leaf-maple';
+  return 'snowflake';
+}

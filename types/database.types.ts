@@ -24,10 +24,11 @@ export interface Database {
           id: string;
           user_id: string;
           name: string;
+          order_index: number;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['store_profiles']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Insert: Omit<Database['public']['Tables']['store_profiles']['Row'], 'id' | 'created_at' | 'updated_at' | 'order_index'> & { order_index?: number };
         Update: Partial<Database['public']['Tables']['store_profiles']['Insert']>;
         Relationships: [];
       };
@@ -123,6 +124,62 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at'>;
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Relationships: [];
+      };
+      households: {
+        Row: {
+          id: string;
+          name: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['households']['Insert']>;
+        Relationships: [];
+      };
+      household_members: {
+        Row: {
+          id: string;
+          household_id: string;
+          user_id: string;
+          joined_at: string;
+        };
+        Insert: {
+          id?: string;
+          household_id: string;
+          user_id: string;
+          joined_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['household_members']['Insert']>;
+        Relationships: [];
+      };
+      household_invites: {
+        Row: {
+          id: string;
+          code: string;
+          household_id: string;
+          created_by: string;
+          expires_at: string;
+          used: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          household_id: string;
+          created_by: string;
+          expires_at: string;
+          used?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['household_invites']['Insert']>;
         Relationships: [];
       };
     };

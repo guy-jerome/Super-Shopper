@@ -16,6 +16,7 @@ interface StoreStore {
   updateAisle: (aisleId: string, name: string, side?: string | null) => Promise<void>;
   deleteAisle: (aisleId: string) => Promise<void>;
   moveAisle: (aisleId: string, direction: 'up' | 'down') => Promise<void>;
+  moveStore: (storeId: string, direction: 'up' | 'down') => Promise<void>;
   addItemToAisle: (userId: string, aisleId: string, itemName: string, positionTag?: string, meta?: { brand?: string | null; quantity?: string | null; image_url?: string | null }) => Promise<void>;
   removeItemFromAisle: (itemStoreLocationId: string) => Promise<void>;
   updateItemInAisle: (locId: string, positionTag: string | null) => Promise<void>;
@@ -34,7 +35,7 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
       .from('store_profiles')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: true });
+      .order('order_index', { ascending: true });
 
     if (!error && data) {
       set({ stores: data });
@@ -96,6 +97,20 @@ export const useStoreStore = create<StoreStore>((set, get) => ({
     if (!error) {
       set((state) => ({ stores: state.stores.filter((s) => s.id !== id) }));
     }
+  },
+
+  moveStore: async (storeId, direction) => {
+    const { stores } = get();
+    const idx = stores.findIndex((s) => s.id === storeId);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= stores.length) return;
+    const next = [...stores];
+    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+    set({ stores: next });
+    await Promise.all(
+      next.map((s, i) => supabase.from('store_profiles').update({ order_index: i }).eq('id', s.id))
+    );
   },
 
   addAisle: async (storeId, name, sectionTag) => {

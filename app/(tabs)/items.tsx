@@ -30,7 +30,7 @@ import { useShoppingStore } from "../../stores/useShoppingStore";
 import { FoodSearch } from "../../components/FoodSearch";
 import { ItemDetailModal } from "../../components/ItemDetailModal";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
-import { useColors, spacing, radius, type Colors, useSeasonalBgStyle } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, useSeasonalBgStyle, seasonIconName } from "../../constants/theme";
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
@@ -77,7 +77,7 @@ export default function ItemsScreen() {
   const [snackbar, setSnackbar] = useState('');
   const [dialogError, setDialogError] = useState('');
   const { season } = useSettingsStore();
-  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
+  const seasonIcon = seasonIconName(season);
 
   const { locations } = useStorageStore();
   const { activeStore } = useStoreStore();
