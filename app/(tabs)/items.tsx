@@ -36,7 +36,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { TabBackground } from "../../components/TabBackground";
 import { useSettingsStore } from "../../stores/useSettingsStore";
-import { itemSchema } from "@/utils/validators";
+import { itemSchema } from "../../utils/validators";
 
 const TAG_COLORS = ['#D4E8C2', '#C8BEE8', '#E8BFB8', '#FFF3B0', '#FFD7BA', '#B8E8E0'];
 

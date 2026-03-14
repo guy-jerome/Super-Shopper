@@ -51,7 +51,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { SeasonalDivider } from "../../components/SeasonalDivider";
 import { PageHeader } from "../../components/PageHeader";
 import { useSettingsStore } from "../../stores/useSettingsStore";
-import { locationSchema, itemSchema } from "@/utils/validators";
+import { locationSchema, itemSchema } from "../../utils/validators";
 
 export default function HomeStorageScreen() {
   const colors = useColors();
