@@ -78,6 +78,7 @@ export default function HomeStorageScreen() {
   const { items: globalItems, fetchItems } = useItemStore();
   const { lowStockIds, toggleLowStock, isLowStock } = useLowStockStore();
   const { season } = useSettingsStore();
+  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());

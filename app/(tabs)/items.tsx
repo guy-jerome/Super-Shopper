@@ -72,6 +72,7 @@ export default function ItemsScreen() {
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const { season } = useSettingsStore();
+  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
 
   const { locations } = useStorageStore();
   const { activeStore } = useStoreStore();
