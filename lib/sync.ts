@@ -10,6 +10,8 @@ export interface PendingChange {
   timestamp: number;
   synced: boolean;
   retry_count: number;
+  /** The `updated_at` value of the row at queue time. Used for optimistic locking on UPDATE. */
+  expected_updated_at?: string;
 }
 
 export async function queueChange(change: Omit<PendingChange, 'id' | 'synced' | 'retry_count'>): Promise<void> {
@@ -31,10 +33,24 @@ export async function processPendingChanges(): Promise<{ failed: number }> {
       } else if (change.operation === 'INSERT') {
         await supabase.from(change.table_name as never).insert(change.data as never);
       } else if (change.operation === 'UPDATE') {
-        await supabase
-          .from(change.table_name as never)
-          .update(change.data as never)
-          .eq('id', change.record_id);
+        if (change.expected_updated_at) {
+          // Optimistic locking: only apply if server row hasn't changed since we queued this
+          const { data: rows } = await supabase
+            .from(change.table_name as never)
+            .update(change.data as never)
+            .eq('id', change.record_id)
+            .eq('updated_at', change.expected_updated_at)
+            .select('id');
+          // 0 rows = concurrent edit detected — discard our stale change (server version wins)
+          if (!rows || (rows as { id: string }[]).length === 0) {
+            change.synced = true;
+          }
+        } else {
+          await supabase
+            .from(change.table_name as never)
+            .update(change.data as never)
+            .eq('id', change.record_id);
+        }
       } else if (change.operation === 'UPSERT') {
         await supabase
           .from(change.table_name as never)

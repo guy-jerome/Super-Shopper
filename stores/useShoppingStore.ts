@@ -250,12 +250,13 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
   },
 
   toggleChecked: async (id, checked) => {
+    const before = get().shoppingList.find((i) => i.id === id);
     // Optimistic: update immediately for instant UI response
     set((state) => ({
       shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, checked } : i)),
     }));
     if (!_online) {
-      await queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { checked, updated_at: new Date().toISOString() }, timestamp: Date.now() });
+      await queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { checked, updated_at: new Date().toISOString() }, timestamp: Date.now(), expected_updated_at: before?.updated_at });
       await cacheList(get().shoppingList, get().notes);
       return;
     }
@@ -274,12 +275,13 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
   },
 
   updateQuantity: async (id, quantity) => {
+    const before = get().shoppingList.find((i) => i.id === id);
     // Optimistic: update immediately
     set((state) => ({
       shoppingList: state.shoppingList.map((i) => (i.id === id ? { ...i, quantity } : i)),
     }));
     if (!_online) {
-      await queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { quantity, updated_at: new Date().toISOString() }, timestamp: Date.now() });
+      await queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { quantity, updated_at: new Date().toISOString() }, timestamp: Date.now(), expected_updated_at: before?.updated_at });
       await cacheList(get().shoppingList, get().notes);
       return;
     }
@@ -312,7 +314,11 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     }));
     if (!_online) {
       const ts = Date.now();
-      await Promise.all(ids.map((id) => queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { checked, updated_at: new Date().toISOString() }, timestamp: ts })));
+      const list = get().shoppingList;
+      await Promise.all(ids.map((id) => {
+        const before = list.find((i) => i.id === id);
+        return queueChange({ table_name: 'shopping_list', record_id: id, operation: 'UPDATE', data: { checked, updated_at: new Date().toISOString() }, timestamp: ts, expected_updated_at: before?.updated_at });
+      }));
       await cacheList(get().shoppingList, get().notes);
       return;
     }
