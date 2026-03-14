@@ -7,7 +7,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore, type Season } from '../../stores/useSettingsStore';
 import { useShareStore } from '../../stores/useShareStore';
 import { useHouseholdStore } from '../../stores/useHouseholdStore';
-import { useColors, spacing, radius, seasonPalettes, type Colors, useSeasonalBgStyle } from '../../constants/theme';
+import { useColors, spacing, radius, seasonPalettes, type Colors, useSeasonalBgStyle, seasonIconName } from '../../constants/theme';
 import { PageHeader } from '../../components/PageHeader';
 import { TabBackground } from '../../components/TabBackground';
 
@@ -24,7 +24,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const bgStyle = useSeasonalBgStyle(colors.background);
-  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
+  const seasonIcon = seasonIconName(season);
 
   const { myShares, loadShares, shareWithEmail, removeShare } = useShareStore();
   const { household, members, loadHousehold, createHousehold, joinHousehold, leaveHousehold, generateInviteCode } = useHouseholdStore();

@@ -40,7 +40,7 @@ import { DragHandle } from "../../components/DraggableList";
 import { SwipeableRow } from "../../components/SwipeableRow";
 import type { FoodSuggestion } from "../../hooks/useOpenFoodFacts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useColors, spacing, radius, type Colors, getCardStyle, useSeasonalBgStyle } from "../../constants/theme";
+import { useColors, spacing, radius, type Colors, getCardStyle, useSeasonalBgStyle, seasonIconName } from "../../constants/theme";
 import type { StorageLocationWithItems } from "../../types/app.types";
 import { STORAGE_TEMPLATES } from "../../constants/templates";
 import { OnboardingModal } from "../../components/OnboardingModal";
@@ -78,7 +78,7 @@ export default function HomeStorageScreen() {
   const { items: globalItems, fetchItems } = useItemStore();
   const { lowStockIds, toggleLowStock, isLowStock } = useLowStockStore();
   const { season } = useSettingsStore();
-  const seasonIcon = season === 'spring' ? 'flower-tulip-outline' : season === 'summer' ? 'white-balance-sunny' : season === 'autumn' ? 'leaf-maple' : 'snowflake';
+  const seasonIcon = seasonIconName(season);
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());

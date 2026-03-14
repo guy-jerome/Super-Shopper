@@ -87,7 +87,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       supabase.from("items").delete().eq("user_id", user.id),
     ]);
 
-    // Sign out (auth.admin.deleteUser requires service key; just sign out instead)
+    // Delete the auth user via Edge Function (requires service role on server side)
+    await supabase.functions.invoke('delete-user');
+
     await supabase.auth.signOut();
     set({ user: null });
   },
