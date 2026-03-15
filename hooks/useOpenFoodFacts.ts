@@ -30,14 +30,12 @@ type QueryCacheEntry = {
 
 // search.openfoodfacts.org (Typesense) is fast (~1s) but has no CORS headers.
 // On native there's no CORS so we hit it directly.
-// On web we call world.openfoodfacts.org/api/v2/search directly — it sends
-// Access-Control-Allow-Origin: * so no proxy is needed. The static web output
-// mode (app.json "output":"static") does not run server-side API routes, so
-// routing through /api/food-search would always fail with "Failed to fetch".
+// On web we route through the Expo Router API route at /api/food-search which
+// proxies the Typesense request server-side, bypassing CORS enforcement.
 function buildSearchUrl(
   q: string,
   page: number,
-): { url: string; responseKey: "hits" | "products" } {
+): { url: string; responseKey: "hits" } {
   const params = `q=${encodeURIComponent(q)}&page=${page}&page_size=${PAGE_SIZE}&fields=${FIELDS}&${FILTER}`;
   if (Platform.OS !== "web") {
     return {
@@ -45,11 +43,9 @@ function buildSearchUrl(
       responseKey: "hits",
     };
   }
-  // v2 search uses "search_terms" instead of "q"; response list key is "products"
-  const v2Params = `search_terms=${encodeURIComponent(q)}&page=${page}&page_size=${PAGE_SIZE}&fields=${FIELDS}&json=1`;
   return {
-    url: `https://world.openfoodfacts.org/api/v2/search?${v2Params}`,
-    responseKey: "products",
+    url: `/api/food-search?${params}`,
+    responseKey: "hits",
   };
 }
 
