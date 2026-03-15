@@ -11,6 +11,7 @@ import {
   Modal,
   RefreshControl,
   Platform,
+  Image,
 } from "react-native";
 import {
   Text,
@@ -810,6 +811,12 @@ function AnimatedItemRow({
               onPress={() => onToggleItem(item.id, item.name)}
               color={colors.primary}
             />
+            {!!item.image_url && (
+              <Image
+                source={{ uri: item.image_url }}
+                style={{ width: 32, height: 32, borderRadius: 6, marginRight: 4 }}
+              />
+            )}
             <View style={sectionStyles.itemNameWrap}>
               <View style={sectionStyles.itemNameRow}>
                 <Text variant="bodyMedium" numberOfLines={1} ellipsizeMode="tail" style={[sectionStyles.itemName, checked && sectionStyles.itemChecked]}>

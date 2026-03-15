@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Platform } from "react-native";
 import {
   Text,
@@ -83,13 +84,14 @@ export default function ItemsScreen() {
   const { activeStore } = useStoreStore();
 
   const { shoppingList, addToList, fetchShoppingList } = useShoppingStore();
-  const today = new Date().toISOString().split("T")[0];
+  const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
+  useFocusEffect(useCallback(() => { setToday(new Date().toISOString().split("T")[0]); }, []));
 
   useEffect(() => {
     if (!user) return;
     fetchItems(user.id);
     fetchShoppingList(user.id, today);
-  }, [user?.id]);
+  }, [user?.id, today]);
 
   const isInList = (itemId: string) =>
     shoppingList.some((s) => s.item_id === itemId);

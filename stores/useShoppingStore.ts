@@ -49,6 +49,7 @@ export type ShoppingListItemWithName = ShoppingListItem & {
   item_name: string;
   item_brand: string | null;
   item_quantity: string | null;
+  item_image_url: string | null;
   store_locations: StoreLocation[];
   household_id: string | null;
   added_by: string | null;
@@ -109,12 +110,12 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
     const listQuery = householdId
       ? supabase
           .from('shopping_list')
-          .select('*, items(name, brand, quantity, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
+          .select('*, items(name, brand, quantity, image_url, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
           .eq('shopping_date', date)
           .or(`user_id.eq.${userId},household_id.eq.${householdId}`)
       : supabase
           .from('shopping_list')
-          .select('*, items(name, brand, quantity, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
+          .select('*, items(name, brand, quantity, image_url, item_store_locations(aisle_id, position_index, aisles(id, name, order_index, store_id)))')
           .eq('user_id', userId)
           .eq('shopping_date', date);
 
@@ -134,6 +135,7 @@ export const useShoppingStore = create<ShoppingStore>()((set, get) => ({
         item_name: row.items?.name ?? '',
         item_brand: row.items?.brand ?? null,
         item_quantity: row.items?.quantity ?? null,
+        item_image_url: row.items?.image_url ?? null,
         store_locations: row.items?.item_store_locations ?? [],
         household_id: (row as any).household_id ?? null,
         added_by: (row as any).added_by ?? null,

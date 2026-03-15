@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useFocusEffect } from '@react-navigation/native';
-import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Share } from "react-native";
+import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Share, Image } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -41,6 +41,7 @@ import { SwipeableRow } from "../../components/SwipeableRow";
 import { useColors, spacing, radius, type Colors, getCardStyle, useSeasonalBgStyle } from "../../constants/theme";
 import { useSettingsStore, type Season } from "../../stores/useSettingsStore";
 import { useRealtimeSubscription } from "../../hooks/useRealtimeSubscription";
+import { useWebKeyboard } from "../../hooks/useWebKeyboard";
 import { SkeletonRow } from "../../components/SkeletonRow";
 import { SeasonalDivider } from "../../components/SeasonalDivider";
 import { TabBackground } from "../../components/TabBackground";
@@ -103,6 +104,13 @@ export default function ShopScreen() {
   const [notesValue, setNotesValue] = useState("");
   const [storeMenuVisible, setStoreMenuVisible] = useState(false);
   const [activeAisle, setActiveAisle] = useState<string | null>(null);
+  const [shopSearch, setShopSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useWebKeyboard({
+    onSlash: () => setSearchOpen(true),
+    onEscape: () => { setSearchOpen(false); setShopSearch(''); },
+  });
   const [qtyDialog, setQtyDialog] = useState(false);
   const [qtyTarget, setQtyTarget] = useState<{
     id: string;
@@ -283,6 +291,13 @@ export default function ShopScreen() {
     await Share.share({ message: lines.join("\n"), title: "Shopping List" });
   };
 
+  // Filter list by search query before grouping
+  const filteredList = useMemo(() => {
+    if (!shopSearch.trim()) return shoppingList;
+    const q = shopSearch.toLowerCase();
+    return shoppingList.filter((i) => i.item_name.toLowerCase().includes(q));
+  }, [shoppingList, shopSearch]);
+
   // Group items by aisle when a store is selected — keyed by aisle_id to avoid duplicate name issues
   const aisleGroups = useMemo(() => {
     if (!currentStore) return null;
@@ -292,12 +307,12 @@ export default function ShopScreen() {
         aisleId: string;
         name: string;
         order: number;
-        items: { item: (typeof shoppingList)[0]; position_index: number }[];
+        items: { item: (typeof filteredList)[0]; position_index: number }[];
       }
     >();
-    const general: typeof shoppingList = [];
+    const general: typeof filteredList = [];
 
-    for (const item of shoppingList) {
+    for (const item of filteredList) {
       const loc = item.store_locations.find(
         (l) => l.aisles.store_id === currentStore.id,
       );
@@ -333,7 +348,7 @@ export default function ShopScreen() {
         items: [...general].sort((a, b) => Number(a.checked) - Number(b.checked)),
       });
     return sorted;
-  }, [shoppingList, currentStore]);
+  }, [filteredList, currentStore]);
 
   if (isLoading && shoppingList.length === 0) {
     return (
@@ -358,6 +373,14 @@ export default function ShopScreen() {
               {new Date(today + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </Text>
           </View>
+          {shoppingList.length > 0 && (
+            <IconButton
+              icon={searchOpen ? "magnify-close" : "magnify"}
+              size={22}
+              iconColor={colors.primary}
+              onPress={() => { setSearchOpen((v) => !v); if (searchOpen) setShopSearch(''); }}
+            />
+          )}
           {shoppingList.length > 0 && (
             <IconButton
               icon="share-variant-outline"
@@ -420,7 +443,23 @@ export default function ShopScreen() {
           </Menu>
         </View>
 
-        <ShoppingProgress checked={checkedCount} total={total} colors={colors} />
+        <ShoppingProgress checked={checkedCount} total={total} colors={colors} onFinish={clearCheckedItems} />
+
+        {searchOpen && (
+          <TextInput
+            mode="outlined"
+            placeholder="Search items…"
+            value={shopSearch}
+            onChangeText={setShopSearch}
+            left={<TextInput.Icon icon="magnify" />}
+            right={shopSearch ? <TextInput.Icon icon="close" onPress={() => setShopSearch('')} /> : null}
+            dense
+            autoFocus
+            style={{ marginHorizontal: 12, marginBottom: 6 }}
+            outlineColor={colors.cardBorder}
+            activeOutlineColor={colors.primary}
+          />
+        )}
       </Surface>
 
       {/* Aisle quick-jump bar */}
@@ -668,7 +707,7 @@ export default function ShopScreen() {
                 </Text>
               </Surface>
             )}
-            {[...shoppingList].sort((a, b) => Number(a.checked) - Number(b.checked)).map((item) => (
+            {[...filteredList].sort((a, b) => Number(a.checked) - Number(b.checked)).map((item) => (
             <SwipeableRow
               key={item.id}
               onDelete={() => removeFromList(item.id)}
@@ -956,6 +995,7 @@ function ShoppingItem({
     item_name: string;
     item_brand?: string | null;
     item_quantity?: string | null;
+    item_image_url?: string | null;
     quantity: number;
     checked: boolean;
   };
@@ -983,6 +1023,13 @@ function ShoppingItem({
     <View style={[styles.itemCard, getCardStyle(colors) as any, { opacity: item.checked ? 0.65 : 1 }]}>
       {/* Left stripe */}
       <View style={[styles.itemStripe, { backgroundColor: colors.stripe }]} />
+      {/* Thumbnail */}
+      {!!item.item_image_url && (
+        <Image
+          source={{ uri: item.item_image_url }}
+          style={{ width: 32, height: 32, borderRadius: 6, marginLeft: 4, marginRight: 2 }}
+        />
+      )}
       {/* Existing row content */}
       <View style={styles.itemRowInner}>
         <Animated.View style={checkAnimStyle}>
@@ -1035,7 +1082,7 @@ function ShoppingItem({
 
 // ─── Shopping Progress Bar (W2) ───────────────────────────────────────────────
 
-function ShoppingProgress({ checked, total, colors }: { checked: number; total: number; colors: Colors }) {
+function ShoppingProgress({ checked, total, colors, onFinish }: { checked: number; total: number; colors: Colors; onFinish: () => void }) {
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -1048,11 +1095,13 @@ function ShoppingProgress({ checked, total, colors }: { checked: number; total: 
 
   if (total === 0) return null;
 
+  const allDone = checked === total;
+
   return (
     <View style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
         <Text style={{ fontSize: 11, color: colors.textLight, fontWeight: '600' }}>
-          {checked === total ? '✓ All done!' : `${checked} of ${total} items`}
+          {allDone ? '✓ All done!' : `${checked} of ${total} items`}
         </Text>
         <Text style={{ fontSize: 11, color: colors.textLight }}>
           {total > 0 ? Math.round((checked / total) * 100) : 0}%
@@ -1065,6 +1114,18 @@ function ShoppingProgress({ checked, total, colors }: { checked: number; total: 
           borderRadius: 2,
         }, barStyle]} />
       </View>
+      {allDone && (
+        <Button
+          mode="contained"
+          onPress={onFinish}
+          style={{ marginTop: 8, borderRadius: 8 }}
+          buttonColor={colors.accent}
+          textColor="#fff"
+          icon="check-circle-outline"
+        >
+          Finish Trip
+        </Button>
+      )}
     </View>
   );
 }
