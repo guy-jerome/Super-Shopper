@@ -56,10 +56,11 @@ export async function lookupBarcode(
   barcode: string,
 ): Promise<FoodSuggestion | null> {
   try {
-    const res = await fetch(
-      `${BASE}/api/v0/product/${barcode}.json?fields=${FIELDS}&lc=en`,
-      { headers: HEADERS },
-    );
+    const url =
+      Platform.OS === "web"
+        ? `/api/barcode-lookup?barcode=${encodeURIComponent(barcode)}`
+        : `${BASE}/api/v0/product/${barcode}.json?fields=${FIELDS}&lc=en`;
+    const res = await fetch(url, { headers: HEADERS });
     const data = await res.json();
     const productName =
       data.product?.product_name_en || data.product?.product_name;
